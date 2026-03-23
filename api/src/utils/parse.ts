@@ -147,7 +147,10 @@ export function parseYearHighLow(xml: string): {
     if (highMatch && lowMatch) {
       const parseShortDate = (dateStr: string) => {
         const [mm, dd, yy] = dateStr.split('/');
-        return `20${yy}-${mm}-${dd}`;
+        const yearNum = parseInt(yy, 10);
+        const currentYearLast2 = new Date().getFullYear() % 100;
+        const fullYear = yearNum > (currentYearLast2 + 30) ? 1900 + yearNum : 2000 + yearNum;
+        return `${fullYear}-${mm}-${dd}`;
       };
       
       results.push({
