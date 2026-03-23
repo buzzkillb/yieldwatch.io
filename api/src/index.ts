@@ -48,6 +48,7 @@ const app = new Elysia()
   })
   .get('/health', () => ({
     status: 'ok',
+    timestamp: new Date().toISOString(),
   }))
   .get('/', async () => {
     try {
