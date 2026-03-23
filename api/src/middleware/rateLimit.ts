@@ -13,19 +13,32 @@ const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX || '100');
 const WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000');
 const CLEANUP_INTERVAL_MS = 30000;
 
+const TRUSTED_PROXY_IPS = new Set<string>(
+  process.env.TRUSTED_PROXY_IPS?.split(',').map(ip => ip.trim()) || []
+);
+
+function getDirectIP(context: Context): string | null {
+  return context.headers['x-real-ip'] || null;
+}
+
 function getClientIP(context: Context): string {
-  const forwarded = context.headers['x-forwarded-for'];
-  if (forwarded) {
-    const ips = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-    const firstIP = ips.split(',')[0].trim();
-    if (firstIP && isValidPublicIP(firstIP)) {
-      return firstIP;
+  const directIP = getDirectIP(context);
+  
+  if (TRUSTED_PROXY_IPS.size > 0 && directIP && TRUSTED_PROXY_IPS.has(directIP)) {
+    const forwarded = context.headers['x-forwarded-for'];
+    if (forwarded) {
+      const ips = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+      const firstIP = ips.split(',')[0].trim();
+      if (firstIP && isValidPublicIP(firstIP)) {
+        return firstIP;
+      }
     }
   }
-  const realIP = context.headers['x-real-ip'];
-  if (realIP && isValidPublicIP(realIP)) {
-    return realIP;
+  
+  if (directIP && isValidPublicIP(directIP)) {
+    return directIP;
   }
+  
   return 'unknown';
 }
 
@@ -36,6 +49,8 @@ function isValidPublicIP(ip: string): boolean {
 }
 
 function isPrivateIP(ip: string): boolean {
+  if (!ip) return true;
+  
   if (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost') return true;
   if (ip.startsWith('10.')) return true;
   if (ip.startsWith('192.168.')) return true;
@@ -43,6 +58,10 @@ function isPrivateIP(ip: string): boolean {
     const second = parseInt(ip.split('.')[1], 10);
     if (second >= 16 && second <= 31) return true;
   }
+  if (ip.startsWith('fc') || ip.startsWith('fd')) return true;
+  if (ip.startsWith('fe80:')) return true;
+  if (ip === '::ffff:127.0.0.1') return true;
+  
   return false;
 }
 

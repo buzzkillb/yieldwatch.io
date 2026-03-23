@@ -1,4 +1,17 @@
 http:
+  middlewares:
+    security-headers:
+      headers:
+        sslRedirect: true
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        customFrameOptionsValue: "SAMEORIGIN"
+
   routers:
     treasury:
       rule: "Host(`${DOMAIN}`)"
@@ -7,6 +20,8 @@ http:
         - websecure
       tls:
         certResolver: cloudflare
+      middlewares:
+        - security-headers
 
   services:
     treasury-api:
