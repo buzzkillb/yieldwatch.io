@@ -362,6 +362,9 @@ async function main(): Promise<void> {
       if (!hasData) {
         console.log(`[Scheduler] Failed to import historical data, will try daily XML feed`);
       }
+      
+      console.log(`[Scheduler] Fetching latest XML data to ensure up-to-date rates...`);
+      await checkAndUpdate();
     } else {
       console.log(`[Scheduler] Database has existing data, starting normal update loop`);
     }
