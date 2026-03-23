@@ -86,7 +86,17 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
     };
   })
   .get('/', async ({ query }) => {
-    const { from, to, maturity } = query as { from?: string; to?: string; maturity?: string };
+    const { from, to, maturity, limit, offset } = query as { 
+      from?: string; 
+      to?: string; 
+      maturity?: string;
+      limit?: string;
+      offset?: string;
+    };
+
+    const MAX_LIMIT = 5000;
+    const parsedLimit = Math.min(parseInt(limit || '1000') || 1000, MAX_LIMIT);
+    const parsedOffset = Math.max(parseInt(offset || '0') || 0, 0);
 
     if (from && !isValidDate(from)) {
       return {
@@ -144,7 +154,9 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
       })
       .from(schema.yieldCurveRates)
       .where(whereClause)
-      .orderBy(asc(schema.yieldCurveRates.date), asc(schema.yieldCurveRates.maturity));
+      .orderBy(asc(schema.yieldCurveRates.date), asc(schema.yieldCurveRates.maturity))
+      .limit(parsedLimit)
+      .offset(parsedOffset);
 
     if (data.length === 0) {
       return {
@@ -184,6 +196,9 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
         to: to || 'latest',
         maturity: maturity || 'all',
         count: timeSeriesData.length,
+        limit: parsedLimit,
+        offset: parsedOffset,
+        hasMore: timeSeriesData.length === parsedLimit,
       },
     };
   });
