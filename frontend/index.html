@@ -54,6 +54,22 @@
       border-bottom: 1px solid var(--border-color);
     }
 
+    .header-nav {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .header-nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    .header-nav a:hover {
+      color: var(--accent);
+    }
+
     .logo {
       display: flex;
       align-items: center;
@@ -494,6 +510,9 @@
           <span>Daily Par Yield Curve Rates</span>
         </div>
       </div>
+      <nav class="header-nav" aria-label="Main navigation">
+        <a href="/api-docs">API Docs</a>
+      </nav>
       <div class="api-info" role="status" aria-live="polite">
         <span id="lastUpdated" aria-label="Last updated">Loading...</span>
         <span id="dataStatus" class="status">
