@@ -58,6 +58,21 @@ const app = new Elysia()
         headers: { 'Content-Type': 'text/html' },
       });
     }
+  })
+  .get('/api-docs', async () => {
+    try {
+      const docsPath = join(process.cwd(), 'public/api-docs.html');
+      const html = readFileSync(docsPath, 'utf-8');
+      return new Response(html, {
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+        },
+      });
+    } catch {
+      return new Response('<html><body><h1>API Documentation</h1><p>Documentation not found.</p></body></html>', {
+        headers: { 'Content-Type': 'text/html' },
+      });
+    }
   });
 
 const port = parseInt(process.env.PORT || '3000');
