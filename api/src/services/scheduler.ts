@@ -2,7 +2,14 @@ import { db, schema } from '../db';
 import { eq } from 'drizzle-orm';
 import { fetchTreasuryYieldCurve, fetchLatestDate } from './fetcher';
 
-const CHECK_INTERVAL_MS = parseInt(process.env.SCHEDULER_CHECK_INTERVAL_MS || '900000', 10);
+const CHECK_INTERVAL_MS = (() => {
+  const val = parseInt(process.env.SCHEDULER_CHECK_INTERVAL_MS || '900000', 10);
+  if (isNaN(val) || val < 60000 || val > 3600000) {
+    console.warn('[Scheduler] Invalid SCHEDULER_CHECK_INTERVAL_MS, using default 900000 (15min)');
+    return 900000;
+  }
+  return val;
+})();
 const CRON_HOUR = parseInt(process.env.SCHEDULER_CRON_HOUR || '16', 10);
 const CRON_MINUTE = parseInt(process.env.SCHEDULER_CRON_MINUTE || '30', 10);
 
@@ -21,8 +28,8 @@ const CSV_COLUMNS: Record<string, string> = {
   '3Mo': '3MO', '3 MO': '3MO', '3 MONTH': '3MO',
   '4Mo': '4MO', '4 MO': '4MO', '4 MONTH': '4MO',
   '6Mo': '6MO', '6 MO': '6MO', '6 MONTH': '6MO',
-  '1Mo': '1MO', '1 MO': '1MO', '1 MONTH': '1MO',
-  '1.5Mo': '1.5MO', '1.5 MO': '1.5MO', '1.5 Month': '1.5MO',
+  '1 Mo': '4WK', '1Mo': '4WK', '1 MO': '4WK', '1 MONTH': '4WK', '1MONTH': '4WK',
+  '1.5 Mo': '6WK', '1.5Mo': '6WK', '1.5 MO': '6WK', '1.5 Month': '6WK', '1.5MONTH': '6WK',
   '1Yr': '1YR', '1 YR': '1YR', '1 YEAR': '1YR',
   '2Yr': '2YR', '2 YR': '2YR', '2 YEAR': '2YR',
   '3Yr': '3YR', '3 YR': '3YR', '3 YEAR': '3YR',
@@ -362,6 +369,9 @@ async function main(): Promise<void> {
       if (!hasData) {
         console.log(`[Scheduler] Failed to import historical data, will try daily XML feed`);
       }
+      
+      console.log(`[Scheduler] Fetching latest XML data to ensure up-to-date rates...`);
+      await checkAndUpdate();
     } else {
       console.log(`[Scheduler] Database has existing data, starting normal update loop`);
     }

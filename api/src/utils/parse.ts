@@ -48,7 +48,9 @@ function parseXmlDate(dateStr: string): string {
     JUL: '07', AUG: '08', SEP: '09', OCT: '10', NOV: '11', DEC: '12'
   };
   const month = months[monthStr] || '01';
-  return `${20}${year}-${month}-${day}`;
+  const yearNum = parseInt(year, 10);
+  const fullYear = yearNum >= 50 ? 1900 + yearNum : 2000 + yearNum;
+  return `${fullYear}-${month}-${day}`;
 }
 
 export function parseYieldXml(xml: string): ParsedYieldCurve[] {
@@ -142,17 +144,19 @@ export function parseYearHighLow(xml: string): {
     const lowMatch = lowRegex.exec(xml);
     
     if (highMatch && lowMatch) {
-      const parseDate = (dateStr: string) => {
+      const parseShortDate = (dateStr: string) => {
         const [mm, dd, yy] = dateStr.split('/');
-        return `20${yy}-${mm}-${dd}`;
+        const yearNum = parseInt(yy, 10);
+        const fullYear = yearNum >= 50 ? 1900 + yearNum : 2000 + yearNum;
+        return `${fullYear}-${mm}-${dd}`;
       };
       
       results.push({
         maturity: value.label,
         yearHigh: parseFloat(highMatch[1]),
-        yearHighDate: parseDate(highMatch[2]),
+        yearHighDate: parseShortDate(highMatch[2]),
         yearLow: parseFloat(lowMatch[1]),
-        yearLowDate: parseDate(lowMatch[2]),
+        yearLowDate: parseShortDate(lowMatch[2]),
       });
     }
   }

@@ -17,12 +17,18 @@ if (process.env.ALLOWED_ORIGINS) {
   allowedOrigins = ['*'];
 }
 
+// NOTE: 'unsafe-inline' is required for Chart.js dynamic initialization in the dashboard.
+  // Consider migrating to CSP nonces in future refactoring for improved XSS protection.
 const securityHeaders = {
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
   'X-XSS-Protection': '1; mode=block',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'",
+  'Cross-Origin-Embedder-Policy': 'require-corp',
+  'Cross-Origin-Opener-Policy': 'same-origin',
 };
 
 const app = new Elysia()
@@ -55,6 +61,21 @@ const app = new Elysia()
       });
     } catch {
       return new Response('<html><body><h1>Treasury Dashboard</h1><p>Frontend not found. Please build the frontend first.</p></body></html>', {
+        headers: { 'Content-Type': 'text/html' },
+      });
+    }
+  })
+  .get('/api-docs', async () => {
+    try {
+      const docsPath = join(process.cwd(), 'public/api-docs.html');
+      const html = readFileSync(docsPath, 'utf-8');
+      return new Response(html, {
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+        },
+      });
+    } catch {
+      return new Response('<html><body><h1>API Documentation</h1><p>Documentation not found.</p></body></html>', {
         headers: { 'Content-Type': 'text/html' },
       });
     }

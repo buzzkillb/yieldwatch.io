@@ -348,6 +348,28 @@
       font-size: 0.8rem;
     }
 
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+
+    .footer-links .divider {
+      color: var(--border-color);
+    }
+
     footer a {
       color: var(--accent);
       text-decoration: none;
@@ -494,13 +516,6 @@
           <span>Daily Par Yield Curve Rates</span>
         </div>
       </div>
-      <div class="api-info" role="status" aria-live="polite">
-        <span id="lastUpdated" aria-label="Last updated">Loading...</span>
-        <span id="dataStatus" class="status">
-          <span class="status-dot" id="statusDot" aria-hidden="true"></span>
-          <span id="statusText">Connecting...</span>
-        </span>
-      </div>
     </header>
 
     <main>
@@ -534,7 +549,11 @@
     </main>
 
     <footer>
-      <p>Data source: <a href="https://home.treasury.gov" target="_blank" rel="noopener noreferrer">U.S. Department of the Treasury</a></p>
+      <div class="footer-links">
+        <a href="/api-docs">API Documentation</a>
+        <span class="divider">|</span>
+        <a href="https://home.treasury.gov" target="_blank" rel="noopener noreferrer">U.S. Treasury</a>
+      </div>
       <p>Updates daily at approximately 3:30 PM ET</p>
     </footer>
   </div>
@@ -566,16 +585,10 @@
     }
 
     function setLoading(isLoading) {
-      const statusDot = document.getElementById('statusDot');
-      const statusText = document.getElementById('statusText');
       const chartLoading = document.getElementById('chartLoading');
-      
       if (isLoading) {
-        statusDot.className = 'status-dot loading';
-        statusText.textContent = 'Loading...';
         chartLoading.classList.remove('hidden');
       } else {
-        statusDot.className = 'status-dot';
         chartLoading.classList.add('hidden');
       }
     }
@@ -643,19 +656,7 @@
         
         if (data.success && data.data) {
           displayLatestRates(data.data);
-          document.getElementById('statusDot').classList.remove('error');
-          document.getElementById('statusText').textContent = 'Live';
-          
           latestDataDate = new Date(data.data.date + 'T00:00:00Z');
-          const localDate = latestDataDate.toLocaleDateString('en-US', {
-            weekday: 'short',
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-          });
-          document.getElementById('lastUpdated').textContent = 'Last Update: ' + localDate;
-          
           updateAvailableRanges();
           fetchHistoricalData();
         } else {
@@ -730,11 +731,12 @@
 
       const from = fromDate ? fromDate.toISOString().split('T')[0] : '1990-01-01';
       const to = new Date().toISOString().split('T')[0];
+      const reqLimit = currentRange === 'all' ? '150000' : '10000';
 
       setLoading(true);
       
       try {
-        const response = await fetch(`/api/rates?from=${from}&to=${to}`);
+        const response = await fetch(`/api/rates?from=${from}&to=${to}&limit=${reqLimit}`);
         const data = await response.json();
         
         if (data.success && data.data) {
@@ -942,8 +944,6 @@
     }
 
     function showError(message) {
-      document.getElementById('statusDot').classList.add('error');
-      document.getElementById('statusText').textContent = 'Error';
       document.getElementById('ratesContainer').innerHTML = `
         <div class="error-message" role="alert">
           <p>${message}</p>
