@@ -13,6 +13,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-treasury}
       NODE_ENV: production
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
 
   scheduler:
     environment:
@@ -22,6 +25,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-treasury}
       NODE_ENV: production
+      CRON_TZ: ${CRON_TZ:-America/New_York}
+      SCHEDULER_CRON_HOUR: ${SCHEDULER_CRON_HOUR:-16}
+      SCHEDULER_CRON_MINUTE: ${SCHEDULER_CRON_MINUTE:-30}
 
   traefik:
     image: traefik:v3.0
