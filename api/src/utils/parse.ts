@@ -142,7 +142,7 @@ export function parseYearHighLow(xml: string): {
     const lowMatch = lowRegex.exec(xml);
     
     if (highMatch && lowMatch) {
-      const parseDate = (dateStr: string) => {
+      const parseShortDate = (dateStr: string) => {
         const [mm, dd, yy] = dateStr.split('/');
         return `20${yy}-${mm}-${dd}`;
       };
@@ -150,9 +150,9 @@ export function parseYearHighLow(xml: string): {
       results.push({
         maturity: value.label,
         yearHigh: parseFloat(highMatch[1]),
-        yearHighDate: parseDate(highMatch[2]),
+        yearHighDate: parseShortDate(highMatch[2]),
         yearLow: parseFloat(lowMatch[1]),
-        yearLowDate: parseDate(lowMatch[2]),
+        yearLowDate: parseShortDate(lowMatch[2]),
       });
     }
   }

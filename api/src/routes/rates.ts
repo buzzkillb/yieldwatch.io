@@ -78,6 +78,10 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
         yearHighDate: s.yearHighDate,
         yearLow: parseFloat(s.yearLow || '0'),
         yearLowDate: s.yearLowDate,
+        allTimeHigh: parseFloat(s.allTimeHigh || '0'),
+        allTimeHighDate: s.allTimeHighDate,
+        allTimeLow: parseFloat(s.allTimeLow || '0'),
+        allTimeLowDate: s.allTimeLowDate,
       })),
     };
   })

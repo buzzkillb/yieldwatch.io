@@ -12,7 +12,7 @@ if (!user || !password) {
   throw new Error('POSTGRES_USER and POSTGRES_PASSWORD environment variables must be set');
 }
 
-const connectionString = `postgres://${user}:${password}@${host}:${port}/${database}`;
+const connectionString = `postgres://${user}:${encodeURIComponent(password)}@${host}:${port}/${database}`;
 
 const client = postgres(connectionString);
 export const db = drizzle(client, { schema });
