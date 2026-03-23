@@ -54,22 +54,6 @@
       border-bottom: 1px solid var(--border-color);
     }
 
-    .header-nav {
-      display: flex;
-      gap: 1.5rem;
-    }
-
-    .header-nav a {
-      color: var(--text-secondary);
-      text-decoration: none;
-      font-size: 0.9rem;
-      transition: color 0.2s;
-    }
-
-    .header-nav a:hover {
-      color: var(--accent);
-    }
-
     .logo {
       display: flex;
       align-items: center;
@@ -364,6 +348,28 @@
       font-size: 0.8rem;
     }
 
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+
+    .footer-links .divider {
+      color: var(--border-color);
+    }
+
     footer a {
       color: var(--accent);
       text-decoration: none;
@@ -510,9 +516,6 @@
           <span>Daily Par Yield Curve Rates</span>
         </div>
       </div>
-      <nav class="header-nav" aria-label="Main navigation">
-        <a href="/api-docs">API Docs</a>
-      </nav>
       <div class="api-info" role="status" aria-live="polite">
         <span id="lastUpdated" aria-label="Last updated">Loading...</span>
         <span id="dataStatus" class="status">
@@ -553,7 +556,11 @@
     </main>
 
     <footer>
-      <p>Data source: <a href="https://home.treasury.gov" target="_blank" rel="noopener noreferrer">U.S. Department of the Treasury</a></p>
+      <div class="footer-links">
+        <a href="/api-docs">API Documentation</a>
+        <span class="divider">|</span>
+        <a href="https://home.treasury.gov" target="_blank" rel="noopener noreferrer">U.S. Treasury</a>
+      </div>
       <p>Updates daily at approximately 3:30 PM ET</p>
     </footer>
   </div>
