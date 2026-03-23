@@ -2,7 +2,14 @@ import { db, schema } from '../db';
 import { eq } from 'drizzle-orm';
 import { fetchTreasuryYieldCurve, fetchLatestDate } from './fetcher';
 
-const CHECK_INTERVAL_MS = parseInt(process.env.SCHEDULER_CHECK_INTERVAL_MS || '900000', 10);
+const CHECK_INTERVAL_MS = (() => {
+  const val = parseInt(process.env.SCHEDULER_CHECK_INTERVAL_MS || '900000', 10);
+  if (isNaN(val) || val < 60000 || val > 3600000) {
+    console.warn('[Scheduler] Invalid SCHEDULER_CHECK_INTERVAL_MS, using default 900000 (15min)');
+    return 900000;
+  }
+  return val;
+})();
 const CRON_HOUR = parseInt(process.env.SCHEDULER_CRON_HOUR || '16', 10);
 const CRON_MINUTE = parseInt(process.env.SCHEDULER_CRON_MINUTE || '30', 10);
 

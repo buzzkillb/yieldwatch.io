@@ -125,7 +125,7 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
     if (maturity && !VALID_MATURITIES.has(maturity.toUpperCase())) {
       return {
         success: false,
-        error: `Invalid maturity. Valid options: ${Array.from(VALID_MATURITIES).join(', ')}`,
+        error: 'Invalid maturity parameter. See /api-docs for valid options.',
         data: null,
       };
     }

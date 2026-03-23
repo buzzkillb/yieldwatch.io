@@ -17,6 +17,8 @@ if (process.env.ALLOWED_ORIGINS) {
   allowedOrigins = ['*'];
 }
 
+// NOTE: 'unsafe-inline' is required for Chart.js dynamic initialization in the dashboard.
+  // Consider migrating to CSP nonces in future refactoring for improved XSS protection.
 const securityHeaders = {
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',

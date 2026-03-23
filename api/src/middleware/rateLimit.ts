@@ -7,6 +7,8 @@ interface RateLimitEntry {
   resetAt: number;
 }
 
+// NOTE: In-memory rate limiting. For horizontal scaling with multiple instances,
+// migrate to Redis for distributed rate limit tracking.
 const MAX_STORE_SIZE = 10000;
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
@@ -22,22 +24,29 @@ function getDirectIP(context: Context): string | null {
   return context.headers['x-real-ip'] || null;
 }
 
+function getSocketIP(context: Context): string | null {
+  return context.request?.socket?.remoteAddress || null;
+}
+
 function getClientIP(context: Context): string {
-  const directIP = getDirectIP(context);
+  const socketIP = getSocketIP(context);
   
-  if (TRUSTED_PROXY_IPS.size > 0 && directIP && TRUSTED_PROXY_IPS.has(directIP)) {
-    const forwarded = context.headers['x-forwarded-for'];
-    if (forwarded) {
-      const ips = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-      const firstIP = ips.split(',')[0].trim();
-      if (firstIP && isValidPublicIP(firstIP)) {
-        return firstIP;
+  if (TRUSTED_PROXY_IPS.size > 0) {
+    const directIP = getDirectIP(context);
+    if (directIP && TRUSTED_PROXY_IPS.has(directIP)) {
+      const forwarded = context.headers['x-forwarded-for'];
+      if (forwarded) {
+        const ips = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+        const firstIP = ips.split(',')[0].trim();
+        if (firstIP && isValidPublicIP(firstIP)) {
+          return firstIP;
+        }
       }
     }
   }
   
-  if (directIP && isValidPublicIP(directIP)) {
-    return directIP;
+  if (socketIP && isValidPublicIP(socketIP)) {
+    return socketIP;
   }
   
   return 'unknown';
