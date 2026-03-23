@@ -1,0 +1,15 @@
+http:
+  routers:
+    treasury:
+      rule: "Host(`${DOMAIN}`)"
+      service: treasury-api
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: cloudflare
+
+  services:
+    treasury-api:
+      loadBalancer:
+        servers:
+          - url: "http://treasury-api:3000"

@@ -1,0 +1,30 @@
+{
+  "name": "treasury-api",
+  "version": "1.0.0",
+  "description": "U.S. Treasury Yield Curve API",
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "build": "bun build src/index.ts --outdir ./dist --target bun",
+    "start": "bun run src/index.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "scheduler": "bun run src/services/scheduler.ts",
+    "seed": "bun run src/services/seed.ts"
+  },
+  "dependencies": {
+    "@elysiajs/cors": "^1.0.0",
+    "@elysiajs/html": "^1.0.0",
+    "drizzle-orm": "^0.38.0",
+    "elysia": "^1.0.0",
+    "postgres": "^3.4.0",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/xml2js": "^0.4.14",
+    "bun-types": "^1.0.0",
+    "drizzle-kit": "^0.30.0",
+    "typescript": "^5.7.0"
+  }
+}
