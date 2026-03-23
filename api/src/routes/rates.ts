@@ -42,12 +42,6 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
       rate: parseFloat(r.rate),
     }));
 
-    const stats = await db
-      .select()
-      .from(schema.rateStats)
-      .where(eq(schema.rateStats.maturity, rates[0]?.maturity || '10YR'))
-      .limit(1);
-
     return {
       success: true,
       data: {
@@ -59,12 +53,6 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
           day: 'numeric',
         }),
         rates,
-        stats: stats[0] ? {
-          yearHigh: parseFloat(stats[0].yearHigh || '0'),
-          yearHighDate: stats[0].yearHighDate,
-          yearLow: parseFloat(stats[0].yearLow || '0'),
-          yearLowDate: stats[0].yearLowDate,
-        } : null,
       },
     };
   })
@@ -188,7 +176,7 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
       success: true,
       data: timeSeriesData,
       meta: {
-        from: from || ' earliest',
+        from: from || 'earliest',
         to: to || 'latest',
         maturity: maturity || 'all',
         count: timeSeriesData.length,

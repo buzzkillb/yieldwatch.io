@@ -1,5 +1,6 @@
 import { Elysia } from 'elysia';
 import type { Context } from 'elysia';
+import { createHash } from 'node:crypto';
 
 interface RateLimitEntry {
   count: number;
@@ -13,10 +14,18 @@ const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX || '100');
 const WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000');
 const CLEANUP_INTERVAL_MS = 30000;
 
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const TRUSTED_PROXY_IPS = new Set<string>(
+  process.env.TRUSTED_PROXY_IPS?.split(',').map(ip => ip.trim()) || []
+);
+
+function getDirectIP(context: Context): string | null {
+  return context.headers['x-real-ip'] || null;
+}
 
 function getClientIP(context: Context): string {
-  if (IS_PRODUCTION) {
+  const directIP = getDirectIP(context);
+  
+  if (TRUSTED_PROXY_IPS.size > 0 && directIP && TRUSTED_PROXY_IPS.has(directIP)) {
     const forwarded = context.headers['x-forwarded-for'];
     if (forwarded) {
       const ips = Array.isArray(forwarded) ? forwarded[0] : forwarded;
@@ -25,16 +34,13 @@ function getClientIP(context: Context): string {
         return firstIP;
       }
     }
-    const realIP = context.headers['x-real-ip'];
-    if (realIP && isValidPublicIP(realIP)) {
-      return realIP;
-    }
   }
-  const remoteAddr = context.headers['x-forwarded-peer'] || 
-                     context.headers['fly-client-ip'] ||
-                     context.request.headers.get('host')?.split(':')[0] ||
-                     'unknown';
-  return typeof remoteAddr === 'string' ? remoteAddr.split(',')[0].trim() : 'unknown';
+  
+  if (directIP && isValidPublicIP(directIP)) {
+    return directIP;
+  }
+  
+  return 'unknown';
 }
 
 function isValidPublicIP(ip: string): boolean {
@@ -44,6 +50,8 @@ function isValidPublicIP(ip: string): boolean {
 }
 
 function isPrivateIP(ip: string): boolean {
+  if (!ip) return true;
+  
   if (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost') return true;
   if (ip.startsWith('10.')) return true;
   if (ip.startsWith('192.168.')) return true;
@@ -51,7 +59,15 @@ function isPrivateIP(ip: string): boolean {
     const second = parseInt(ip.split('.')[1], 10);
     if (second >= 16 && second <= 31) return true;
   }
+  if (ip.startsWith('fc') || ip.startsWith('fd')) return true;
+  if (ip.startsWith('fe80:')) return true;
+  if (ip === '::ffff:127.0.0.1') return true;
+  
   return false;
+}
+
+function hashString(str: string): string {
+  return createHash('sha256').update(str).digest('hex').substring(0, 16);
 }
 
 function cleanExpiredEntries(): void {
@@ -76,21 +92,24 @@ setInterval(cleanExpiredEntries, CLEANUP_INTERVAL_MS);
 export const rateLimit = () => {
   return (app: Elysia) => {
     return app.onBeforeHandle(async (context) => {
-      const ip = getClientIP(context);
-      if (ip === 'unknown') {
-        return;
+      let identifier = getClientIP(context);
+      
+      if (identifier === 'unknown') {
+        const userAgent = context.headers['user-agent'] || '';
+        const forwardedFor = context.headers['x-forwarded-for'] || '';
+        identifier = `fingerprint:${hashString(userAgent + forwardedFor)}`;
       }
       
       const now = Date.now();
       
-      let entry = rateLimitStore.get(ip);
+      let entry = rateLimitStore.get(identifier);
       
       if (!entry || entry.resetAt <= now) {
         entry = {
           count: 0,
           resetAt: now + WINDOW_MS,
         };
-        rateLimitStore.set(ip, entry);
+        rateLimitStore.set(identifier, entry);
       }
       
       entry.count++;

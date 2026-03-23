@@ -6,22 +6,40 @@ import { ratesRoutes } from './routes/rates';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
-  : process.env.NODE_ENV === 'production' 
-    ? [] 
-    : ['*'];
+const isProduction = process.env.NODE_ENV === 'production';
+let allowedOrigins: string[] | true;
+
+if (process.env.ALLOWED_ORIGINS) {
+  allowedOrigins = process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim());
+} else if (isProduction) {
+  throw new Error('ALLOWED_ORIGINS must be set in production');
+} else {
+  allowedOrigins = ['*'];
+}
+
+const securityHeaders = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
+};
 
 const app = new Elysia()
   .use(cors({
-    origin: allowedOrigins.includes('*') ? true : allowedOrigins,
+    origin: allowedOrigins,
     methods: ['GET'],
     headers: ['Content-Type'],
-    credentials: allowedOrigins.includes('*') ? true : false,
+    credentials: allowedOrigins === true,
   }))
   .use(html())
   .use(rateLimit())
   .use(ratesRoutes)
+  .onBeforeHandle(({ set }) => {
+    for (const [key, value] of Object.entries(securityHeaders)) {
+      set.headers[key] = value;
+    }
+  })
   .get('/health', () => ({
     status: 'ok',
     timestamp: new Date().toISOString(),

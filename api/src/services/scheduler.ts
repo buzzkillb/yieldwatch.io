@@ -193,7 +193,8 @@ function getCronTime(): { hour: number; minute: number } {
 }
 
 function shouldRunNow(): boolean {
-  const { hour, minute } = getCronTime();
+  const cronHour = CRON_HOUR;
+  const cronMinute = CRON_MINUTE;
   const now = new Date();
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: process.env.CRON_TZ || 'America/New_York',
@@ -202,10 +203,14 @@ function shouldRunNow(): boolean {
     hour12: false,
   });
   const parts = formatter.formatToParts(now);
-  const currentHour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
-  const currentMinute = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+  const currentHour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
+  const currentMinute = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
   
-  if (currentHour > hour || (currentHour === hour && currentMinute >= minute)) {
+  if (isNaN(currentHour) || isNaN(currentMinute)) {
+    return false;
+  }
+  
+  if (currentHour > cronHour || (currentHour === cronHour && currentMinute >= cronMinute)) {
     return true;
   }
   return false;

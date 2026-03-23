@@ -518,6 +518,9 @@
             <button id="btn3m" class="active" aria-pressed="true" aria-label="Show 3 month history">3M</button>
             <button id="btn6m" aria-pressed="false" aria-label="Show 6 month history">6M</button>
             <button id="btn1y" aria-pressed="false" aria-label="Show 1 year history">1Y</button>
+            <button id="btn2y" aria-pressed="false" aria-label="Show 2 year history">2Y</button>
+            <button id="btn5y" aria-pressed="false" aria-label="Show 5 year history">5Y</button>
+            <button id="btnAll" aria-pressed="false" aria-label="Show all available history">ALL</button>
           </div>
         </div>
         <div class="chart-wrapper">
@@ -549,7 +552,7 @@
     let chartData = { labels: [], datasets: [] };
     let activeMaturities = new Set(MATURITY_ORDER);
     let currentRange = '3m';
-    let availableRanges = { '3m': true, '6m': false, '1y': false };
+    let availableRanges = { '3m': true, '6m': true, '1y': true, '2y': true, '5y': true, 'all': true };
     let latestDataDate = null;
 
     function announceToScreenReader(message) {
@@ -584,22 +587,36 @@
       const threeMonthsAgo = new Date(now.setMonth(now.getMonth() - 3));
       const sixMonthsAgo = new Date(now.setMonth(now.getMonth() - 6));
       const oneYearAgo = new Date(now.setFullYear(now.getFullYear() - 1));
+      const twoYearsAgo = new Date(now.setFullYear(now.getFullYear() - 2));
+      const fiveYearsAgo = new Date(now.setFullYear(now.getFullYear() - 5));
       
       availableRanges['3m'] = latestDataDate >= threeMonthsAgo;
       availableRanges['6m'] = latestDataDate >= sixMonthsAgo;
       availableRanges['1y'] = latestDataDate >= oneYearAgo;
+      availableRanges['2y'] = latestDataDate >= twoYearsAgo;
+      availableRanges['5y'] = latestDataDate >= fiveYearsAgo;
+      availableRanges['all'] = true;
       
       const btn3m = document.getElementById('btn3m');
       const btn6m = document.getElementById('btn6m');
       const btn1y = document.getElementById('btn1y');
+      const btn2y = document.getElementById('btn2y');
+      const btn5y = document.getElementById('btn5y');
+      const btnAll = document.getElementById('btnAll');
       
       btn3m.disabled = !availableRanges['3m'];
       btn6m.disabled = !availableRanges['6m'];
       btn1y.disabled = !availableRanges['1y'];
+      btn2y.disabled = !availableRanges['2y'];
+      btn5y.disabled = !availableRanges['5y'];
+      btnAll.disabled = !availableRanges['all'];
       
       btn3m.title = availableRanges['3m'] ? 'Show 3 month history' : '3 month data not available';
       btn6m.title = availableRanges['6m'] ? 'Show 6 month history' : '6 month data not available';
       btn1y.title = availableRanges['1y'] ? 'Show 1 year history' : '1 year data not available';
+      btn2y.title = availableRanges['2y'] ? 'Show 2 year history' : '2 year data not available';
+      btn5y.title = availableRanges['5y'] ? 'Show 5 year history' : '5 year data not available';
+      btnAll.title = availableRanges['all'] ? 'Show all available history' : 'All data not available';
       
       if (!availableRanges[currentRange]) {
         if (availableRanges['3m']) {
@@ -608,6 +625,12 @@
           currentRange = '6m';
         } else if (availableRanges['1y']) {
           currentRange = '1y';
+        } else if (availableRanges['2y']) {
+          currentRange = '2y';
+        } else if (availableRanges['5y']) {
+          currentRange = '5y';
+        } else if (availableRanges['all']) {
+          currentRange = 'all';
         }
         setActiveButton('btn' + currentRange, true);
       }
@@ -695,11 +718,17 @@
         fromDate = new Date(now.setMonth(now.getMonth() - 3));
       } else if (currentRange === '6m') {
         fromDate = new Date(now.setMonth(now.getMonth() - 6));
-      } else {
+      } else if (currentRange === '1y') {
         fromDate = new Date(now.setFullYear(now.getFullYear() - 1));
+      } else if (currentRange === '2y') {
+        fromDate = new Date(now.setFullYear(now.getFullYear() - 2));
+      } else if (currentRange === '5y') {
+        fromDate = new Date(now.setFullYear(now.getFullYear() - 5));
+      } else {
+        fromDate = null;
       }
 
-      const from = fromDate.toISOString().split('T')[0];
+      const from = fromDate ? fromDate.toISOString().split('T')[0] : '1990-01-01';
       const to = new Date().toISOString().split('T')[0];
 
       setLoading(true);
@@ -803,7 +832,7 @@
             x: {
               type: 'time',
               time: {
-                unit: currentRange === '3m' ? 'week' : 'month',
+                unit: (currentRange === '3m' || currentRange === '6m') ? 'week' : 'month',
                 displayFormats: {
                   week: 'MMM d',
                   month: 'MMM yyyy'
@@ -969,6 +998,41 @@
         setActiveButton('btn1y', true);
         fetchHistoricalData();
         announceToScreenReader('Showing 1 year history');
+      }
+    };
+
+    document.getElementById('btn2y').onclick = () => {
+      if (currentRange !== '2y') {
+        if (!availableRanges['2y']) {
+          announceToScreenReader('2 year data not available.');
+          return;
+        }
+        currentRange = '2y';
+        setActiveButton('btn2y', true);
+        fetchHistoricalData();
+        announceToScreenReader('Showing 2 year history');
+      }
+    };
+
+    document.getElementById('btn5y').onclick = () => {
+      if (currentRange !== '5y') {
+        if (!availableRanges['5y']) {
+          announceToScreenReader('5 year data not available.');
+          return;
+        }
+        currentRange = '5y';
+        setActiveButton('btn5y', true);
+        fetchHistoricalData();
+        announceToScreenReader('Showing 5 year history');
+      }
+    };
+
+    document.getElementById('btnAll').onclick = () => {
+      if (currentRange !== 'all') {
+        currentRange = 'all';
+        setActiveButton('btnAll', true);
+        fetchHistoricalData();
+        announceToScreenReader('Showing all available history');
       }
     };
 
