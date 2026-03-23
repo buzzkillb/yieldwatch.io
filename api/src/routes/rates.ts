@@ -74,14 +74,14 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
       success: true,
       data: allStats.map(s => ({
         maturity: s.maturity,
-        yearHigh: parseFloat(s.yearHigh || '0'),
-        yearHighDate: s.yearHighDate,
-        yearLow: parseFloat(s.yearLow || '0'),
-        yearLowDate: s.yearLowDate,
-        allTimeHigh: parseFloat(s.allTimeHigh || '0'),
-        allTimeHighDate: s.allTimeHighDate,
-        allTimeLow: parseFloat(s.allTimeLow || '0'),
-        allTimeLowDate: s.allTimeLowDate,
+        yearHigh: s.yearHigh ? parseFloat(s.yearHigh) : null,
+        yearHighDate: s.yearHighDate || null,
+        yearLow: s.yearLow ? parseFloat(s.yearLow) : null,
+        yearLowDate: s.yearLowDate || null,
+        allTimeHigh: s.allTimeHigh ? parseFloat(s.allTimeHigh) : null,
+        allTimeHighDate: s.allTimeHighDate || null,
+        allTimeLow: s.allTimeLow ? parseFloat(s.allTimeLow) : null,
+        allTimeLowDate: s.allTimeLowDate || null,
       })),
     };
   })

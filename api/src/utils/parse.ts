@@ -48,7 +48,10 @@ function parseXmlDate(dateStr: string): string {
     JUL: '07', AUG: '08', SEP: '09', OCT: '10', NOV: '11', DEC: '12'
   };
   const month = months[monthStr] || '01';
-  return `${20}${year}-${month}-${day}`;
+  const yearNum = parseInt(year, 10);
+  const currentYearLast2 = new Date().getFullYear() % 100;
+  const fullYear = yearNum > (currentYearLast2 + 30) ? 1900 + yearNum : 2000 + yearNum;
+  return `${fullYear}-${month}-${day}`;
 }
 
 export function parseYieldXml(xml: string): ParsedYieldCurve[] {
