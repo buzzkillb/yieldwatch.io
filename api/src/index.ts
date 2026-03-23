@@ -17,6 +17,14 @@ if (process.env.ALLOWED_ORIGINS) {
   allowedOrigins = ['*'];
 }
 
+const securityHeaders = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
+};
+
 const app = new Elysia()
   .use(cors({
     origin: allowedOrigins,
@@ -27,6 +35,11 @@ const app = new Elysia()
   .use(html())
   .use(rateLimit())
   .use(ratesRoutes)
+  .onBeforeHandle(({ set }) => {
+    for (const [key, value] of Object.entries(securityHeaders)) {
+      set.headers[key] = value;
+    }
+  })
   .get('/health', () => ({
     status: 'ok',
     timestamp: new Date().toISOString(),

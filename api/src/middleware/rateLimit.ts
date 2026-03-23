@@ -1,5 +1,6 @@
 import { Elysia } from 'elysia';
 import type { Context } from 'elysia';
+import { createHash } from 'node:crypto';
 
 interface RateLimitEntry {
   count: number;
@@ -66,13 +67,7 @@ function isPrivateIP(ip: string): boolean {
 }
 
 function hashString(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(36);
+  return createHash('sha256').update(str).digest('hex').substring(0, 16);
 }
 
 function cleanExpiredEntries(): void {
