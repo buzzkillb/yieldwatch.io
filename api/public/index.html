@@ -585,16 +585,10 @@
     }
 
     function setLoading(isLoading) {
-      const statusDot = document.getElementById('statusDot');
-      const statusText = document.getElementById('statusText');
       const chartLoading = document.getElementById('chartLoading');
-      
       if (isLoading) {
-        statusDot.className = 'status-dot loading';
-        statusText.textContent = 'Loading...';
         chartLoading.classList.remove('hidden');
       } else {
-        statusDot.className = 'status-dot';
         chartLoading.classList.add('hidden');
       }
     }
@@ -662,19 +656,7 @@
         
         if (data.success && data.data) {
           displayLatestRates(data.data);
-          document.getElementById('statusDot').classList.remove('error');
-          document.getElementById('statusText').textContent = 'Live';
-          
           latestDataDate = new Date(data.data.date + 'T00:00:00Z');
-          const localDate = latestDataDate.toLocaleDateString('en-US', {
-            weekday: 'short',
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-          });
-          document.getElementById('lastUpdated').textContent = 'Last Update: ' + localDate;
-          
           updateAvailableRanges();
           fetchHistoricalData();
         } else {
