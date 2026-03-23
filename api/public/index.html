@@ -961,8 +961,6 @@
     }
 
     function showError(message) {
-      document.getElementById('statusDot').classList.add('error');
-      document.getElementById('statusText').textContent = 'Error';
       document.getElementById('ratesContainer').innerHTML = `
         <div class="error-message" role="alert">
           <p>${message}</p>
