@@ -94,7 +94,7 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
       offset?: string;
     };
 
-    const MAX_LIMIT = 5000;
+    const MAX_LIMIT = 200000;
     const parsedLimit = Math.min(parseInt(limit || '1000') || 1000, MAX_LIMIT);
     const parsedOffset = Math.max(parseInt(offset || '0') || 0, 0);
 

@@ -731,11 +731,12 @@
 
       const from = fromDate ? fromDate.toISOString().split('T')[0] : '1990-01-01';
       const to = new Date().toISOString().split('T')[0];
+      const reqLimit = currentRange === 'all' ? '150000' : '10000';
 
       setLoading(true);
       
       try {
-        const response = await fetch(`/api/rates?from=${from}&to=${to}`);
+        const response = await fetch(`/api/rates?from=${from}&to=${to}&limit=${reqLimit}`);
         const data = await response.json();
         
         if (data.success && data.data) {
