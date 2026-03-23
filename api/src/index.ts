@@ -6,18 +6,23 @@ import { ratesRoutes } from './routes/rates';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
-  : process.env.NODE_ENV === 'production' 
-    ? [] 
-    : ['*'];
+const isProduction = process.env.NODE_ENV === 'production';
+let allowedOrigins: string[] | true;
+
+if (process.env.ALLOWED_ORIGINS) {
+  allowedOrigins = process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim());
+} else if (isProduction) {
+  throw new Error('ALLOWED_ORIGINS must be set in production');
+} else {
+  allowedOrigins = ['*'];
+}
 
 const app = new Elysia()
   .use(cors({
-    origin: allowedOrigins.includes('*') ? true : allowedOrigins,
+    origin: allowedOrigins,
     methods: ['GET'],
     headers: ['Content-Type'],
-    credentials: allowedOrigins.includes('*') ? true : false,
+    credentials: allowedOrigins === true,
   }))
   .use(html())
   .use(rateLimit())

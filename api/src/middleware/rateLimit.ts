@@ -13,28 +13,20 @@ const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX || '100');
 const WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000');
 const CLEANUP_INTERVAL_MS = 30000;
 
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-
 function getClientIP(context: Context): string {
-  if (IS_PRODUCTION) {
-    const forwarded = context.headers['x-forwarded-for'];
-    if (forwarded) {
-      const ips = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-      const firstIP = ips.split(',')[0].trim();
-      if (firstIP && isValidPublicIP(firstIP)) {
-        return firstIP;
-      }
-    }
-    const realIP = context.headers['x-real-ip'];
-    if (realIP && isValidPublicIP(realIP)) {
-      return realIP;
+  const forwarded = context.headers['x-forwarded-for'];
+  if (forwarded) {
+    const ips = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+    const firstIP = ips.split(',')[0].trim();
+    if (firstIP && isValidPublicIP(firstIP)) {
+      return firstIP;
     }
   }
-  const remoteAddr = context.headers['x-forwarded-peer'] || 
-                     context.headers['fly-client-ip'] ||
-                     context.request.headers.get('host')?.split(':')[0] ||
-                     'unknown';
-  return typeof remoteAddr === 'string' ? remoteAddr.split(',')[0].trim() : 'unknown';
+  const realIP = context.headers['x-real-ip'];
+  if (realIP && isValidPublicIP(realIP)) {
+    return realIP;
+  }
+  return 'unknown';
 }
 
 function isValidPublicIP(ip: string): boolean {
@@ -52,6 +44,16 @@ function isPrivateIP(ip: string): boolean {
     if (second >= 16 && second <= 31) return true;
   }
   return false;
+}
+
+function hashString(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(36);
 }
 
 function cleanExpiredEntries(): void {
@@ -76,21 +78,24 @@ setInterval(cleanExpiredEntries, CLEANUP_INTERVAL_MS);
 export const rateLimit = () => {
   return (app: Elysia) => {
     return app.onBeforeHandle(async (context) => {
-      const ip = getClientIP(context);
-      if (ip === 'unknown') {
-        return;
+      let identifier = getClientIP(context);
+      
+      if (identifier === 'unknown') {
+        const userAgent = context.headers['user-agent'] || '';
+        const forwardedFor = context.headers['x-forwarded-for'] || '';
+        identifier = `fingerprint:${hashString(userAgent + forwardedFor)}`;
       }
       
       const now = Date.now();
       
-      let entry = rateLimitStore.get(ip);
+      let entry = rateLimitStore.get(identifier);
       
       if (!entry || entry.resetAt <= now) {
         entry = {
           count: 0,
           resetAt: now + WINDOW_MS,
         };
-        rateLimitStore.set(ip, entry);
+        rateLimitStore.set(identifier, entry);
       }
       
       entry.count++;

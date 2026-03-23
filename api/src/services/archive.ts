@@ -1,8 +1,12 @@
 import { db, schema } from '../db';
+import { desc } from 'drizzle-orm';
 import postgres from 'postgres';
 
 const ARCHIVE_CSV_URLS = [
   'https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rate-archives/par-yield-curve-rates-1990-2023.csv',
+  'https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2024/all?type=daily_treasury_yield_curve&field_tdr_date_value=2024&_format=csv',
+  'https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2025/all?type=daily_treasury_yield_curve&field_tdr_date_value=2025&_format=csv',
+  'https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&_format=csv',
 ];
 
 const CSV_COLUMNS: Record<string, string> = {
@@ -210,7 +214,7 @@ async function getDateRange(): Promise<{ min: string; max: string } | null> {
     const maxResult = await db
       .select({ max: schema.yieldCurveRates.date })
       .from(schema.yieldCurveRates)
-      .orderBy(schema.yieldCurveRates.date)
+      .orderBy(desc(schema.yieldCurveRates.date))
       .limit(1);
     
     return {
