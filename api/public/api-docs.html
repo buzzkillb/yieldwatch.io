@@ -313,6 +313,28 @@
       text-align: center;
     }
 
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+
+    .footer-links .divider {
+      color: var(--border-color);
+    }
+
     footer a {
       color: var(--accent);
       text-decoration: none;
@@ -629,7 +651,11 @@
     </div>
 
     <footer>
-      <p>Data sourced from <a href="https://home.treasury.gov" target="_blank" rel="noopener">U.S. Department of the Treasury</a></p>
+      <div class="footer-links">
+        <a href="/api-docs">API Documentation</a>
+        <span class="divider">|</span>
+        <a href="https://home.treasury.gov" target="_blank" rel="noopener noreferrer">U.S. Treasury</a>
+      </div>
       <p>Updates daily at approximately 3:30 PM ET</p>
     </footer>
   </div>
