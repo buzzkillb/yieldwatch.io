@@ -19,7 +19,7 @@ export const blogRoutes = new Elysia({ prefix: '/api/blog' })
 
     const result = summaries.map(s => ({
       date: s.date,
-      excerpt: s.summary ? s.summary.split('.')[0] + '.' : '',
+      excerpt: s.summary || '',
       hasFullPost: !!s.blogSummary,
     }));
 

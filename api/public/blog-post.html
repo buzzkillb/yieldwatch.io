@@ -158,8 +158,8 @@
 
     .rates-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-      gap: 0.75rem;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.5rem;
       margin-top: 1.5rem;
     }
 
@@ -171,15 +171,14 @@
     }
 
     .rate-maturity {
-      font-size: 0.75rem;
-      color: var(--text-muted);
+      font-size: 0.7rem;
+      font-weight: 600;
       margin-bottom: 0.25rem;
     }
 
     .rate-value {
-      font-size: 1rem;
+      font-size: 0.9rem;
       font-weight: 600;
-      color: var(--accent);
     }
 
     .loading, .error {
@@ -302,10 +301,10 @@
                 <canvas id="yieldChart"></canvas>
               </div>
               <div class="rates-grid">
-                ${rates.map(r => `
-                  <div class="rate-item">
-                    <div class="rate-maturity">${r.maturity}</div>
-                    <div class="rate-value">${r.rate.toFixed(2)}%</div>
+                ${rates.map((r, i) => `
+                  <div class="rate-item" style="border-top: 3px solid ${GRADIENT_COLORS[i % GRADIENT_COLORS.length]}">
+                    <div class="rate-maturity" style="color: ${GRADIENT_COLORS[i % GRADIENT_COLORS.length]}">${r.maturity}</div>
+                    <div class="rate-value" style="color: ${GRADIENT_COLORS[i % GRADIENT_COLORS.length]}">${r.rate.toFixed(2)}%</div>
                   </div>
                 `).join('')}
               </div>
