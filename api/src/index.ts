@@ -7,9 +7,18 @@ import { blogRoutes } from './routes/blog';
 import { sitemapRoutes } from './routes/sitemap';
 import { db, schema } from './db';
 import { desc, sql, eq } from 'drizzle-orm';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { generateOgChart } from './utils/ogChart';
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 const SITE_URL = 'https://yieldwatch.io';
 const POSTS_PER_PAGE = 5;
@@ -143,21 +152,21 @@ const app = new Elysia()
       const blogUrl = `${SITE_URL}/blog/${date}`;
       const ogImageUrl = `${SITE_URL}/og-image/${date}`;
       const pageTitle = `${dateFormatted} | Treasury Yield Daily`;
-      const metaDescription = blogSummary.substring(0, 160);
+      const metaDescription = escapeHtml(blogSummary.substring(0, 160));
 
       const blogPath = join(process.cwd(), 'public/blog-post.html');
       let html = readFileSync(blogPath, 'utf-8');
 
-      html = html.replace(/<title[^>]*>.*<\/title>/, `<title id="page-title">${pageTitle}</title>`);
+      html = html.replace(/<title[^>]*>.*<\/title>/, `<title id="page-title">${escapeHtml(pageTitle)}</title>`);
       html = html.replace(`content="Treasury yield curve daily analysis" id="meta-desc"`, `content="${metaDescription}" id="meta-desc"`);
       html = html.replace(`id="og-url" content="https://yieldwatch.io/blog"`, `id="og-url" content="${blogUrl}"`);
-      html = html.replace(`id="og-title" content="Treasury Yield Daily Summary"`, `id="og-title" content="${dateFormatted} Treasury Yield"`);
+      html = html.replace(`id="og-title" content="Treasury Yield Daily Summary"`, `id="og-title" content="${escapeHtml(dateFormatted)} Treasury Yield"`);
       html = html.replace(`id="og-description" content="Treasury yield curve daily analysis"`, `id="og-description" content="${metaDescription}"`);
       html = html.replace(`id="og-image" content="https://yieldwatch.io/og.png"`, `id="og-image" content="${ogImageUrl}"`);
       html = html.replace(`id="article-date" content=""`, `id="article-date" content="${date}T00:00:00Z"`);
       html = html.replace(`id="article-modified" content=""`, `id="article-modified" content="${date}T00:00:00Z"`);
       html = html.replace(`id="twitter-url" content="https://yieldwatch.io/blog"`, `id="twitter-url" content="${blogUrl}"`);
-      html = html.replace(`id="twitter-title" content="Treasury Yield Daily Summary"`, `id="twitter-title" content="${dateFormatted} Treasury Yield"`);
+      html = html.replace(`id="twitter-title" content="Treasury Yield Daily Summary"`, `id="twitter-title" content="${escapeHtml(dateFormatted)} Treasury Yield"`);
       html = html.replace(`id="twitter-description" content="Treasury yield curve daily analysis"`, `id="twitter-description" content="${metaDescription}"`);
       html = html.replace(`id="twitter-image" content="https://yieldwatch.io/og.png"`, `id="twitter-image" content="${ogImageUrl}"`);
       html = html.replace(`id="canonical-url" href="https://yieldwatch.io/blog/"`, `id="canonical-url" href="${blogUrl}"`);
@@ -271,15 +280,20 @@ const app = new Elysia()
     }
 
     const rates = ratesData.map(r => ({ maturity: r.maturity, rate: parseFloat(r.rate) }));
-    const pngBuffer = await generateOgChart(rates);
+
+    let pngBuffer: Buffer;
+    try {
+      pngBuffer = await generateOgChart(rates);
+    } catch (error) {
+      console.error('Error generating OG chart:', error);
+      return new Response('Failed to generate image', { status: 500 });
+    }
 
     const ogDir = join(process.cwd(), 'public/og');
     if (!existsSync(ogDir)) {
-      const { mkdirSync } = require('fs');
       mkdirSync(ogDir, { recursive: true });
     }
 
-    const writeFileSync = require('fs').writeFileSync;
     writeFileSync(cachedPath, pngBuffer);
 
     return new Response(pngBuffer, {
