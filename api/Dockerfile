@@ -9,7 +9,7 @@ COPY src ./src
 COPY dist ./dist
 COPY node_modules ./node_modules
 
-RUN groupadd --gid 1001 appgroup && useradd --uid 1001 --gid appgroup --shell /bin/false --create-home appuser
+RUN groupadd -f -g 1001 appgroup && useradd -o -u 1001 -g appgroup -s /bin/false -m appuser 2>/dev/null || true
 USER appuser
 
 EXPOSE 3000
