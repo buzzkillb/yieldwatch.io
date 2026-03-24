@@ -300,10 +300,10 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script>
-    const GRADIENT_COLORS = [
-      '#6366f1', '#7c7ff2', '#9597f3', '#a5aaf5', '#b5bdf6',
-      '#c5d1f8', '#d5e4f9', '#e5f7fb', '#d4a5f9', '#c493f8',
-      '#b480f7', '#a46df6', '#945af5', '#6366f1'
+    const CHART_COLORS = [
+      '#6366f1', '#a855f7', '#ec4899', '#f43f5e', '#f97316', '#eab308',
+      '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#10b981',
+      '#f59e0b', '#ef4444'
     ];
 
     const MATURITY_ORDER = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
@@ -337,7 +337,7 @@
           lastUpdated.textContent = dateFormatted;
         }
 
-        const chartColors = rates.map((_, i) => GRADIENT_COLORS[i % GRADIENT_COLORS.length]);
+        const chartColors = rates.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
 
         const content = `
           <article>
@@ -357,7 +357,7 @@
               </div>
               <div class="rates-grid">
                 ${rates.map((r, i) => `
-                  <div class="rate-item" style="border-top: 3px solid ${GRADIENT_COLORS[i % GRADIENT_COLORS.length]}">
+                  <div class="rate-item" style="border-top: 3px solid ${CHART_COLORS[i % CHART_COLORS.length]}">
                     <div class="rate-maturity">${r.maturity}</div>
                     <div class="rate-value">${r.rate.toFixed(2)}%</div>
                   </div>
