@@ -2,6 +2,8 @@ import { db, schema } from '../db';
 import { eq, desc, asc, lt, and, gte } from 'drizzle-orm';
 import { fetchTreasuryYieldCurve, fetchLatestDate } from './fetcher';
 import sharp from 'sharp';
+import { join } from 'path';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 
 const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY;
 

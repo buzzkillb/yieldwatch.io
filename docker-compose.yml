@@ -54,8 +54,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      api:
-        condition: service_started
     restart: unless-stopped
     command: bun run src/services/scheduler.ts
 
