@@ -214,7 +214,6 @@
 
     .chart-container {
       background: var(--bg-card);
-      border: 1px solid var(--border-color);
       border-radius: 16px;
       padding: 1.5rem;
       margin-bottom: 1.5rem;
@@ -503,6 +502,10 @@
         font-weight: 400;
       }
       
+      .mobile-break {
+        display: none;
+      }
+      
       .rates-scroll-hint {
         display: block;
       }
@@ -541,6 +544,10 @@
       
       .logo span {
         font-size: 0.75rem;
+      }
+      
+      .mobile-break {
+        display: block;
       }
       
       .rates-grid {
@@ -725,7 +732,7 @@
         latestRates[r.maturity] = r.rate;
       });
 
-      document.getElementById('dataSubtitle').textContent = `Daily Par Yield Curve Rates | Data: ${data.dateFormatted}`;
+      document.getElementById('dataSubtitle').innerHTML = `Daily Par Yield Curve Rates<br class="mobile-break"> | Data: ${data.dateFormatted}`;
 
       const ratesContainer = document.getElementById('ratesContainer');
       ratesContainer.innerHTML = `
