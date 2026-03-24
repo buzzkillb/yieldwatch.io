@@ -168,6 +168,7 @@
       color: var(--text-secondary);
       font-size: 0.95rem;
       line-height: 1.6;
+      word-wrap: break-word;
     }
 
     .read-more {
@@ -240,17 +241,15 @@
     .footer-content {
       max-width: 900px;
       margin: 0 auto;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
+      text-align: center;
     }
 
     .footer-links {
       display: flex;
+      justify-content: center;
       gap: 1rem;
       font-size: 0.85rem;
+      margin-bottom: 0.5rem;
     }
 
     .footer-links a {
@@ -416,7 +415,7 @@
         <a href="https://home.treasury.gov" target="_blank" rel="noopener noreferrer">U.S. Treasury</a>
       </div>
       <div class="footer-meta">
-        Updated daily | Data: <span id="lastUpdated">Loading...</span>
+        Updated daily at 3:30 PM ET | Data: <span id="lastUpdated">Loading...</span>
       </div>
     </div>
   </footer>
