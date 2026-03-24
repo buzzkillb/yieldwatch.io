@@ -52,10 +52,10 @@ export const blogRoutes = new Elysia({ prefix: '/api/blog' })
       .sort((a, b) => MATURITY_ORDER.indexOf(a.maturity) - MATURITY_ORDER.indexOf(b.maturity));
 
     const dateFormatted = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
-      weekday: 'long',
+      timeZone: 'UTC',
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
 
     return {
