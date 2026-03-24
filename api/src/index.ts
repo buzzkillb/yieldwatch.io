@@ -148,8 +148,8 @@ const app = new Elysia()
       const blogPath = join(process.cwd(), 'public/blog-post.html');
       let html = readFileSync(blogPath, 'utf-8');
 
-      html = html.replace(/<title[^>]*>.*<\/title>/, `<title>${pageTitle}</title>`);
-      html = html.replace(`content="Treasury yield curve daily analysis" id="meta-desc"`, `content="${metaDescription}"`);
+      html = html.replace(/<title[^>]*>.*<\/title>/, `<title id="page-title">${pageTitle}</title>`);
+      html = html.replace(`content="Treasury yield curve daily analysis" id="meta-desc"`, `content="${metaDescription}" id="meta-desc"`);
       html = html.replace(`id="og-url" content="https://yieldwatch.io/blog"`, `id="og-url" content="${blogUrl}"`);
       html = html.replace(`id="og-title" content="Treasury Yield Daily Summary"`, `id="og-title" content="${dateFormatted} Treasury Yield"`);
       html = html.replace(`id="og-description" content="Treasury yield curve daily analysis"`, `id="og-description" content="${metaDescription}"`);
