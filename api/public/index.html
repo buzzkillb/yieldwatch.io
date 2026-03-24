@@ -369,7 +369,6 @@
     footer {
       text-align: center;
       padding-top: 2rem;
-      border-top: 1px solid var(--border-color);
       color: var(--text-muted);
       font-size: 0.8rem;
     }
@@ -732,7 +731,7 @@
         latestRates[r.maturity] = r.rate;
       });
 
-      document.getElementById('dataSubtitle').innerHTML = `Daily Par Yield Curve Rates<br class="mobile-break"> | Data: ${data.dateFormatted}`;
+      document.getElementById('dataSubtitle').innerHTML = `Daily Par Yield Curve Rates<br class="mobile-break">Data: ${data.dateFormatted}`;
 
       const ratesContainer = document.getElementById('ratesContainer');
       ratesContainer.innerHTML = `
