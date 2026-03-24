@@ -19,7 +19,7 @@ COPY --from=builder /app/package.json ./
 COPY --from=builder /app/drizzle.config.ts ./
 COPY --from=builder /app/public ./public
 
-RUN addgroup -g 1001 -S appgroup && adduser -S appuser -u 1001 -G appgroup
+RUN groupadd --gid 1001 appgroup && useradd --uid 1001 --gid appgroup --shell /bin/false --create-home appuser
 USER appuser
 
 EXPOSE 3000
