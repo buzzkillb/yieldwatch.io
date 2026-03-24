@@ -3,7 +3,7 @@ WORKDIR /app
 
 FROM base AS deps
 COPY package.json ./
-RUN rm -f bun.lock && BUN_INSTALL_CACHE_DIR=/tmp/bun-cache bun install
+RUN rm -f bun.lock && BUN_INSTALL_CACHE_DIR=/tmp/bun-cache bun install --backend=copyfile
 
 FROM base AS builder
 COPY --from=deps /app/node_modules /app/node_modules
