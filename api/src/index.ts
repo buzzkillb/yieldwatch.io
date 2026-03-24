@@ -4,6 +4,7 @@ import { html } from '@elysiajs/html';
 import { rateLimit } from './middleware/rateLimit';
 import { ratesRoutes } from './routes/rates';
 import { blogRoutes } from './routes/blog';
+import { sitemapRoutes } from './routes/sitemap';
 import { db, schema } from './db';
 import { desc, asc } from 'drizzle-orm';
 import { readFileSync, existsSync } from 'fs';
@@ -100,6 +101,7 @@ const app = new Elysia()
   })
   .use(ratesRoutes)
   .use(blogRoutes)
+  .use(sitemapRoutes)
   .get('/api-docs', async () => {
     try {
       const docsPath = join(process.cwd(), 'public/api-docs.html');
