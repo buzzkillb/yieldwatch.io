@@ -585,7 +585,7 @@ async function regenerateOgImage(): Promise<void> {
 }
 
 async function warmQueryCache(): Promise<void> {
-  const apiHost = process.env.API_HOST || 'http://localhost:3000';
+  const apiHost = process.env.API_HOST || 'http://api:3000';
   const periods = [
     { from: getDateMonthsAgo(3), to: 'latest', name: '3M' },
     { from: getDateMonthsAgo(6), to: 'latest', name: '6M' },
