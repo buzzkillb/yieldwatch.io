@@ -14,7 +14,7 @@ http:
 
   routers:
     treasury:
-      rule: Host(`yieldwatch.io`)
+      rule: Host(`${DOMAIN}`)
       service: treasury-api
       entryPoints:
         - websecure
