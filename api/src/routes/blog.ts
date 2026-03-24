@@ -28,6 +28,10 @@ export const blogRoutes = new Elysia({ prefix: '/api/blog' })
   .get('/:date', async ({ params }) => {
     const { date } = params;
 
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || isNaN(Date.parse(date))) {
+      return { success: false, error: 'Invalid date format. Use YYYY-MM-DD.' };
+    }
+
     const summaries = await db
       .select()
       .from(schema.dailySummaries)

@@ -423,11 +423,12 @@
 
         const chartColors = rates.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
 
+        const stripHtml = (str) => str.replace(/<[^>]*>/g, '');
         const formatBlogSummary = (text) => {
           return text
             .split(/\n\n+/)
             .filter(p => p.trim())
-            .map(p => `<p>${p.trim()}</p>`)
+            .map(p => `<p>${stripHtml(p.trim())}</p>`)
             .join('');
         };
 

@@ -43,7 +43,7 @@ const CSV_COLUMNS: Record<string, string> = {
   '30Yr': '30YR', '30 YR': '30YR', '30 YEAR': '30YR',
 };
 
-const KNOWN_MATURITY_KEYS = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
+const KNOWN_MATURITY_KEYS = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
 
 function getPreviousBusinessDay(dateStr: string): string {
   const date = new Date(dateStr + 'T00:00:00Z');
