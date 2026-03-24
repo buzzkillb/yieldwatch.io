@@ -360,6 +360,25 @@
           if (!canvas) return;
 
           const ctx = canvas.getContext('2d');
+          const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+          const miniColorStops = [
+            [0, 'rgba(99, 102, 241, 0.15)'],
+            [1, 'rgba(168, 85, 247, 0.12)'],
+            [2, 'rgba(236, 72, 153, 0.10)'],
+            [3, 'rgba(244, 63, 94, 0.08)'],
+            [4, 'rgba(249, 115, 22, 0.06)'],
+            [5, 'rgba(234, 179, 8, 0.05)'],
+            [6, 'rgba(34, 197, 94, 0.05)'],
+            [7, 'rgba(20, 184, 166, 0.05)'],
+            [8, 'rgba(6, 182, 212, 0.06)'],
+            [9, 'rgba(59, 130, 246, 0.08)'],
+            [10, 'rgba(139, 92, 246, 0.10)'],
+            [11, 'rgba(16, 185, 129, 0.12)'],
+            [12, 'rgba(245, 158, 11, 0.15)'],
+            [13, 'rgba(239, 68, 68, 0.18)'],
+          ];
+          miniColorStops.forEach(([stop, color]) => gradient.addColorStop(stop, color));
+
           new Chart(ctx, {
             type: 'line',
             data: {
@@ -367,7 +386,7 @@
               datasets: [{
                 data: rates.map((r, i) => ({ x: i, y: r.rate })),
                 borderColor: CHART_COLORS,
-                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                backgroundColor: gradient,
                 fill: true,
                 tension: 0.4,
                 pointRadius: 3,
