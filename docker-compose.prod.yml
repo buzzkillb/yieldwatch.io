@@ -20,6 +20,7 @@ services:
       - treasury-network
 
   api:
+    image: treasury-api
     build:
       context: ./api
       dockerfile: Dockerfile
@@ -44,6 +45,7 @@ services:
     command: bun run dist/index.js
 
   scheduler:
+    image: treasury-scheduler
     build:
       context: ./api
       dockerfile: Dockerfile
