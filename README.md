@@ -153,7 +153,32 @@ docker compose logs -f traefik
 
 You should see: `"level":"info","msg":"certificate obtained successfully"`
 
-### 6. Enable Cloudflare Proxy
+### 6. Update Traefik Routing (Important)
+
+**After deploying, you must manually update the domain in `traefik/dynamic.yml`:**
+
+```bash
+nano traefik/dynamic.yml
+```
+
+Change line 17 from:
+```yaml
+rule: Host(`yieldwatch.io`)   # or your template value
+```
+
+To your actual domain:
+```yaml
+rule: Host(`yourdomain.com`)
+```
+
+Then restart Traefik:
+```bash
+docker compose restart traefik
+```
+
+**Note:** Traefik's file provider does not support environment variable expansion in the routing rules, so the domain must be hardcoded.
+
+### 7. Enable Cloudflare Proxy
 
 Once SSL is working (2-5 minutes), go back to Cloudflare DNS settings and toggle the proxy to **ON** (orange cloud).
 

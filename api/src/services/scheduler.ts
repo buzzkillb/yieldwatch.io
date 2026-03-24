@@ -2,8 +2,6 @@ import { db, schema } from '../db';
 import { eq, desc, asc, lt, and, gte } from 'drizzle-orm';
 import { fetchTreasuryYieldCurve, fetchLatestDate } from './fetcher';
 import sharp from 'sharp';
-import { writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join } from 'path';
 
 const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY;
 
@@ -198,14 +196,20 @@ Date info:
       return;
     }
 
-    const publicDir = join(process.cwd(), 'public');
-    if (!existsSync(publicDir)) {
-      mkdirSync(publicDir, { recursive: true });
-    }
-
-    const summaryPath = join(publicDir, 'daily-summary.txt');
-    writeFileSync(summaryPath, generatedText.trim());
-    console.log(`[Scheduler] Daily summary saved: ${summaryPath}`);
+    await db
+      .insert(schema.dailySummaries)
+      .values({
+        date: todayDate,
+        summary: generatedText.trim(),
+      })
+      .onConflictDoUpdate({
+        target: schema.dailySummaries.date,
+        set: {
+          summary: generatedText.trim(),
+          createdAt: new Date(),
+        },
+      });
+    console.log(`[Scheduler] Daily summary saved to database for ${todayDate}`);
     console.log(`[Scheduler] Summary: ${generatedText.trim()}`);
 
   } catch (error) {

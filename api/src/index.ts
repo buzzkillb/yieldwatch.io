@@ -5,7 +5,7 @@ import { rateLimit } from './middleware/rateLimit';
 import { ratesRoutes } from './routes/rates';
 import { db, schema } from './db';
 import { desc, asc } from 'drizzle-orm';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import sharp from 'sharp';
 
@@ -130,14 +130,19 @@ const app = new Elysia()
     return new Response('OG image not yet generated', { status: 404 });
   })
   .get('/api/daily-summary', async () => {
-    const summaryPath = join(process.cwd(), 'public/daily-summary.txt');
-    if (existsSync(summaryPath)) {
-      const summary = readFileSync(summaryPath, 'utf-8');
-      return new Response(summary, {
-        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=86400' },
-      });
+    const latestSummary = await db
+      .select()
+      .from(schema.dailySummaries)
+      .orderBy(desc(schema.dailySummaries.date))
+      .limit(1);
+
+    if (latestSummary.length === 0) {
+      return new Response('', { status: 204 });
     }
-    return new Response('', { status: 204 });
+
+    return new Response(latestSummary[0].summary, {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=86400' },
+    });
   })
   
 
