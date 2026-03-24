@@ -35,6 +35,7 @@ services:
       RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
       RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
       TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-}
+    ports: []
     depends_on:
       db:
         condition: service_healthy
