@@ -6,9 +6,10 @@ import { ratesRoutes } from './routes/rates';
 import { blogRoutes } from './routes/blog';
 import { sitemapRoutes } from './routes/sitemap';
 import { db, schema } from './db';
-import { desc, sql } from 'drizzle-orm';
+import { desc, sql, eq } from 'drizzle-orm';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { generateOgChart } from './utils/ogChart';
 
 const SITE_URL = 'https://yieldwatch.io';
 const POSTS_PER_PAGE = 5;
@@ -188,6 +189,45 @@ const app = new Elysia()
       });
     }
     return new Response('OG image not yet generated', { status: 404 });
+  })
+  .get('/og/:date.png', async ({ params }) => {
+    const { date } = params;
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return new Response('Invalid date format', { status: 400 });
+    }
+
+    const cachedPath = join(process.cwd(), 'public/og', `${date}.png`);
+    if (existsSync(cachedPath)) {
+      const png = readFileSync(cachedPath);
+      return new Response(png, {
+        headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' },
+      });
+    }
+
+    const ratesData = await db
+      .select()
+      .from(schema.yieldCurveRates)
+      .where(eq(schema.yieldCurveRates.date, date));
+
+    if (ratesData.length === 0) {
+      return new Response('No data for this date', { status: 404 });
+    }
+
+    const rates = ratesData.map(r => ({ maturity: r.maturity, rate: parseFloat(r.rate) }));
+    const pngBuffer = await generateOgChart(rates);
+
+    const ogDir = join(process.cwd(), 'public/og');
+    if (!existsSync(ogDir)) {
+      const { mkdirSync } = require('fs');
+      mkdirSync(ogDir, { recursive: true });
+    }
+
+    const writeFileSync = require('fs').writeFileSync;
+    writeFileSync(cachedPath, pngBuffer);
+
+    return new Response(pngBuffer, {
+      headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' },
+    });
   })
   .get('/api/daily-summary', async () => {
     const latestSummary = await db
