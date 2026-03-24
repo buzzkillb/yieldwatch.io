@@ -328,10 +328,10 @@ async function regenerateOgImage(): Promise<void> {
     const minRate = Math.min(...rates.map(r => r.rate));
     const rateRange = maxRate - minRate || 1;
 
-    const chartX = 80;
-    const chartY = 200;
-    const chartW = 900;
-    const chartH = 300;
+    const chartX = 50;
+    const chartY = 50;
+    const chartW = 1100;
+    const chartH = 530;
     const pointSpacing = chartW / (rates.length - 1);
 
     let pathD = '';
@@ -360,26 +360,17 @@ async function regenerateOgImage(): Promise<void> {
           <stop offset="100%" style="stop-color:#a855f7"/>
         </linearGradient>
         <linearGradient id="areaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.3"/>
+          <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.4"/>
           <stop offset="100%" style="stop-color:#6366f1;stop-opacity:0"/>
         </linearGradient>
       </defs>
       <rect fill="url(#bg)" width="1200" height="630"/>
       <path d="${pathD} ${chartX + chartW} ${chartY + chartH} L ${chartX} ${chartY + chartH} Z" fill="url(#areaGrad)"/>
-      <path d="${pathD}" fill="none" stroke="url(#lineGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="${pathD}" fill="none" stroke="url(#lineGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
       ${rates.map((r, i) => {
         const x = chartX + i * pointSpacing;
         const y = chartY + chartH - ((r.rate - minRate + 0.5) / (rateRange + 1)) * chartH;
-        return `<circle cx="${x}" cy="${y}" r="8" fill="#6366f1" stroke="white" stroke-width="2"/>`;
-      }).join('\n      ')}
-      ${rates.map((r, i) => {
-        const x = chartX + i * pointSpacing;
-        return `<text x="${x}" y="${chartY + chartH + 30}" font-family="Arial, sans-serif" font-size="16" fill="#9090a0" text-anchor="middle">${maturityLabels[r.maturity]}</text>`;
-      }).join('\n      ')}
-      ${rates.map((r, i) => {
-        const x = chartX + i * pointSpacing;
-        const y = chartY + chartH - ((r.rate - minRate + 0.5) / (rateRange + 1)) * chartH;
-        return `<text x="${x}" y="${y - 15}" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#f0f0f5" text-anchor="middle">${r.rate.toFixed(2)}%</text>`;
+        return `<circle cx="${x}" cy="${y}" r="10" fill="#6366f1" stroke="white" stroke-width="3"/>`;
       }).join('\n      ')}
     </svg>`;
 
