@@ -23,7 +23,7 @@ jobs:
 
       - name: Start local database
         env:
-          POSTGRES_PASSWORD: test_secret_password
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
         run: |
           docker compose up -d db
           docker compose ps
@@ -44,13 +44,13 @@ jobs:
 
       - name: Install dependencies and run database migrations
         env:
-          POSTGRES_PASSWORD: test_secret_password
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
         run: |
           docker compose run --rm api sh -c "bun install && bun run drizzle-kit push"
 
       - name: Start all services
         env:
-          POSTGRES_PASSWORD: test_secret_password
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
         run: docker compose up -d
 
       - name: Wait for API to be ready
@@ -109,7 +109,7 @@ jobs:
         image: postgres:17-alpine
         env:
           POSTGRES_USER: treasury
-          POSTGRES_PASSWORD: treasury_secret_password
+          POSTGRES_PASSWORD: ci_test_password
           POSTGRES_DB: treasury
         options: >-
           --health-cmd pg_isready
@@ -135,6 +135,6 @@ jobs:
           POSTGRES_HOST: localhost
           POSTGRES_PORT: 5432
           POSTGRES_USER: treasury
-          POSTGRES_PASSWORD: treasury_secret_password
+          POSTGRES_PASSWORD: ci_test_password
           POSTGRES_DB: treasury
         run: cd api && bun run drizzle-kit push
