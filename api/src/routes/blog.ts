@@ -4,8 +4,8 @@ import { desc, asc } from 'drizzle-orm';
 
 const MATURITY_ORDER = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
 
-export const blogRoutes = new Elysia({ prefix: '/blog' })
-  .get('/', async () => {
+export const blogRoutes = new Elysia({ prefix: '/api/blog' })
+  .get('/list', async () => {
     const summaries = await db
       .select({
         date: schema.dailySummaries.date,

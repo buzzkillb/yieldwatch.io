@@ -269,7 +269,7 @@
       }
 
       try {
-        const response = await fetch(`/blog/${date}`);
+        const response = await fetch(`/api/blog/${date}`);
         const data = await response.json();
 
         if (!data.success) {

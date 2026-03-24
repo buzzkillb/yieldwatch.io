@@ -267,7 +267,7 @@
 
     async function loadSummaries() {
       try {
-        const response = await fetch('/blog');
+        const response = await fetch('/api/blog/list');
         const data = await response.json();
 
         if (!data.success || !data.data.length) {
