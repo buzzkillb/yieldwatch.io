@@ -2,8 +2,8 @@ FROM oven/bun:1 AS base
 WORKDIR /app
 
 FROM base AS deps
-COPY package.json bun.lock ./
-RUN BUN_INSTALL_CACHE_DIR=/tmp/bun-cache bun install --ignore-scripts
+COPY package.json ./
+RUN rm -f bun.lock && BUN_INSTALL_CACHE_DIR=/tmp/bun-cache bun install
 
 FROM base AS builder
 COPY --from=deps /app/node_modules /app/node_modules
