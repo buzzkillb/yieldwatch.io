@@ -44,8 +44,6 @@ const app = new Elysia()
   }))
   .use(html())
   .use(rateLimit())
-  .use(ratesRoutes)
-  .use(blogRoutes)
   .onBeforeHandle(({ set }) => {
     for (const [key, value] of Object.entries(securityHeaders)) {
       set.headers[key] = value;
@@ -100,6 +98,8 @@ const app = new Elysia()
       });
     }
   })
+  .use(ratesRoutes)
+  .use(blogRoutes)
   .get('/api-docs', async () => {
     try {
       const docsPath = join(process.cwd(), 'public/api-docs.html');
