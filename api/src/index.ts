@@ -5,10 +5,13 @@ import { rateLimit } from './middleware/rateLimit';
 import { ratesRoutes } from './routes/rates';
 import { blogRoutes } from './routes/blog';
 import { sitemapRoutes } from './routes/sitemap';
-import { schema } from './db';
-import { desc } from 'drizzle-orm';
+import { db, schema } from './db';
+import { desc, sql } from 'drizzle-orm';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+
+const SITE_URL = 'https://yieldwatch.io';
+const POSTS_PER_PAGE = 5;
 
 const isProduction = process.env.NODE_ENV === 'production';
 let allowedOrigins: string[] | true;
@@ -67,10 +70,36 @@ const app = new Elysia()
       });
     }
   })
-  .get('/blog', async () => {
+  .get('/blog', async ({ query }) => {
     try {
+      const page = Math.max(1, parseInt(query.page as string) || 1);
+
+      const countResult = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.dailySummaries);
+      const totalCount = Number(countResult[0]?.count) || 0;
+      const totalPages = Math.ceil(totalCount / POSTS_PER_PAGE);
+
+      const seoMetaTags: string[] = [];
+      seoMetaTags.push(`<link rel="canonical" href="${SITE_URL}/blog${page > 1 ? `?page=${page}` : ''}">`);
+
+      if (totalPages > 1) {
+        if (page > 1) {
+          seoMetaTags.push(`<link rel="prev" href="${SITE_URL}/blog?page=${page - 1}">`);
+        }
+        if (page < totalPages) {
+          seoMetaTags.push(`<link rel="next" href="${SITE_URL}/blog?page=${page + 1}">`);
+        }
+      }
+
       const blogPath = join(process.cwd(), 'public/blog.html');
-      const html = readFileSync(blogPath, 'utf-8');
+      let html = readFileSync(blogPath, 'utf-8');
+
+      if (seoMetaTags.length > 0) {
+        const metaTagsHtml = '\n    ' + seoMetaTags.join('\n    ');
+        html = html.replace('</head>', `${metaTagsHtml}\n  </head>`);
+      }
+
       return new Response(html, {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
