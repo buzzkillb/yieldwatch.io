@@ -3,7 +3,7 @@ WORKDIR /app
 
 FROM base AS deps
 COPY package.json bun.lock ./
-RUN rm -rf ~/.bun/install/cache/* 2>/dev/null || true && bun install --ignore-scripts
+RUN rm -rf ~/.bun/install/cache/* 2>/dev/null || true && bun install --force
 
 FROM base AS builder
 COPY --from=deps /app/node_modules /app/node_modules
