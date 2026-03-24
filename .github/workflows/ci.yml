@@ -17,12 +17,17 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Cleanup any previous runs
+        run: |
+          docker compose down -v 2>/dev/null || true
+
       - name: Start local database
         env:
           POSTGRES_PASSWORD: test_secret_password
         run: |
           docker compose up -d db
           docker compose ps
+          docker compose logs db --tail 20
 
       - name: Wait for database to be ready
         run: |
