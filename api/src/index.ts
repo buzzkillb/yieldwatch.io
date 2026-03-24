@@ -113,16 +113,84 @@ const app = new Elysia()
   })
   .get('/blog/:date', async ({ params }) => {
     try {
+      const { date } = params;
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return new Response('<html><body><h1>Invalid Date</h1><p>Please use a valid date format (YYYY-MM-DD).</p></body></html>', {
+          headers: { 'Content-Type': 'text/html' },
+        });
+      }
+
+      const blogData = await db
+        .select()
+        .from(schema.dailySummaries)
+        .where(eq(schema.dailySummaries.date, date))
+        .limit(1);
+
+      if (blogData.length === 0) {
+        return new Response('<html><body><h1>Post Not Found</h1><p>No blog post found for this date.</p></body></html>', {
+          headers: { 'Content-Type': 'text/html' },
+          status: 404,
+        });
+      }
+
+      const { dateFormatted, blogSummary } = blogData[0];
+      const blogUrl = `${SITE_URL}/blog/${date}`;
+      const ogImageUrl = `${SITE_URL}/og/${date}.png`;
+      const pageTitle = `${dateFormatted} | Treasury Yield Daily`;
+      const metaDescription = blogSummary.substring(0, 160);
+
       const blogPath = join(process.cwd(), 'public/blog-post.html');
-      const html = readFileSync(blogPath, 'utf-8');
+      let html = readFileSync(blogPath, 'utf-8');
+
+      html = html.replace(/<title[^>]*>[^<]*<\/title>/, `<title>${pageTitle}</title>`);
+      html = html.replace('id="page-title"', `data-original`);
+      html = html.replace('id="meta-desc"', `data-original`);
+
+      html = html.replace(`content="Treasury yield curve daily analysis" id="meta-desc"`, `content="${metaDescription}"`);
+      html = html.replace('id="og-url"', `data-original`);
+      html = html.replace(`content="https://yieldwatch.io/blog" id="og-url"`, `content="${blogUrl}"`);
+      html = html.replace('id="og-title"', `data-original`);
+      html = html.replace(`content="Treasury Yield Daily Summary" id="og-title"`, `content="${dateFormatted} Treasury Yield"`);
+      html = html.replace('id="og-description"', `data-original`);
+      html = html.replace(`content="Treasury yield curve daily analysis" id="og-description"`, `content="${metaDescription}"`);
+      html = html.replace('id="og-image"', `data-original`);
+      html = html.replace(`content="https://yieldwatch.io/og.png" id="og-image"`, `content="${ogImageUrl}"`);
+
+      html = html.replace('id="article-date"', `data-original`);
+      html = html.replace(`content="" id="article-date"`, `content="${date}T00:00:00Z"`);
+      html = html.replace('id="article-modified"', `data-original`);
+      html = html.replace(`content="" id="article-modified"`, `content="${date}T00:00:00Z"`);
+
+      html = html.replace('id="twitter-url"', `data-original`);
+      html = html.replace(`content="https://yieldwatch.io/blog" id="twitter-url"`, `content="${blogUrl}"`);
+      html = html.replace('id="twitter-title"', `data-original`);
+      html = html.replace(`content="Treasury Yield Daily Summary" id="twitter-title"`, `content="${dateFormatted} Treasury Yield"`);
+      html = html.replace('id="twitter-description"', `data-original`);
+      html = html.replace(`content="Treasury yield curve daily analysis" id="twitter-description"`, `content="${metaDescription}"`);
+      html = html.replace('id="twitter-image"', `data-original`);
+      html = html.replace(`content="https://yieldwatch.io/og.png" id="twitter-image"`, `content="${ogImageUrl}"`);
+
+      html = html.replace('id="canonical-url"', `data-original`);
+      html = html.replace(`href="https://yieldwatch.io/blog/" id="canonical-url"`, `href="${blogUrl}"`);
+
+      const breadcrumbSchemaMatch = html.match(/id="breadcrumb-schema">([\s\S]*?)<\/script>/);
+      if (breadcrumbSchemaMatch) {
+        const updatedSchema = breadcrumbSchemaMatch[1]
+          .replace(/"name": "Daily Summary"/, `"name": "${dateFormatted} Summary"`)
+          .replace(/item": "https:\/\/yieldwatch\.io\/blog"(?=[^"]*\}])/g, `item": "${blogUrl}"`);
+        html = html.replace(breadcrumbSchemaMatch[0], `id="breadcrumb-schema">\n  ${updatedSchema}\n  </script>`);
+      }
+
       return new Response(html, {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
         },
       });
-    } catch {
-      return new Response('<html><body><h1>Post</h1><p>Post not found.</p></body></html>', {
+    } catch (error) {
+      console.error('Error serving blog post:', error);
+      return new Response('<html><body><h1>Error</h1><p>Failed to load blog post.</p></body></html>', {
         headers: { 'Content-Type': 'text/html' },
+        status: 500,
       });
     }
   })
