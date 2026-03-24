@@ -81,7 +81,6 @@ const app = new Elysia()
       const totalPages = Math.ceil(totalCount / POSTS_PER_PAGE);
 
       const seoMetaTags: string[] = [];
-      seoMetaTags.push(`<link rel="canonical" href="${SITE_URL}/blog${page > 1 ? `?page=${page}` : ''}">`);
 
       if (totalPages > 1) {
         if (page > 1) {
