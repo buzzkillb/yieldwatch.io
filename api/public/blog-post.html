@@ -378,8 +378,9 @@
 
     function renderChart(rates, colors) {
       const ctx = document.getElementById('yieldChart').getContext('2d');
+      const chartCanvas = document.getElementById('yieldChart');
 
-      const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      const gradient = ctx.createLinearGradient(0, 0, chartCanvas.width, 0);
       const colorStops = [
         [0, 'rgba(99, 102, 241, 0.3)'],
         [1/13, 'rgba(168, 85, 247, 0.28)'],
