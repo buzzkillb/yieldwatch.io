@@ -1,0 +1,8 @@
+services:
+  api:
+    volumes:
+      - ./api:/app
+
+  scheduler:
+    volumes:
+      - ./api:/app

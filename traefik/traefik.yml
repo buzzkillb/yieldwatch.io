@@ -16,10 +16,6 @@ entryPoints:
         certResolver: cloudflare
 
 providers:
-  docker:
-    endpoint: "unix:///var/run/docker.sock"
-    network: treasury-network
-    exposedByDefault: false
   file:
     filename: /etc/traefik/dynamic.yml
     watch: true

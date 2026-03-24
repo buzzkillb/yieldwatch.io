@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="page-title">Daily Summary | U.S. Treasury Yield Curve</title>
+  <meta name="description" content="Treasury yield curve daily analysis" id="meta-desc">
+
+  <!-- Open Graph / Facebook / LinkedIn -->
+  <meta property="og:type" content="article">
+  <meta property="og:url" id="og-url" content="https://yieldwatch.io/blog">
+  <meta property="og:title" id="og-title" content="Treasury Yield Daily Summary">
+  <meta property="og:description" id="og-description" content="Treasury yield curve daily analysis">
+  <meta property="og:image" content="https://yieldwatch.io/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="U.S. Treasury Yield Curve Dashboard">
+  <meta property="og:image:type" content="image/png">
+  <meta property="article:published_time" id="article-date" content="">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" id="twitter-url" content="https://yieldwatch.io/blog">
+  <meta name="twitter:title" id="twitter-title" content="Treasury Yield Daily Summary">
+  <meta name="twitter:description" id="twitter-description" content="Treasury yield curve daily analysis">
+  <meta name="twitter:image" content="https://yieldwatch.io/og.png">
+  <meta name="twitter:image:alt" content="U.S. Treasury Yield Curve Dashboard">
+  <meta name="twitter:image:width" content="1200">
+  <meta name="twitter:image:height" content="630">
+
+  <!-- 2026 SEO -->
+  <link rel="canonical" id="canonical-url" href="https://yieldwatch.io/blog/">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="theme-color" content="#6366f1">
+  <meta property="article:author" content="YieldWatch">
+  <meta property="article:modified_time" id="article-modified" content="">
+  <meta property="article:section" content="Market Analysis">
+  <meta property="article:tag" content="Treasury">
+  <meta property="article:tag" content="Yield Curve">
+
+  <!-- BreadcrumbList Schema -->
+  <script type="application/ld+json" id="breadcrumb-schema">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://yieldwatch.io"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Daily Summaries",
+        "item": "https://yieldwatch.io/blog"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "Post",
+        "item": "https://yieldwatch.io/blog"
+      }
+    ]
+  }
+  </script>
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%236366f1' rx='15' width='100' height='100'/%3E%3Cpath d='M20 70 L35 55 L50 65 L65 40 L80 45' stroke='white' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='80' cy='45' r='6' fill='white'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #0f0f18;
+      --bg-card: #16161f;
+      --bg-tertiary: #1a1a25;
+      --border-color: #2a2a3a;
+      --text-primary: #f0f0f5;
+      --text-secondary: #a0a0b0;
+      --text-muted: #606070;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .header {
+      background: linear-gradient(145deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1.5rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .header-content {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+
+    .logo svg {
+      width: 36px;
+      height: 36px;
+    }
+
+    .logo-text {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .nav {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    .nav a:hover, .nav a.active {
+      color: var(--accent);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+      transition: color 0.2s;
+    }
+
+    .back-link:hover {
+      color: var(--accent);
+    }
+
+    .post-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .post-date {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .post-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .blog-content {
+      margin-bottom: 2.5rem;
+    }
+
+    .blog-summary {
+      font-size: 1.1rem;
+      line-height: 1.8;
+      color: var(--text-primary);
+    }
+
+    .blog-summary p {
+      margin-bottom: 1.25rem;
+    }
+
+    .blog-summary p:last-child {
+      margin-bottom: 0;
+    }
+
+    .chart-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .chart-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 300px;
+    }
+
+    .rates-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .rate-item {
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      padding: 0.75rem;
+      text-align: center;
+    }
+
+    .rate-maturity {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 0.25rem;
+    }
+
+    .rate-value {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .loading, .error {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-secondary);
+    }
+
+    .error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 12px;
+      color: #ef4444;
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        padding: 1rem;
+      }
+
+      .nav {
+        gap: 1rem;
+      }
+
+      .container {
+        padding: 1rem;
+      }
+
+      .chart-wrapper {
+        height: 250px;
+      }
+
+      .rates-grid {
+        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+      }
+
+      .footer-content {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .footer-links {
+        justify-content: center;
+      }
+    }
+
+    .footer {
+      background: linear-gradient(145deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      border-top: 1px solid var(--border-color);
+      padding: 1.5rem 2rem;
+      margin-top: 2rem;
+    }
+
+    .footer-content {
+      max-width: 900px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+
+    .footer-links .divider {
+      color: var(--text-muted);
+    }
+
+    .footer-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <a href="/" class="logo">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect fill="#6366f1" rx="15" width="100" height="100"/>
+          <path d="M20 70 L35 55 L50 65 L65 40 L80 45" stroke="white" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="80" cy="45" r="6" fill="white"/>
+        </svg>
+        <span class="logo-text">Treasury Yield</span>
+      </a>
+      <nav class="nav">
+        <a href="/">Dashboard</a>
+        <a href="/blog" class="active">Daily Summaries</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <a href="/blog" class="back-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      Back to summaries
+    </a>
+
+    <div id="content">
+      <div class="loading">Loading summary...</div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    const CHART_COLORS = [
+      '#6366f1', '#a855f7', '#ec4899', '#f43f5e', '#f97316', '#eab308',
+      '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#10b981',
+      '#f59e0b', '#ef4444'
+    ];
+
+    const MATURITY_ORDER = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
+
+    async function loadPost() {
+      const pathParts = window.location.pathname.split('/');
+      const date = pathParts[pathParts.length - 1];
+
+      if (!date || !date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        document.getElementById('content').innerHTML = '<div class="error">Invalid date format</div>';
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/blog/${date}`);
+        const data = await response.json();
+
+        if (!data.success) {
+          document.getElementById('content').innerHTML = `<div class="error">${data.error || 'Failed to load summary'}</div>`;
+          return;
+        }
+
+        const { dateFormatted, blogSummary, rates } = data.data;
+
+        document.title = `${dateFormatted} | Treasury Yield Daily`;
+        document.getElementById('page-title').textContent = `${dateFormatted} | Treasury Yield Daily`;
+        document.getElementById('meta-desc').content = blogSummary.substring(0, 160);
+
+        const blogUrl = `https://yieldwatch.io/blog/${date}`;
+        document.getElementById('og-url').content = blogUrl;
+        document.getElementById('og-title').content = `${dateFormatted} | Treasury Yield Daily Summary`;
+        document.getElementById('og-description').content = blogSummary.substring(0, 160);
+        document.getElementById('article-date').content = `${date}T00:00:00Z`;
+        document.getElementById('article-modified').content = `${date}T00:00:00Z`;
+        document.getElementById('twitter-url').content = blogUrl;
+        document.getElementById('twitter-title').content = `${dateFormatted} | Treasury Yield Daily Summary`;
+        document.getElementById('twitter-description').content = blogSummary.substring(0, 160);
+        document.getElementById('canonical-url').href = blogUrl;
+
+        const breadcrumbSchema = JSON.parse(document.getElementById('breadcrumb-schema').textContent);
+        breadcrumbSchema.itemListElement[2].item = blogUrl;
+        document.getElementById('breadcrumb-schema').textContent = JSON.stringify(breadcrumbSchema);
+
+        const lastUpdated = document.getElementById('lastUpdated');
+        if (lastUpdated) {
+          lastUpdated.textContent = dateFormatted;
+        }
+
+        const chartColors = rates.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
+
+        const stripHtml = (str) => str.replace(/<[^>]*>/g, '');
+        const formatBlogSummary = (text) => {
+          return text
+            .split(/\n\n+/)
+            .filter(p => p.trim())
+            .map(p => `<p>${stripHtml(p.trim())}</p>`)
+            .join('');
+        };
+
+        const content = `
+          <article>
+            <header class="post-header">
+              <p class="post-date">${dateFormatted}</p>
+              <h1 class="post-title">Treasury Yield Curve Analysis</h1>
+            </header>
+
+            <div class="blog-content blog-summary">
+              ${formatBlogSummary(blogSummary)}
+            </div>
+
+            <section class="chart-section">
+              <h2 class="chart-title">Yield Curve</h2>
+              <div class="chart-wrapper">
+                <canvas id="yieldChart"></canvas>
+              </div>
+              <div class="rates-grid">
+                ${rates.map((r, i) => `
+                  <div class="rate-item" style="border-top: 3px solid ${CHART_COLORS[i % CHART_COLORS.length]}">
+                    <div class="rate-maturity">${r.maturity}</div>
+                    <div class="rate-value">${r.rate.toFixed(2)}%</div>
+                  </div>
+                `).join('')}
+              </div>
+            </section>
+          </article>
+        `;
+
+        document.getElementById('content').innerHTML = content;
+
+        setTimeout(() => renderChart(rates, chartColors), 100);
+      } catch (error) {
+        console.error('Error loading post:', error);
+        document.getElementById('content').innerHTML = '<div class="error">Failed to load summary. Please try again.</div>';
+      }
+    }
+
+    function renderChart(rates, colors) {
+      const ctx = document.getElementById('yieldChart').getContext('2d');
+      const chartCanvas = document.getElementById('yieldChart');
+
+      const lineGradient = ctx.createLinearGradient(0, 0, chartCanvas.width, 0);
+      lineGradient.addColorStop(0, '#2a2a3a');
+      lineGradient.addColorStop(1, '#f0f0f5');
+
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: rates.map(r => r.maturity),
+          datasets: [{
+            label: 'Yield',
+            data: rates.map(r => r.rate),
+            borderColor: lineGradient,
+            backgroundColor: 'transparent',
+            borderWidth: 3,
+            fill: false,
+            tension: 0.4,
+            pointRadius: 6,
+            pointBackgroundColor: colors,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 1,
+            pointHoverRadius: 7,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(22, 22, 31, 0.95)',
+              titleColor: '#f0f0f5',
+              bodyColor: '#a0a0b0',
+              borderColor: '#2a2a3a',
+              borderWidth: 1,
+              padding: 12,
+              displayColors: false,
+              callbacks: {
+                label: (ctx) => `${ctx.parsed.y.toFixed(2)}%`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(42, 42, 58, 0.5)' },
+              ticks: { color: '#606070', font: { size: 11 } }
+            },
+            y: {
+              grid: { color: 'rgba(42, 42, 58, 0.5)' },
+              ticks: {
+                color: '#606070',
+                font: { size: 11 },
+                callback: (v) => v.toFixed(2) + '%'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    loadPost();
+  </script>
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-links">
+        <a href="/api-docs">API Documentation</a>
+        <span class="divider">|</span>
+        <a href="https://home.treasury.gov" target="_blank" rel="noopener noreferrer">U.S. Treasury</a>
+      </div>
+      <div class="footer-meta">Updated daily at 3:30 PM ET</div>
+      <div class="footer-meta">Data: <span id="lastUpdated">Loading...</span></div>
+    </div>
+  </footer>
+</body>
+</html>

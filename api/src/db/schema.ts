@@ -1,4 +1,4 @@
-import { pgTable, serial, date, varchar, decimal, timestamp, uniqueIndex, index } from 'drizzle-orm/pg-core';
+import { pgTable, serial, date, varchar, decimal, timestamp, text, uniqueIndex, index } from 'drizzle-orm/pg-core';
 
 export const yieldCurveRates = pgTable('yield_curve_rates', {
   id: serial('id').primaryKey(),
@@ -24,6 +24,14 @@ export const rateStats = pgTable('rate_stats', {
   allTimeLow: decimal('all_time_low', { precision: 10, scale: 6 }),
   allTimeLowDate: date('all_time_low_date'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const dailySummaries = pgTable('daily_summaries', {
+  id: serial('id').primaryKey(),
+  date: date('date').notNull().unique(),
+  summary: text('summary').notNull(),
+  blogSummary: text('blog_summary'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
 export type YieldCurveRate = typeof yieldCurveRates.$inferSelect;

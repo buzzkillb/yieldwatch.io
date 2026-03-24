@@ -21,11 +21,8 @@ services:
     image: oven/bun:1
     container_name: treasury-api
     working_dir: /app
-    volumes:
-      - ./api:/app
     environment:
       POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER:-treasury}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-treasury}
@@ -36,7 +33,7 @@ services:
       RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
       NODE_ENV: ${NODE_ENV:-development}
     ports:
-      - "${PORT:-3000}:${PORT:-3000}"
+      - "127.0.0.1:${PORT:-3000}:${PORT:-3000}"
     depends_on:
       db:
         condition: service_healthy
@@ -47,11 +44,8 @@ services:
     image: oven/bun:1
     container_name: treasury-scheduler
     working_dir: /app
-    volumes:
-      - ./api:/app
     environment:
       POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER:-treasury}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-treasury}
@@ -60,8 +54,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      api:
-        condition: service_started
     restart: unless-stopped
     command: bun run src/services/scheduler.ts
 
