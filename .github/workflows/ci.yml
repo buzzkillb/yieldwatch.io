@@ -37,10 +37,11 @@ jobs:
           echo "Database failed to start"
           exit 1
 
-      - name: Run database migrations
+      - name: Install dependencies and run database migrations
         env:
           POSTGRES_PASSWORD: test_secret_password
-        run: docker compose run --rm api sh -c "bun run drizzle-kit push"
+        run: |
+          docker compose run --rm api sh -c "bun install && bun run drizzle-kit push"
 
       - name: Start all services
         env:
