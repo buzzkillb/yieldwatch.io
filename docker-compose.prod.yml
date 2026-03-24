@@ -1,11 +1,24 @@
 services:
   db:
+    image: postgres:17-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-treasury}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: treasury-api
     environment:
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
@@ -17,8 +30,17 @@ services:
       RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
       RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
       TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    command: bun run src/index.ts
 
   scheduler:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: treasury-scheduler
     environment:
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
@@ -29,6 +51,11 @@ services:
       CRON_TZ: ${CRON_TZ:-America/New_York}
       SCHEDULER_CRON_HOUR: ${SCHEDULER_CRON_HOUR:-16}
       SCHEDULER_CRON_MINUTE: ${SCHEDULER_CRON_MINUTE:-30}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    command: bun run src/services/scheduler.ts
 
   traefik:
     image: traefik:v3.0
@@ -54,3 +81,7 @@ services:
 networks:
   treasury-network:
     external: false
+
+volumes:
+  postgres_data:
+    driver: local
