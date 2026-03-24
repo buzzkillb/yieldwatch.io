@@ -81,7 +81,6 @@
       align-items: center;
       margin-bottom: 2rem;
       padding-bottom: 1.5rem;
-      border-bottom: 1px solid var(--border-color);
     }
 
     .logo {
@@ -479,6 +478,18 @@
         position: relative;
       }
       
+      .logo div {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+      
+      #dataSubtitle {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        font-weight: 400;
+      }
+      
       .rates-scroll-hint {
         display: block;
       }
@@ -540,7 +551,7 @@
         <div class="logo-icon" aria-hidden="true">T</div>
         <div>
           <h1>Yield Curve</h1>
-          <span>Daily Par Yield Curve Rates</span>
+          <span id="dataSubtitle">Daily Par Yield Curve Rates</span>
         </div>
       </div>
     </header>
@@ -700,6 +711,8 @@
       data.rates.forEach(r => {
         latestRates[r.maturity] = r.rate;
       });
+
+      document.getElementById('dataSubtitle').textContent = `Daily Par Yield Curve Rates | Data: ${data.dateFormatted}`;
 
       const ratesContainer = document.getElementById('ratesContainer');
       ratesContainer.innerHTML = `
