@@ -207,8 +207,8 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
       },
     };
 
-    if (maturity === undefined && offset === undefined) {
-      const cacheKey = `rates:${from || 'earliest'}:${to || 'latest'}:all:1000:0`;
+    if (maturity === undefined && offset === undefined && from && to) {
+      const cacheKey = `rates:${from}:${to}:all`;
       queryCache.set(cacheKey, result);
     }
 
@@ -221,7 +221,7 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
       return { success: false, error: 'from and to are required' };
     }
 
-    const cacheKey = `rates:${from}:${to}:all:1000:0`;
+    const cacheKey = `rates:${from}:${to}:all`;
     const cached = queryCache.get(cacheKey);
     if (cached) {
       return { success: true, cached: true, cacheKey };
@@ -236,7 +236,7 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
       .from(schema.yieldCurveRates)
       .where(and(gte(schema.yieldCurveRates.date, from), lte(schema.yieldCurveRates.date, to)))
       .orderBy(asc(schema.yieldCurveRates.date), asc(schema.yieldCurveRates.maturity))
-      .limit(1000);
+      .limit(150000);
 
     if (data.length === 0) {
       return { success: false, error: 'No data found' };
@@ -272,9 +272,9 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
         to,
         maturity: 'all',
         count: timeSeriesData.length,
-        limit: 1000,
+        limit: 150000,
         offset: 0,
-        hasMore: timeSeriesData.length === 1000,
+        hasMore: timeSeriesData.length === 150000,
       },
     };
 

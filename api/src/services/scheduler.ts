@@ -605,7 +605,7 @@ async function warmQueryCache(): Promise<void> {
     { from: getDateMonthsAgo(1), to: latestDate, name: '1Y' },
     { from: getDateMonthsAgo(2), to: latestDate, name: '2Y' },
     { from: getDateMonthsAgo(5), to: latestDate, name: '5Y' },
-    { from: getDateYearsAgo(35), to: latestDate, name: 'ALL' },
+    { from: '1990-01-01', to: latestDate, name: 'ALL' },
   ];
 
   console.log('[Scheduler] Warming query cache...');
