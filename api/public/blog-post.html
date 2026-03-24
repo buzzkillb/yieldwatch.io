@@ -173,12 +173,14 @@
     .rate-maturity {
       font-size: 0.7rem;
       font-weight: 600;
+      color: var(--text-secondary);
       margin-bottom: 0.25rem;
     }
 
     .rate-value {
       font-size: 0.9rem;
       font-weight: 600;
+      color: var(--text-primary);
     }
 
     .loading, .error {
@@ -303,8 +305,8 @@
               <div class="rates-grid">
                 ${rates.map((r, i) => `
                   <div class="rate-item" style="border-top: 3px solid ${GRADIENT_COLORS[i % GRADIENT_COLORS.length]}">
-                    <div class="rate-maturity" style="color: ${GRADIENT_COLORS[i % GRADIENT_COLORS.length]}">${r.maturity}</div>
-                    <div class="rate-value" style="color: ${GRADIENT_COLORS[i % GRADIENT_COLORS.length]}">${r.rate.toFixed(2)}%</div>
+                    <div class="rate-maturity">${r.maturity}</div>
+                    <div class="rate-value">${r.rate.toFixed(2)}%</div>
                   </div>
                 `).join('')}
               </div>
@@ -343,8 +345,8 @@
             pointRadius: 6,
             pointBackgroundColor: colors,
             pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            pointHoverRadius: 8,
+            pointBorderWidth: 1,
+            pointHoverRadius: 7,
           }]
         },
         options: {
