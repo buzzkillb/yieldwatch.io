@@ -13,6 +13,7 @@ if (!user || !password) {
 }
 
 const connectionString = `postgres://${user}:${password}@${host}:${port}/${database}`;
+console.log('Connection string:', connectionString.replace(password, '***'));
 
 const client = postgres(connectionString, {
   max: 10,
