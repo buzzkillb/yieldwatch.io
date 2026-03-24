@@ -217,7 +217,20 @@
       border: 1px solid var(--border-color);
       border-radius: 16px;
       padding: 1.5rem;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .chart-container::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      height: 2px;
+      background: linear-gradient(to right, #0a0a0f, #6366f1 50%, #0a0a0f);
+      border-radius: 1px;
     }
 
     .chart-header {
