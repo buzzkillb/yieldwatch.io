@@ -362,9 +362,9 @@
           const ctx = canvas.getContext('2d');
           const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
           const ratesCount = rates.length - 1;
-          CHART_COLORS.forEach((color, i) => {
+          rates.forEach((_, i) => {
             const position = i / ratesCount;
-            gradient.addColorStop(position, color + '30');
+            gradient.addColorStop(position, CHART_COLORS[i] + '30');
           });
           gradient.addColorStop(1, CHART_COLORS[rates.length - 1] + '30');
 
