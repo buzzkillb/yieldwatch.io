@@ -305,8 +305,10 @@ async function fetchAndImportHistorical(): Promise<boolean> {
                 set: { rate: rate.toString(), createdAt: new Date() },
               });
             totalRecords++;
-          } catch (error) {
-            // Skip duplicate key errors silently
+          } catch (error: any) {
+            if (error?.code !== '23505') {
+              console.error(`[Scheduler] Error saving rate ${maturity} for ${day.date}:`, error);
+            }
           }
         }
         

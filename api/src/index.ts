@@ -5,11 +5,10 @@ import { rateLimit } from './middleware/rateLimit';
 import { ratesRoutes } from './routes/rates';
 import { blogRoutes } from './routes/blog';
 import { sitemapRoutes } from './routes/sitemap';
-import { db, schema } from './db';
-import { desc, asc } from 'drizzle-orm';
-import { readFileSync, existsSync } from 'fs';
+import { schema } from './db';
+import { desc } from 'drizzle-orm';
+import { readFileSync } from 'fs';
 import { join } from 'path';
-import sharp from 'sharp';
 
 const isProduction = process.env.NODE_ENV === 'production';
 let allowedOrigins: string[] | true;
@@ -41,7 +40,7 @@ const app = new Elysia()
     origin: allowedOrigins,
     methods: ['GET'],
     headers: ['Content-Type'],
-    credentials: allowedOrigins === true,
+    credentials: allowedOrigins === true || Array.isArray(allowedOrigins),
   }))
   .use(html())
   .use(rateLimit())

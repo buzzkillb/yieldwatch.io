@@ -1,6 +1,6 @@
 import { Elysia } from 'elysia';
 import { db, schema } from '../db';
-import { eq, and, gte, lte, desc, asc } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, asc, SQL } from 'drizzle-orm';
 import { MATURITIES } from '../utils/parse';
 
 const VALID_MATURITIES = new Set(MATURITIES.map(m => m.label));
@@ -9,7 +9,11 @@ const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 function isValidDate(dateStr: string): boolean {
   if (!DATE_REGEX.test(dateStr)) return false;
   const date = new Date(dateStr);
-  return date instanceof Date && !isNaN(date.getTime());
+  if (isNaN(date.getTime())) return false;
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return date.getUTCFullYear() === year &&
+         date.getUTCMonth() + 1 === month &&
+         date.getUTCDate() === day;
 }
 
 export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
@@ -130,7 +134,7 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
       };
     }
 
-    let whereConditions: any[] = [];
+    let whereConditions: SQL[] = [];
 
     if (from) {
       whereConditions.push(gte(schema.yieldCurveRates.date, from));

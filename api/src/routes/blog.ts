@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia';
 import { db, schema } from '../db';
-import { desc, asc, eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 
 const MATURITY_ORDER = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
 
@@ -32,23 +32,22 @@ export const blogRoutes = new Elysia({ prefix: '/api/blog' })
       return { success: false, error: 'Invalid date format. Use YYYY-MM-DD.' };
     }
 
-    const summaries = await db
+    const [summary] = await db
       .select()
       .from(schema.dailySummaries)
-      .orderBy(desc(schema.dailySummaries.date));
+      .where(eq(schema.dailySummaries.date, date))
+      .limit(1);
 
-    const summary = summaries.find(s => s.date === date);
     if (!summary) {
       return { success: false, error: 'Summary not found for this date' };
     }
 
-    const dailyData = await db
+    const ratesData = await db
       .select()
       .from(schema.yieldCurveRates)
-      .orderBy(desc(schema.yieldCurveRates.date));
+      .where(eq(schema.yieldCurveRates.date, date));
 
-    const ratesForDate = dailyData
-      .filter(r => r.date === date)
+    const ratesForDate = ratesData
       .map(r => ({
         maturity: r.maturity,
         rate: parseFloat(r.rate),
