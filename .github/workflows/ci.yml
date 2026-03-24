@@ -18,6 +18,8 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Start local database
+        env:
+          POSTGRES_PASSWORD: test_secret_password
         run: |
           docker compose up -d db
           docker compose ps
@@ -36,15 +38,19 @@ jobs:
           exit 1
 
       - name: Run database migrations
+        env:
+          POSTGRES_PASSWORD: test_secret_password
         run: docker compose run --rm api sh -c "bun run drizzle-kit push"
 
       - name: Start all services
+        env:
+          POSTGRES_PASSWORD: test_secret_password
         run: docker compose up -d
 
       - name: Wait for API to be ready
         run: |
           for i in {1..30}; do
-            if curl -sf http://localhost:3001/health > /dev/null 2>&1; then
+            if curl -sf http://localhost:3000/health > /dev/null 2>&1; then
               echo "API is ready"
               exit 0
             fi
@@ -56,11 +62,11 @@ jobs:
           exit 1
 
       - name: Test health endpoint
-        run: curl -sf http://localhost:3001/health | grep -q '"status":"ok"' && echo "Health check passed"
+        run: curl -sf http://localhost:3000/health | grep -q '"status":"ok"' && echo "Health check passed"
 
       - name: Test latest rates endpoint
         run: |
-          curl -sf http://localhost:3001/api/rates/latest | grep -q '"success":true' && echo "Latest rates check passed"
+          curl -sf http://localhost:3000/api/rates/latest | grep -q '"success":true' && echo "Latest rates check passed"
 
       - name: Check scheduler logs
         run: docker compose logs scheduler --tail 20
