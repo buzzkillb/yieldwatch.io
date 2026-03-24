@@ -2,16 +2,18 @@
 
 A real-time dashboard tracking U.S. Treasury yield curve rates with over 35 years of historical data and interactive charts.
 
-![Dashboard Preview](https://via.placeholder.com/800x400/0a0a0f/6366f1?text=Treasury+Dashboard)
+![Dashboard](https://github.com/user-attachments/assets/75754844-96a3-4c0e-b979-7ab385aa80a1)
 
 ## Features
+
 
 - **Daily Treasury Rates**: Real-time yield curve data from the U.S. Treasury Department
 - **35+ Years of History**: Data spanning from 1990 to present (~9,000 trading days)
 - **14 Maturities**: 4WK to 30YR spanning the entire yield curve
 - **Interactive Chart**: Toggle individual maturities on/off, multiple time ranges (3M, 6M, 1Y, 2Y, 5Y, ALL)
 - **Dark Theme**: Beautiful, eye-friendly dark interface
-- **Rate Limited API**: 100 requests/minute to prevent abuse
+- **Rate Limited API
+**: 100 requests/minute to prevent abuse
 - **Auto-Import**: On first run, automatically loads all historical data from Treasury archives
 - **Self-Updating**: Scheduler checks every 15 minutes for new data after ~3:30 PM ET
 - **Production Ready**: Docker Compose with Traefik + Cloudflare DNS + Let's Encrypt SSL
