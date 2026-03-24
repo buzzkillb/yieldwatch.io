@@ -30,6 +30,7 @@ export const dailySummaries = pgTable('daily_summaries', {
   id: serial('id').primaryKey(),
   date: date('date').notNull().unique(),
   summary: text('summary').notNull(),
+  blogSummary: text('blog_summary'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 

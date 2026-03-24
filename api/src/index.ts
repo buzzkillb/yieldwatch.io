@@ -3,6 +3,7 @@ import { cors } from '@elysiajs/cors';
 import { html } from '@elysiajs/html';
 import { rateLimit } from './middleware/rateLimit';
 import { ratesRoutes } from './routes/rates';
+import { blogRoutes } from './routes/blog';
 import { db, schema } from './db';
 import { desc, asc } from 'drizzle-orm';
 import { readFileSync, existsSync } from 'fs';
@@ -44,6 +45,7 @@ const app = new Elysia()
   .use(html())
   .use(rateLimit())
   .use(ratesRoutes)
+  .use(blogRoutes)
   .onBeforeHandle(({ set }) => {
     for (const [key, value] of Object.entries(securityHeaders)) {
       set.headers[key] = value;
@@ -64,6 +66,36 @@ const app = new Elysia()
       });
     } catch {
       return new Response('<html><body><h1>Treasury Dashboard</h1><p>Frontend not found. Please build the frontend first.</p></body></html>', {
+        headers: { 'Content-Type': 'text/html' },
+      });
+    }
+  })
+  .get('/blog', async () => {
+    try {
+      const blogPath = join(process.cwd(), 'public/blog.html');
+      const html = readFileSync(blogPath, 'utf-8');
+      return new Response(html, {
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+        },
+      });
+    } catch {
+      return new Response('<html><body><h1>Blog</h1><p>Blog not found.</p></body></html>', {
+        headers: { 'Content-Type': 'text/html' },
+      });
+    }
+  })
+  .get('/blog/:date', async ({ params }) => {
+    try {
+      const blogPath = join(process.cwd(), 'public/blog-post.html');
+      const html = readFileSync(blogPath, 'utf-8');
+      return new Response(html, {
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+        },
+      });
+    } catch {
+      return new Response('<html><body><h1>Post</h1><p>Post not found.</p></body></html>', {
         headers: { 'Content-Type': 'text/html' },
       });
     }

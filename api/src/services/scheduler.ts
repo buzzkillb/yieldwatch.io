@@ -99,7 +99,7 @@ async function generateDailySummary(): Promise<void> {
   }
 
   try {
-    console.log('[Scheduler] Generating daily rate summary with MiniMax...');
+    console.log('[Scheduler] Generating daily rate summaries with MiniMax...');
 
     const latestDateInDb = await db
       .select({ date: schema.yieldCurveRates.date })
@@ -133,7 +133,11 @@ async function generateDailySummary(): Promise<void> {
       lastWeek: formatDateForPrompt(lastWeekDate),
     };
 
-    const systemPrompt = `You are a plain-spoken writer describing U.S. Treasury yield curve data. Treasury publishes rates on business days only - weekends and holidays are skipped.
+    const dataPrompt = `- Today (${dates.today.day}, ${dates.today.date}): ${JSON.stringify(todayRates)}
+- Last business day (${dates.yesterday.day}, ${dates.yesterday.date}): ${JSON.stringify(yesterdayRates)}
+- Last week (${dates.lastWeek.day}, ${dates.lastWeek.date}): ${JSON.stringify(lastWeekRates)}`;
+
+    const shortSystemPrompt = `You are a plain-spoken writer describing U.S. Treasury yield curve data. Treasury publishes rates on business days only - weekends and holidays are skipped.
 
 Rules:
 - Write 2-4 sentences as one paragraph
@@ -148,51 +152,86 @@ Rules:
 - Never use foreign characters or non-ASCII symbols
 - Write in plain English only
 
-Date info:
-- Today (${dates.today.day}, ${dates.today.date}): ${JSON.stringify(todayRates)}
-- Last business day (${dates.yesterday.day}, ${dates.yesterday.date}): ${JSON.stringify(yesterdayRates)}
-- Last week (${dates.lastWeek.day}, ${dates.lastWeek.date}): ${JSON.stringify(lastWeekRates)}`;
+${dataPrompt}`;
 
-    const userMessage = `Write a brief paragraph about today's Treasury yield curve rates. Treasury is closed on weekends and holidays, so compare today to the last business day and to one week ago.`;
+    const longSystemPrompt = `You are a financial journalist writing a daily market brief about U.S. Treasury yields. Treasury publishes rates on business days only - weekends and holidays are skipped.
 
-    const response = await fetch('https://api.minimax.io/anthropic/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': MINIMAX_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'MiniMax-M2.7',
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [
-          { role: 'user', content: [{ type: 'text', text: userMessage }] }
-        ],
-        temperature: 1
+Rules:
+- Write 4-6 sentences as one rich paragraph
+- Open with the 30-year rate and key movements prominently
+- Cover all notable rate changes across the curve
+- Always compare to the previous business day AND one week ago
+- Note any inversions or unusual patterns in the yield curve
+- Use plain language - explain what the numbers mean without being educational
+- Do NOT use "percentage points" or "basis points" - just say "higher" or "lower"
+- Do NOT explain what rate movements mean for investors or markets
+- Keep it factual and informative - a trader should find this useful
+- Never use bullet points, dashes, or list format
+- Never use foreign characters or non-ASCII symbols
+- Write in plain English only
+
+${dataPrompt}`;
+
+    const shortUserMessage = `Write a brief paragraph about today's Treasury yield curve rates. Keep it to 2-4 sentences.`;
+    const longUserMessage = `Write a detailed daily market brief about today's Treasury yield curve rates. This will be published on a blog. Include meaningful analysis of the curve shape, notable maturities, and how rates compare to recent history.`;
+
+    const [shortResponse, longResponse] = await Promise.all([
+      fetch('https://api.minimax.io/anthropic/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': MINIMAX_API_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'MiniMax-M2.7',
+          max_tokens: 1000,
+          system: shortSystemPrompt,
+          messages: [{ role: 'user', content: [{ type: 'text', text: shortUserMessage }] }],
+          temperature: 1
+        })
+      }),
+      fetch('https://api.minimax.io/anthropic/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': MINIMAX_API_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'MiniMax-M2.7',
+          max_tokens: 2000,
+          system: longSystemPrompt,
+          messages: [{ role: 'user', content: [{ type: 'text', text: longUserMessage }] }],
+          temperature: 1
+        })
       })
-    });
+    ]);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.log(`[Scheduler] MiniMax API error: ${response.status} - ${errorText}`);
-      return;
-    }
-
-    const data = await response.json() as { content?: { type: string; text?: string }[] };
-    let generatedText = '';
-
-    if (data.content && Array.isArray(data.content)) {
-      for (const block of data.content) {
-        if (block.type === 'text' && block.text) {
-          generatedText = block.text;
-          break;
+    const parseResponse = async (response: Response): Promise<string> => {
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log(`[Scheduler] MiniMax API error: ${response.status} - ${errorText}`);
+        return '';
+      }
+      const data = await response.json() as { content?: { type: string; text?: string }[] };
+      if (data.content && Array.isArray(data.content)) {
+        for (const block of data.content) {
+          if (block.type === 'text' && block.text) {
+            return block.text.trim();
+          }
         }
       }
-    }
+      return '';
+    };
 
-    if (!generatedText) {
-      console.log('[Scheduler] No text generated from MiniMax');
+    const [shortSummary, blogSummary] = await Promise.all([
+      parseResponse(shortResponse),
+      parseResponse(longResponse)
+    ]);
+
+    if (!shortSummary) {
+      console.log('[Scheduler] No short summary generated from MiniMax');
       return;
     }
 
@@ -200,17 +239,22 @@ Date info:
       .insert(schema.dailySummaries)
       .values({
         date: todayDate,
-        summary: generatedText.trim(),
+        summary: shortSummary,
+        blogSummary: blogSummary || null,
       })
       .onConflictDoUpdate({
         target: schema.dailySummaries.date,
         set: {
-          summary: generatedText.trim(),
+          summary: shortSummary,
+          blogSummary: blogSummary || null,
           createdAt: new Date(),
         },
       });
-    console.log(`[Scheduler] Daily summary saved to database for ${todayDate}`);
-    console.log(`[Scheduler] Summary: ${generatedText.trim()}`);
+    console.log(`[Scheduler] Daily summaries saved to database for ${todayDate}`);
+    console.log(`[Scheduler] Short summary: ${shortSummary}`);
+    if (blogSummary) {
+      console.log(`[Scheduler] Blog summary: ${blogSummary.substring(0, 100)}...`);
+    }
 
   } catch (error) {
     console.error('[Scheduler] Error generating daily summary:', error);
