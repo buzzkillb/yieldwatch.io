@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia';
 import { db, schema } from '../db';
-import { desc, asc } from 'drizzle-orm';
+import { desc, asc, eq } from 'drizzle-orm';
 
 const MATURITY_ORDER = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
 
@@ -28,29 +28,20 @@ export const blogRoutes = new Elysia({ prefix: '/api/blog' })
   .get('/:date', async ({ params }) => {
     const { date } = params;
 
-    const summary = await db
+    const summaries = await db
       .select()
       .from(schema.dailySummaries)
-      .where(desc(schema.dailySummaries.date))
-      .limit(1);
+      .orderBy(desc(schema.dailySummaries.date));
 
-    if (summary.length === 0 || summary[0].date !== date) {
-      const byDate = await db
-        .select()
-        .from(schema.dailySummaries)
-        .where(desc(schema.dailySummaries.date));
-
-      const found = byDate.find(s => s.date === date);
-      if (!found) {
-        return { success: false, error: 'Summary not found for this date' };
-      }
+    const summary = summaries.find(s => s.date === date);
+    if (!summary) {
+      return { success: false, error: 'Summary not found for this date' };
     }
 
     const dailyData = await db
       .select()
       .from(schema.yieldCurveRates)
-      .where(desc(schema.yieldCurveRates.date))
-      .limit(100);
+      .orderBy(desc(schema.yieldCurveRates.date));
 
     const ratesForDate = dailyData
       .filter(r => r.date === date)
@@ -67,15 +58,13 @@ export const blogRoutes = new Elysia({ prefix: '/api/blog' })
       day: 'numeric'
     });
 
-    const summaryData = summary[0].date === date ? summary[0] : summary.find(s => s.date === date);
-
     return {
       success: true,
       data: {
-        date: summaryData?.date,
+        date: summary.date,
         dateFormatted,
-        summary: summaryData?.summary || '',
-        blogSummary: summaryData?.blogSummary || summaryData?.summary || '',
+        summary: summary.summary || '',
+        blogSummary: summary.blogSummary || summary.summary || '',
         rates: ratesForDate,
       }
     };
