@@ -407,13 +407,13 @@
         const ogImageUrl = `https://yieldwatch.io/og-image/${date}`;
         document.getElementById('og-url').content = blogUrl;
         document.getElementById('og-title').content = `${dateFormatted} Treasury Yield`;
-        document.getElementById('og-description').content = blogSummary.substring(0, 150);
+        document.getElementById('og-description').content = blogSummary.substring(0, 160);
         document.getElementById('og-image').content = ogImageUrl;
         document.getElementById('article-date').content = `${date}T00:00:00Z`;
         document.getElementById('article-modified').content = `${date}T00:00:00Z`;
         document.getElementById('twitter-url').content = blogUrl;
         document.getElementById('twitter-title').content = `${dateFormatted} Treasury Yield`;
-        document.getElementById('twitter-description').content = blogSummary.substring(0, 150);
+        document.getElementById('twitter-description').content = blogSummary.substring(0, 160);
         document.getElementById('twitter-image').content = ogImageUrl;
         document.getElementById('canonical-url').href = blogUrl;
 

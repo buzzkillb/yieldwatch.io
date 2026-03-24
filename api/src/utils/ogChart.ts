@@ -14,6 +14,10 @@ interface Rate {
 }
 
 export async function generateOgChart(rates: Rate[]): Promise<Buffer> {
+  if (rates.length < 2) {
+    throw new Error('At least 2 rates required for chart generation');
+  }
+
   const chartX = 50;
   const chartY = 50;
   const chartW = 1100;
