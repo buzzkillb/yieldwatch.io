@@ -303,8 +303,19 @@
 
     async function loadSummaries() {
       try {
-        const response = await fetch('/api/blog/list');
-        const data = await response.json();
+        const [ratesRes, summariesRes] = await Promise.all([
+          fetch('/api/rates/latest'),
+          fetch('/api/blog/list')
+        ]);
+        const ratesData = await ratesRes.json();
+        const data = await summariesRes.json();
+
+        if (ratesData.success && ratesData.data) {
+          const lastUpdated = document.getElementById('lastUpdated');
+          if (lastUpdated) {
+            lastUpdated.textContent = ratesData.data.dateFormatted;
+          }
+        }
 
         if (!data.success || !data.data.length) {
           document.getElementById('content').innerHTML = '<div class="error">No summaries available yet.</div>';
