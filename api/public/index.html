@@ -157,21 +157,6 @@
 
     .rates-scroll-hint {
       display: none;
-      position: absolute;
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      background: linear-gradient(to left, var(--bg-primary) 80%, transparent);
-      padding: 2rem 1rem 2rem 3rem;
-      color: var(--text-muted);
-      font-size: 0.7rem;
-      pointer-events: none;
-      z-index: 10;
-    }
-
-    .rates-scroll-hint::after {
-      content: '→';
-      margin-left: 0.25rem;
     }
 
     .rates-grid {
@@ -215,7 +200,7 @@
     }
 
     .rate-card .maturity {
-      font-size: 0.65rem;
+      font-size: 0.75rem;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -526,8 +511,20 @@
     }
     
     @media (max-width: 480px) {
+      .logo h1 {
+        font-size: 1.1rem;
+      }
+      
+      .logo span {
+        font-size: 0.75rem;
+      }
+      
       .rates-grid {
         grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .rate-card .maturity {
+        font-size: 0.75rem;
       }
       
       .rate-card .rate {
@@ -542,7 +539,7 @@
       <div class="logo">
         <div class="logo-icon" aria-hidden="true">T</div>
         <div>
-          <h1>U.S. Treasury Yield Curve</h1>
+          <h1>Yield Curve</h1>
           <span>Daily Par Yield Curve Rates</span>
         </div>
       </div>
