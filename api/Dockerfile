@@ -3,7 +3,7 @@ WORKDIR /app
 
 FROM base AS deps
 COPY package.json bun.lock ./
-RUN npm ci --ignore-scripts
+RUN bun install --ignore-scripts
 
 FROM base AS builder
 COPY --from=deps /app/node_modules /app/node_modules
