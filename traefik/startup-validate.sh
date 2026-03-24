@@ -21,4 +21,4 @@ if [ -n "$MISSING" ]; then
 fi
 
 echo "All required environment variables are set."
-exec docker-entrypoint.sh "$@"
+exec /entrypoint.sh traefik "$@"
