@@ -150,17 +150,17 @@ const app = new Elysia()
 
       html = html.replace(/<title[^>]*>.*<\/title>/, `<title>${pageTitle}</title>`);
       html = html.replace(`content="Treasury yield curve daily analysis" id="meta-desc"`, `content="${metaDescription}"`);
-      html = html.replace(`content="https://yieldwatch.io/blog" id="og-url"`, `content="${blogUrl}"`);
-      html = html.replace(`content="Treasury Yield Daily Summary" id="og-title"`, `content="${dateFormatted} Treasury Yield"`);
-      html = html.replace(`content="Treasury yield curve daily analysis" id="og-description"`, `content="${metaDescription}"`);
-      html = html.replace(`content="https://yieldwatch.io/og.png" id="og-image"`, `content="${ogImageUrl}"`);
-      html = html.replace(`content="" id="article-date"`, `content="${date}T00:00:00Z"`);
-      html = html.replace(`content="" id="article-modified"`, `content="${date}T00:00:00Z"`);
-      html = html.replace(`content="https://yieldwatch.io/blog" id="twitter-url"`, `content="${blogUrl}"`);
-      html = html.replace(`content="Treasury Yield Daily Summary" id="twitter-title"`, `content="${dateFormatted} Treasury Yield"`);
-      html = html.replace(`content="Treasury yield curve daily analysis" id="twitter-description"`, `content="${metaDescription}"`);
-      html = html.replace(`content="https://yieldwatch.io/og.png" id="twitter-image"`, `content="${ogImageUrl}"`);
-      html = html.replace(`href="https://yieldwatch.io/blog/" id="canonical-url"`, `href="${blogUrl}"`);
+      html = html.replace(`id="og-url" content="https://yieldwatch.io/blog"`, `id="og-url" content="${blogUrl}"`);
+      html = html.replace(`id="og-title" content="Treasury Yield Daily Summary"`, `id="og-title" content="${dateFormatted} Treasury Yield"`);
+      html = html.replace(`id="og-description" content="Treasury yield curve daily analysis"`, `id="og-description" content="${metaDescription}"`);
+      html = html.replace(`id="og-image" content="https://yieldwatch.io/og.png"`, `id="og-image" content="${ogImageUrl}"`);
+      html = html.replace(`id="article-date" content=""`, `id="article-date" content="${date}T00:00:00Z"`);
+      html = html.replace(`id="article-modified" content=""`, `id="article-modified" content="${date}T00:00:00Z"`);
+      html = html.replace(`id="twitter-url" content="https://yieldwatch.io/blog"`, `id="twitter-url" content="${blogUrl}"`);
+      html = html.replace(`id="twitter-title" content="Treasury Yield Daily Summary"`, `id="twitter-title" content="${dateFormatted} Treasury Yield"`);
+      html = html.replace(`id="twitter-description" content="Treasury yield curve daily analysis"`, `id="twitter-description" content="${metaDescription}"`);
+      html = html.replace(`id="twitter-image" content="https://yieldwatch.io/og.png"`, `id="twitter-image" content="${ogImageUrl}"`);
+      html = html.replace(`id="canonical-url" href="https://yieldwatch.io/blog/"`, `id="canonical-url" href="${blogUrl}"`);
 
       const breadcrumbSchemaMatch = html.match(/id="breadcrumb-schema">([\s\S]*?)<\/script>/);
       if (breadcrumbSchemaMatch) {
