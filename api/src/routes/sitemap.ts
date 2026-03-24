@@ -63,6 +63,12 @@ export const sitemapRoutes = new Elysia({ prefix: '' })
           changefreq: 'daily',
           priority: '0.9',
         },
+        {
+          loc: `${SITE_URL}/api-docs`,
+          lastmod: today,
+          changefreq: 'weekly',
+          priority: '0.7',
+        },
       ];
 
       const blogUrls: SitemapUrl[] = summaries.map(summary => ({
@@ -99,6 +105,12 @@ export const sitemapRoutes = new Elysia({ prefix: '' })
           lastmod: new Date().toISOString().split('T')[0],
           changefreq: 'daily',
           priority: '0.9',
+        },
+        {
+          loc: `${SITE_URL}/api-docs`,
+          lastmod: new Date().toISOString().split('T')[0],
+          changefreq: 'weekly',
+          priority: '0.7',
         },
       ]);
 
