@@ -75,7 +75,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
-      - ./acme.json:/acme.json:rw
+      - ./acme.json:/acme.json:ro
     environment:
       - CF_API_EMAIL=${CF_API_EMAIL}
       - CF_API_TOKEN=${CF_API_TOKEN}
