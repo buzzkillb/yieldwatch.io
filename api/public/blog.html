@@ -363,7 +363,7 @@
     function renderMiniCharts(summaries) {
       summaries.forEach(async (item, index) => {
         try {
-          const response = await fetch(`/blog/${item.date}`);
+          const response = await fetch(`/api/blog/${item.date}`);
           const data = await response.json();
 
           if (!data.success || !data.data?.rates?.length) return;
