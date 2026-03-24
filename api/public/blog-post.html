@@ -470,6 +470,11 @@
 
     function renderChart(rates, colors) {
       const ctx = document.getElementById('yieldChart').getContext('2d');
+      const chartCanvas = document.getElementById('yieldChart');
+
+      const lineGradient = ctx.createLinearGradient(0, 0, chartCanvas.width, 0);
+      lineGradient.addColorStop(0, '#2a2a3a');
+      lineGradient.addColorStop(1, '#f0f0f5');
 
       new Chart(ctx, {
         type: 'line',
@@ -478,7 +483,7 @@
           datasets: [{
             label: 'Yield',
             data: rates.map(r => r.rate),
-            borderColor: colors,
+            borderColor: lineGradient,
             backgroundColor: 'transparent',
             borderWidth: 3,
             fill: false,

@@ -427,13 +427,17 @@
 
           const ctx = canvas.getContext('2d');
 
+          const lineGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+          lineGradient.addColorStop(0, '#2a2a3a');
+          lineGradient.addColorStop(1, '#f0f0f5');
+
           new Chart(ctx, {
             type: 'line',
             data: {
               labels: rates.map(r => r.maturity),
               datasets: [{
                 data: rates.map((r, i) => ({ x: i, y: r.rate })),
-                borderColor: CHART_COLORS,
+                borderColor: lineGradient,
                 backgroundColor: 'transparent',
                 fill: false,
                 tension: 0.4,
