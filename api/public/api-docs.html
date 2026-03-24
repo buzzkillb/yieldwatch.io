@@ -3,17 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>API Documentation - U.S. Treasury Yield Curve</title>
+  <title>API Documentation | U.S. Treasury Yield Curve</title>
+  <meta name="description" content="Complete API reference for the YieldWatch Treasury yield curve dashboard">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://yieldwatch.io/api-docs">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%236366f1' rx='15' width='100' height='100'/%3E%3Cpath d='M20 70 L35 55 L50 65 L65 40 L80 45' stroke='white' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='80' cy='45' r='6' fill='white'/%3E%3C/svg%3E">
   <style>
     :root {
       --bg-primary: #0a0a0f;
-      --bg-secondary: #12121a;
-      --bg-tertiary: #1a1a25;
+      --bg-secondary: #0f0f18;
       --bg-card: #16161f;
+      --bg-tertiary: #1a1a25;
       --border-color: #2a2a3a;
       --text-primary: #f0f0f5;
-      --text-secondary: #9090a0;
-      --text-muted: #787890;
+      --text-secondary: #a0a0b0;
+      --text-muted: #606070;
       --accent: #6366f1;
       --accent-hover: #818cf8;
       --success: #22c55e;
@@ -28,92 +32,94 @@
     }
 
     body {
-      font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
-      background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-      min-height: 100vh;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-primary);
       color: var(--text-primary);
+      min-height: 100vh;
       line-height: 1.6;
     }
 
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 2rem;
+    .header {
+      background: linear-gradient(145deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1.5rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
     }
 
-    header {
+    .header-content {
+      max-width: 900px;
+      margin: 0 auto;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 3rem;
-      padding-bottom: 1.5rem;
-      border-bottom: 1px solid var(--border-color);
     }
 
     .logo {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-primary);
     }
 
-    .logo-icon {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, var(--accent) 0%, #a855f7 100%);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 1.2rem;
+    .logo svg {
+      width: 36px;
+      height: 36px;
     }
 
-    .logo h1 {
-      font-size: 1.5rem;
+    .logo-text {
+      font-size: 1.25rem;
       font-weight: 600;
     }
 
-    .logo span {
-      color: var(--text-secondary);
-      font-size: 0.9rem;
-    }
-
-    .nav-links {
+    .nav {
       display: flex;
-      gap: 1.5rem;
+      gap: 2rem;
     }
 
-    .nav-links a {
+    .nav a {
       color: var(--text-secondary);
       text-decoration: none;
       font-size: 0.9rem;
       transition: color 0.2s;
     }
 
-    .nav-links a:hover {
+    .nav a:hover, .nav a.active {
       color: var(--accent);
     }
 
-    h1.page-title {
-      font-size: 2.5rem;
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .page-title {
+      font-size: 2rem;
+      font-weight: 700;
       margin-bottom: 0.5rem;
-      background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: var(--text-primary);
     }
 
     .page-subtitle {
       color: var(--text-secondary);
-      font-size: 1.1rem;
-      margin-bottom: 2rem;
+      font-size: 1rem;
     }
 
     .section {
-      margin-bottom: 3rem;
+      margin-bottom: 2.5rem;
     }
 
     h2 {
-      font-size: 1.5rem;
+      font-size: 1.25rem;
       margin-bottom: 1rem;
       color: var(--text-primary);
       display: flex;
@@ -122,7 +128,7 @@
     }
 
     h2 .method {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       padding: 0.25rem 0.5rem;
       border-radius: 4px;
       background: var(--accent);
@@ -131,7 +137,7 @@
     }
 
     h3 {
-      font-size: 1.1rem;
+      font-size: 1rem;
       color: var(--text-secondary);
       margin: 1.5rem 0 0.75rem;
     }
@@ -139,6 +145,7 @@
     p {
       color: var(--text-secondary);
       margin-bottom: 1rem;
+      font-size: 0.95rem;
     }
 
     .endpoint {
@@ -152,24 +159,25 @@
     .endpoint-header {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: 0.75rem;
       margin-bottom: 1rem;
+      flex-wrap: wrap;
     }
 
     .endpoint-url {
-      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
       background: var(--bg-tertiary);
-      padding: 0.5rem 1rem;
+      padding: 0.4rem 0.75rem;
       border-radius: 6px;
       color: var(--accent-hover);
-      font-size: 0.95rem;
+      font-size: 0.85rem;
       flex: 1;
       overflow-x: auto;
     }
 
     .badge {
-      font-size: 0.7rem;
-      padding: 0.25rem 0.5rem;
+      font-size: 0.65rem;
+      padding: 0.2rem 0.4rem;
       border-radius: 4px;
       font-weight: 600;
       text-transform: uppercase;
@@ -181,7 +189,7 @@
     .description {
       color: var(--text-secondary);
       margin-bottom: 1rem;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
     }
 
     .code-block {
@@ -198,10 +206,11 @@
       margin: 0;
       white-space: pre-wrap;
       word-break: break-all;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
     }
 
     .code-label {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: var(--text-muted);
       margin-bottom: 0.5rem;
       text-transform: uppercase;
@@ -216,10 +225,10 @@
 
     .param {
       display: grid;
-      grid-template-columns: 150px 100px 1fr;
-      gap: 1rem;
+      grid-template-columns: 120px 80px 1fr;
+      gap: 0.75rem;
       align-items: start;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       padding: 0.5rem 0;
       border-bottom: 1px solid var(--border-color);
     }
@@ -231,11 +240,12 @@
     .param-name {
       color: var(--accent-hover);
       font-weight: 500;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
     }
 
     .param-type {
       color: var(--warning);
-      font-size: 0.8rem;
+      font-size: 0.75rem;
     }
 
     .param-desc {
@@ -244,30 +254,26 @@
 
     .param-required {
       color: var(--danger);
-      font-size: 0.75rem;
-    }
-
-    .response-example {
-      margin-top: 1rem;
+      font-size: 0.7rem;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
       margin: 1rem 0;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
     }
 
     th, td {
       text-align: left;
-      padding: 0.75rem;
+      padding: 0.6rem 0.75rem;
       border-bottom: 1px solid var(--border-color);
     }
 
     th {
       color: var(--text-secondary);
       font-weight: 500;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -282,6 +288,7 @@
       border-radius: 4px;
       font-size: 0.85em;
       color: var(--accent-hover);
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
     }
 
     .rate-limit-note {
@@ -296,35 +303,38 @@
     .rate-limit-note h4 {
       color: var(--warning);
       margin-bottom: 0.5rem;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
     }
 
     .rate-limit-note p {
       margin: 0;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
     }
 
-    footer {
-      margin-top: 4rem;
-      padding-top: 2rem;
+    .footer {
+      background: linear-gradient(145deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
       border-top: 1px solid var(--border-color);
-      color: var(--text-muted);
-      font-size: 0.85rem;
+      padding: 1.5rem 2rem;
+      margin-top: 2rem;
+    }
+
+    .footer-content {
+      max-width: 900px;
+      margin: 0 auto;
       text-align: center;
     }
 
     .footer-links {
       display: flex;
       justify-content: center;
-      align-items: center;
-      gap: 0.75rem;
+      gap: 1rem;
+      font-size: 0.85rem;
       margin-bottom: 0.5rem;
     }
 
     .footer-links a {
       color: var(--text-secondary);
       text-decoration: none;
-      transition: color 0.2s;
     }
 
     .footer-links a:hover {
@@ -332,19 +342,23 @@
     }
 
     .footer-links .divider {
-      color: var(--border-color);
+      color: var(--text-muted);
     }
 
-    footer a {
-      color: var(--accent);
-      text-decoration: none;
-    }
-
-    footer a:hover {
-      text-decoration: underline;
+    .footer-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
     }
 
     @media (max-width: 768px) {
+      .header {
+        padding: 1rem;
+      }
+
+      .nav {
+        gap: 1rem;
+      }
+
       .container {
         padding: 1rem;
       }
@@ -355,30 +369,49 @@
       }
 
       .endpoint-url {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         flex-wrap: wrap;
+      }
+
+      .page-title {
+        font-size: 1.5rem;
+      }
+
+      .footer-content {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .footer-links {
+        justify-content: center;
       }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <div class="logo">
-        <div class="logo-icon">T</div>
-        <div>
-          <h1>YieldWatch</h1>
-          <span>U.S. Treasury Yield Curve</span>
-        </div>
-      </div>
-      <nav class="nav-links">
+  <header class="header">
+    <div class="header-content">
+      <a href="/" class="logo">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect fill="#6366f1" rx="15" width="100" height="100"/>
+          <path d="M20 70 L35 55 L50 65 L65 40 L80 45" stroke="white" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="80" cy="45" r="6" fill="white"/>
+        </svg>
+        <span class="logo-text">Treasury Yield</span>
+      </a>
+      <nav class="nav">
         <a href="/">Dashboard</a>
-        <a href="/api-docs">API Docs</a>
+        <a href="/blog">Daily Summaries</a>
+        <a href="/api-docs" class="active">API Docs</a>
       </nav>
-    </header>
+    </div>
+  </header>
 
-    <h1 class="page-title">API Documentation</h1>
-    <p class="page-subtitle">Complete reference for the YieldWatch REST API</p>
+  <main class="container">
+    <div class="page-header">
+      <h1 class="page-title">API Documentation</h1>
+      <p class="page-subtitle">Complete reference for the YieldWatch REST API</p>
+    </div>
 
     <div class="rate-limit-note">
       <h4>Rate Limiting</h4>
@@ -649,15 +682,17 @@
         </tbody>
       </table>
     </div>
+  </main>
 
-    <footer>
+  <footer class="footer">
+    <div class="footer-content">
       <div class="footer-links">
         <a href="/api-docs">API Documentation</a>
         <span class="divider">|</span>
         <a href="https://home.treasury.gov" target="_blank" rel="noopener noreferrer">U.S. Treasury</a>
       </div>
-      <p>Updates daily at approximately 3:30 PM ET</p>
-    </footer>
-  </div>
+      <div class="footer-meta">Updated daily at 3:30 PM ET</div>
+    </div>
+  </footer>
 </body>
 </html>
