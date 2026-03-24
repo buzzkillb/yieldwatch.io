@@ -34,6 +34,43 @@
   <meta name="keywords" content="treasury, yield curve, interest rates, bonds, 10 year, 2 year, 30 year, historical data, federal reserve">
   <meta name="author" content="YieldWatch">
   
+  <!-- Schema.org Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FinancialProduct",
+    "name": "U.S. Treasury Yield Curve",
+    "description": "Daily U.S. Treasury Par Yield Curve Rates showing interest rates across all maturities from 4-week bills to 30-year bonds",
+    "provider": {
+      "@type": "Organization",
+      "name": "YieldWatch",
+      "url": "https://yieldwatch.io"
+    },
+    "offers": {
+      "@type": "AggregateOffer",
+      "lowPrice": "0",
+      "highPrice": "10",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "U.S. Treasury Yield Curve Historical Data",
+    "description": "Historical U.S. Treasury yield curve data spanning 35+ years from 1990 to present",
+    "url": "https://yieldwatch.io",
+    "keywords": ["treasury", "yield curve", "interest rates", "bonds"],
+    "publisher": {
+      "@type": "Organization",
+      "name": "U.S. Department of the Treasury",
+      "url": "https://home.treasury.gov"
+    },
+    "license": "https://home.treasury.gov"
+  }
+  </script>
+  
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <style>
@@ -213,7 +250,7 @@
     }
 
     .chart-container {
-      background: var(--bg-card);
+      background: linear-gradient(135deg, var(--bg-card) 0%, #1a1a28 100%);
       border-radius: 16px;
       padding: 1.5rem;
       margin-bottom: 1.5rem;
@@ -341,6 +378,7 @@
       border-radius: 6px;
       transition: all 0.2s ease;
       user-select: none;
+      border: 1px solid transparent;
     }
 
     .legend-item:hover {
@@ -350,6 +388,12 @@
     .legend-item:focus {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
+    }
+
+    .legend-item.active {
+      color: var(--text-primary);
+      background: var(--bg-tertiary);
+      border-color: var(--border-color);
     }
 
     .legend-item.inactive {
@@ -523,7 +567,7 @@
       }
       
       .chart-wrapper {
-        height: 300px;
+        height: 350px;
       }
       
       .api-info {
@@ -949,7 +993,7 @@
         
         const colorIndex = index % CHART_COLORS.length;
         const item = document.createElement('div');
-        item.className = 'legend-item' + (activeMaturities.has(maturity) ? '' : ' inactive');
+        item.className = 'legend-item' + (activeMaturities.has(maturity) ? ' active' : ' inactive');
         item.dataset.maturity = maturity;
         item.tabIndex = 0;
         item.setAttribute('role', 'button');
