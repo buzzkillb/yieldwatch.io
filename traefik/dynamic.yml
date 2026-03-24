@@ -14,7 +14,7 @@ http:
 
   routers:
     treasury:
-      rule: "Host(`${DOMAIN}`)"
+      rule: Host(`${DOMAIN}`)
       service: treasury-api
       entryPoints:
         - websecure

@@ -1,6 +1,9 @@
 import { db, schema } from '../db';
-import { eq } from 'drizzle-orm';
+import { eq, desc, asc } from 'drizzle-orm';
 import { fetchTreasuryYieldCurve, fetchLatestDate } from './fetcher';
+import sharp from 'sharp';
+import { writeFileSync, existsSync, mkdirSync } from 'fs';
+import { join } from 'path';
 
 const CHECK_INTERVAL_MS = (() => {
   const val = parseInt(process.env.SCHEDULER_CHECK_INTERVAL_MS || '900000', 10);
@@ -293,6 +296,74 @@ async function saveYieldData(data: Awaited<ReturnType<typeof fetchTreasuryYieldC
   return true;
 }
 
+async function regenerateOgImage(): Promise<void> {
+  try {
+    console.log('[Scheduler] Regenerating OG image...');
+    
+    const latestData = await db
+      .select()
+      .from(schema.yieldCurveRates)
+      .orderBy(desc(schema.yieldCurveRates.date), asc(schema.yieldCurveRates.maturity))
+      .limit(14);
+
+    if (latestData.length === 0) {
+      console.log('[Scheduler] No data for OG image');
+      return;
+    }
+
+    const latestDate = latestData[0].date;
+    const todayRates = latestData
+      .filter(r => r.date === latestDate)
+      .map(r => ({ maturity: r.maturity, rate: parseFloat(r.rate) }));
+
+    const maturities = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
+    const maturityLabels: Record<string, string> = {
+      '4WK': '4W', '6WK': '6W', '2MO': '2M', '3MO': '3M', '4MO': '4M', '6MO': '6M',
+      '1YR': '1Y', '2YR': '2Y', '3YR': '3Y', '5YR': '5Y', '7YR': '7Y', '10YR': '10Y', '20YR': '20Y', '30YR': '30Y'
+    };
+
+    const ratesMap = new Map(todayRates.map(d => [d.maturity, d.rate]));
+    const rates = maturities.map(m => ({ maturity: m, rate: ratesMap.get(m) || 0 }));
+    const maxRate = Math.max(...rates.map(r => r.rate));
+    const minRate = Math.min(...rates.map(r => r.rate));
+    const rateRange = maxRate - minRate || 1;
+
+    const chartX = 50;
+    const chartY = 50;
+    const chartW = 1100;
+    const chartH = 530;
+    const pointSpacing = chartW / (rates.length - 1);
+
+    let pathD = '';
+    rates.forEach((r, i) => {
+      const x = chartX + i * pointSpacing;
+      const y = chartY + chartH - ((r.rate - minRate + 0.5) / (rateRange + 1)) * chartH;
+      pathD += i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
+    });
+
+    const circles = rates.map((r, i) => {
+      const x = chartX + i * pointSpacing;
+      const y = chartY + chartH - ((r.rate - minRate + 0.5) / (rateRange + 1)) * chartH;
+      return `<circle cx="${x}" cy="${y}" r="10" fill="#6366f1" stroke="white" stroke-width="3"/>`;
+    }).join('');
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630"><defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#0a0a0f"/><stop offset="100%" style="stop-color:#12121a"/></linearGradient><linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#6366f1"/><stop offset="50%" style="stop-color:#818cf8"/><stop offset="100%" style="stop-color:#a855f7"/></linearGradient><linearGradient id="areaGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.4"/><stop offset="100%" style="stop-color:#6366f1;stop-opacity:0"/></linearGradient></defs><rect fill="url(#bg)" width="1200" height="630"/><path d="${pathD} ${chartX + chartW} ${chartY + chartH} L ${chartX} ${chartY + chartH} Z" fill="url(#areaGrad)"/><path d="${pathD}" fill="none" stroke="url(#lineGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>${circles}</svg>`;
+
+    const publicDir = join(process.cwd(), 'public');
+    if (!existsSync(publicDir)) {
+      mkdirSync(publicDir, { recursive: true });
+    }
+
+    const pngBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
+    const pngPath = join(publicDir, 'og.png');
+    writeFileSync(pngPath, pngBuffer);
+    
+    console.log(`[Scheduler] OG image regenerated: ${pngPath}`);
+  } catch (error) {
+    console.error('[Scheduler] Error regenerating OG image:', error);
+  }
+}
+
 async function checkAndUpdate(): Promise<void> {
   console.log(`[Scheduler] Checking for updates at ${new Date().toISOString()}...`);
   
@@ -311,6 +382,7 @@ async function checkAndUpdate(): Promise<void> {
   
   if (result.success) {
     await saveYieldData(result);
+    await regenerateOgImage();
     console.log(`[Scheduler] Update complete at ${new Date().toISOString()}`);
   } else {
     console.log(`[Scheduler] Fetch failed: ${result.error}. Will retry in 15 minutes.`);
@@ -370,6 +442,7 @@ async function main(): Promise<void> {
         console.log(`[Scheduler] Failed to import historical data, will try daily XML feed`);
       }
       
+      await regenerateOgImage();
       console.log(`[Scheduler] Fetching latest XML data to ensure up-to-date rates...`);
       await checkAndUpdate();
     } else {

@@ -181,7 +181,7 @@ Once SSL is working (2-5 minutes), go back to Cloudflare DNS settings and toggle
 | `RATE_LIMIT_MAX` | No | `100` | Max requests per window |
 | `RATE_LIMIT_WINDOW_MS` | No | `60000` | Rate limit window (1 min) |
 | `CF_API_EMAIL` | Prod | - | Cloudflare account email |
-| `CF_API_TOKEN` | Prod | - | Cloudflare API token |
+| `CF_API_TOKEN` | Prod | - | Cloudflare API token (Traefik v3) |
 | `DOMAIN` | Prod | - | Your domain name |
 
 ## API Endpoints

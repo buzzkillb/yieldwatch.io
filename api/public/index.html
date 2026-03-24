@@ -3,7 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>U.S. Treasury Yield Curve</title>
+  <title>U.S. Treasury Yield Curve | Real-Time Interest Rates Dashboard</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%236366f1' rx='15' width='100' height='100'/%3E%3Cpath d='M20 70 L35 55 L50 65 L65 40 L80 45' stroke='white' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='80' cy='45' r='6' fill='white'/%3E%3C/svg%3E">
+  
+  <!-- Open Graph / Facebook / LinkedIn -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yieldwatch.io">
+  <meta property="og:title" content="U.S. Treasury Yield Curve | Free Real-Time Dashboard">
+  <meta property="og:description" content="Track U.S. Treasury yield curve with 35+ years of historical data. Monitor interest rates from 4-week bills to 30-year bonds updated daily.">
+  <meta property="og:image" content="https://yieldwatch.io/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="U.S. Treasury Yield Curve Dashboard showing current and historical interest rates">
+  <meta property="og:image:type" content="image/png">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://yieldwatch.io">
+  <meta name="twitter:title" content="U.S. Treasury Yield Curve | Free Real-Time Dashboard">
+  <meta name="twitter:description" content="Track U.S. Treasury yield curve with 35+ years of historical data. Monitor interest rates from 4-week bills to 30-year bonds updated daily.">
+  <meta name="twitter:image" content="https://yieldwatch.io/og.png">
+  <meta name="twitter:image:alt" content="U.S. Treasury Yield Curve Dashboard">
+  <meta name="twitter:image:width" content="1200">
+  <meta name="twitter:image:height" content="630">
+  
+  <!-- Additional SEO -->
+  <meta name="description" content="Track U.S. Treasury yield curve with 35+ years of historical data. Monitor interest rates from 4-week bills to 30-year bonds updated daily.">
+  <meta name="keywords" content="treasury, yield curve, interest rates, bonds, 10 year, 2 year, 30 year, historical data, federal reserve">
+  <meta name="author" content="YieldWatch">
+  
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <style>
@@ -51,7 +81,6 @@
       align-items: center;
       margin-bottom: 2rem;
       padding-bottom: 1.5rem;
-      border-bottom: 1px solid var(--border-color);
     }
 
     .logo {
@@ -127,21 +156,6 @@
 
     .rates-scroll-hint {
       display: none;
-      position: absolute;
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      background: linear-gradient(to left, var(--bg-primary) 80%, transparent);
-      padding: 2rem 1rem 2rem 3rem;
-      color: var(--text-muted);
-      font-size: 0.7rem;
-      pointer-events: none;
-      z-index: 10;
-    }
-
-    .rates-scroll-hint::after {
-      content: '→';
-      margin-left: 0.25rem;
     }
 
     .rates-grid {
@@ -185,7 +199,7 @@
     }
 
     .rate-card .maturity {
-      font-size: 0.65rem;
+      font-size: 0.75rem;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -200,10 +214,22 @@
 
     .chart-container {
       background: var(--bg-card);
-      border: 1px solid var(--border-color);
       border-radius: 16px;
       padding: 1.5rem;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .chart-container::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      height: 2px;
+      background: linear-gradient(to right, #0a0a0f, #6366f1 50%, #0a0a0f);
+      border-radius: 1px;
     }
 
     .chart-header {
@@ -343,7 +369,6 @@
     footer {
       text-align: center;
       padding-top: 2rem;
-      border-top: 1px solid var(--border-color);
       color: var(--text-muted);
       font-size: 0.8rem;
     }
@@ -464,6 +489,22 @@
         position: relative;
       }
       
+      .logo div {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+      
+      #dataSubtitle {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        font-weight: 400;
+      }
+      
+      .mobile-break {
+        display: none;
+      }
+      
       .rates-scroll-hint {
         display: block;
       }
@@ -496,8 +537,24 @@
     }
     
     @media (max-width: 480px) {
+      .logo h1 {
+        font-size: 1.1rem;
+      }
+      
+      .logo span {
+        font-size: 0.75rem;
+      }
+      
+      .mobile-break {
+        display: block;
+      }
+      
       .rates-grid {
         grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .rate-card .maturity {
+        font-size: 0.75rem;
       }
       
       .rate-card .rate {
@@ -512,8 +569,8 @@
       <div class="logo">
         <div class="logo-icon" aria-hidden="true">T</div>
         <div>
-          <h1>U.S. Treasury Yield Curve</h1>
-          <span>Daily Par Yield Curve Rates</span>
+          <h1>Yield Curve</h1>
+          <span id="dataSubtitle">Daily Par Yield Curve Rates</span>
         </div>
       </div>
     </header>
@@ -674,10 +731,11 @@
         latestRates[r.maturity] = r.rate;
       });
 
+      document.getElementById('dataSubtitle').innerHTML = `Daily Par Yield Curve Rates<br class="mobile-break">Data: ${data.dateFormatted}`;
+
       const ratesContainer = document.getElementById('ratesContainer');
       ratesContainer.innerHTML = `
         <div class="rates-section">
-          <div class="rates-scroll-hint" aria-hidden="true">Scroll</div>
           <div class="rates-grid" id="ratesGrid" role="group" aria-label="Treasury yield rates by maturity"></div>
         </div>
       `;

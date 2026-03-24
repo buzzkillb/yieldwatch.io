@@ -31,9 +31,8 @@ function getSocketIP(context: Context): string | null {
 function getClientIP(context: Context): string {
   const socketIP = getSocketIP(context);
   
-  if (TRUSTED_PROXY_IPS.size > 0) {
-    const directIP = getDirectIP(context);
-    if (directIP && TRUSTED_PROXY_IPS.has(directIP)) {
+  if (socketIP && TRUSTED_PROXY_IPS.size > 0) {
+    if (TRUSTED_PROXY_IPS.has(socketIP)) {
       const forwarded = context.headers['x-forwarded-for'];
       if (forwarded) {
         const ips = Array.isArray(forwarded) ? forwarded[0] : forwarded;
@@ -41,6 +40,10 @@ function getClientIP(context: Context): string {
         if (firstIP && isValidPublicIP(firstIP)) {
           return firstIP;
         }
+      }
+      const realIP = context.headers['x-real-ip'];
+      if (realIP && isValidPublicIP(realIP)) {
+        return realIP;
       }
     }
   }
@@ -68,9 +71,9 @@ function isPrivateIP(ip: string): boolean {
     const second = parseInt(ip.split('.')[1], 10);
     if (second >= 16 && second <= 31) return true;
   }
-  if (ip.startsWith('fc') || ip.startsWith('fd')) return true;
+  if (ip.startsWith('fc00:') || ip.startsWith('fd00:')) return true;
   if (ip.startsWith('fe80:')) return true;
-  if (ip === '::ffff:127.0.0.1') return true;
+  if (ip.startsWith('::ffff:')) return true;
   
   return false;
 }

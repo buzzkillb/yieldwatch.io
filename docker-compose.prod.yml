@@ -1,11 +1,29 @@
+version: "3.8"
+
 services:
   db:
+    image: postgres:17-alpine
+    container_name: treasury-db
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-treasury}
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - treasury-network
 
   api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: treasury-api
     environment:
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
@@ -17,8 +35,19 @@ services:
       RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
       RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
       TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - treasury-network
+    command: bun run dist/index.js
 
   scheduler:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: treasury-scheduler
     environment:
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
@@ -29,6 +58,13 @@ services:
       CRON_TZ: ${CRON_TZ:-America/New_York}
       SCHEDULER_CRON_HOUR: ${SCHEDULER_CRON_HOUR:-16}
       SCHEDULER_CRON_MINUTE: ${SCHEDULER_CRON_MINUTE:-30}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - treasury-network
+    command: bun run src/services/scheduler.ts
 
   traefik:
     image: traefik:v3.0
@@ -40,17 +76,16 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
-      - ./traefik/startup-validate.sh:/startup-validate.sh:ro
       - ./acme.json:/acme.json:rw
     environment:
       - CF_API_EMAIL=${CF_API_EMAIL}
       - CF_API_TOKEN=${CF_API_TOKEN}
       - DOMAIN=${DOMAIN}
-    command: ["/startup-validate.sh"]
     restart: unless-stopped
     networks:
       - treasury-network
 
 networks:
   treasury-network:
-    external: false
+    name: treasury-network
+    driver: bridge
