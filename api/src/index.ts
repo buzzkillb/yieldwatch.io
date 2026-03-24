@@ -5,8 +5,9 @@ import { rateLimit } from './middleware/rateLimit';
 import { ratesRoutes } from './routes/rates';
 import { db, schema } from './db';
 import { desc, asc } from 'drizzle-orm';
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import sharp from 'sharp';
 
 const isProduction = process.env.NODE_ENV === 'production';
 let allowedOrigins: string[] | true;
@@ -116,6 +117,51 @@ const app = new Elysia()
       return new Response(generateOgSvg('Error', 'U.S. Treasury Yield Curve', 'Failed to generate image'), {
         headers: { 'Content-Type': 'image/svg+xml' },
       });
+    }
+  })
+  .get('/og.png', async () => {
+    const pngPath = join(process.cwd(), 'public/og.png');
+    if (existsSync(pngPath)) {
+      const png = readFileSync(pngPath);
+      return new Response(png, {
+        headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' },
+      });
+    }
+    return new Response('OG image not yet generated', { status: 404 });
+  })
+  .post('/og/regenerate', async () => {
+    try {
+      const latestData = await db
+        .select()
+        .from(schema.yieldCurveRates)
+        .orderBy(desc(schema.yieldCurveRates.date), asc(schema.yieldCurveRates.maturity))
+        .limit(14);
+
+      if (latestData.length === 0) {
+        return Response.json({ error: 'No data available' }, { status: 404 });
+      }
+
+      const latestDate = latestData[0].date;
+      const todayRates = latestData
+        .filter(r => r.date === latestDate)
+        .map(r => ({ maturity: r.maturity, rate: parseFloat(r.rate) }));
+
+      const dateFormatted = new Date(latestDate + 'T00:00:00Z').toLocaleDateString('en-US', {
+        timeZone: 'UTC',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+
+      const svg = generateOgSvg(todayRates, dateFormatted);
+      const pngBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
+      const pngPath = join(process.cwd(), 'public/og.png');
+      writeFileSync(pngPath, pngBuffer);
+
+      return Response.json({ success: true, date: latestDate });
+    } catch (error) {
+      console.error('OG PNG generation error:', error);
+      return Response.json({ error: 'Failed to generate PNG' }, { status: 500 });
     }
   });
 
