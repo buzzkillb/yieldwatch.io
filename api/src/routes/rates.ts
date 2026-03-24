@@ -268,8 +268,8 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
       success: true,
       data: timeSeriesData,
       meta: {
-        from,
-        to,
+        from: from || 'earliest',
+        to: to || 'latest',
         maturity: 'all',
         count: timeSeriesData.length,
         limit: 200000,
