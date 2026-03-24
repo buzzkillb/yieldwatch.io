@@ -586,13 +586,26 @@ async function regenerateOgImage(): Promise<void> {
 
 async function warmQueryCache(): Promise<void> {
   const apiHost = process.env.API_HOST || 'http://api:3000';
+
+  const latestDateResult = await db
+    .select({ date: schema.yieldCurveRates.date })
+    .from(schema.yieldCurveRates)
+    .orderBy(desc(schema.yieldCurveRates.date))
+    .limit(1);
+
+  if (latestDateResult.length === 0) {
+    console.log('[Scheduler] No data in database yet, skipping cache warming');
+    return;
+  }
+
+  const latestDate = latestDateResult[0].date;
   const periods = [
-    { from: getDateMonthsAgo(3), to: 'latest', name: '3M' },
-    { from: getDateMonthsAgo(6), to: 'latest', name: '6M' },
-    { from: getDateMonthsAgo(1), to: 'latest', name: '1Y' },
-    { from: getDateMonthsAgo(2), to: 'latest', name: '2Y' },
-    { from: getDateMonthsAgo(5), to: 'latest', name: '5Y' },
-    { from: getDateYearsAgo(35), to: 'latest', name: 'ALL' },
+    { from: getDateMonthsAgo(3), to: latestDate, name: '3M' },
+    { from: getDateMonthsAgo(6), to: latestDate, name: '6M' },
+    { from: getDateMonthsAgo(1), to: latestDate, name: '1Y' },
+    { from: getDateMonthsAgo(2), to: latestDate, name: '2Y' },
+    { from: getDateMonthsAgo(5), to: latestDate, name: '5Y' },
+    { from: getDateYearsAgo(35), to: latestDate, name: 'ALL' },
   ];
 
   console.log('[Scheduler] Warming query cache...');
