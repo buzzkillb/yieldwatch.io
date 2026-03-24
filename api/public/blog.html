@@ -332,6 +332,38 @@
         height: 80px;
       }
     }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      margin-top: 2rem;
+    }
+
+    .pagination-controls {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .page-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+
+    .page-link:hover {
+      background: var(--accent);
+      color: var(--bg-primary);
+    }
+
+    .page-info {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
   </style>
 </head>
 <body>
@@ -362,23 +394,34 @@
       <div id="content">
         <div class="loading">Loading summaries...</div>
       </div>
+      <div id="pagination" class="pagination"></div>
     </div>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script>
-    const MATURITY_ORDER = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
     const CHART_COLORS = [
       '#6366f1', '#a855f7', '#ec4899', '#f43f5e', '#f97316', '#eab308',
       '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#10b981',
       '#f59e0b', '#ef4444'
     ];
 
-    async function loadSummaries() {
+    function getPageFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return Math.max(1, parseInt(params.get('page')) || 1);
+    }
+
+    function updateUrl(page) {
+      const url = new URL(window.location);
+      url.searchParams.set('page', page);
+      window.history.pushState({}, '', url);
+    }
+
+    async function loadSummaries(page = 1) {
       try {
         const [ratesRes, summariesRes] = await Promise.all([
           fetch('/api/rates/latest'),
-          fetch('/api/blog/list')
+          fetch(`/api/blog/list?page=${page}`)
         ]);
         const ratesData = await ratesRes.json();
         const data = await summariesRes.json();
@@ -395,7 +438,7 @@
           return;
         }
 
-        const summariesHtml = data.data.map((item, index) => {
+        const summariesHtml = data.data.map((item) => {
           const date = new Date(item.date + 'T00:00:00');
           const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -403,8 +446,8 @@
             <a href="/blog/${item.date}" class="summary-card-link">
               <article class="summary-card">
                 <div class="summary-date">${dateStr}</div>
-                <div class="mini-chart" id="chart-${index}">
-                  <canvas id="canvas-${index}"></canvas>
+                <div class="mini-chart" id="chart-${item.date}">
+                  <canvas id="canvas-${item.date}"></canvas>
                 </div>
                 <div class="analysis-tag">${item.hasFullPost ? 'Full analysis available' : 'Quick summary'}</div>
                 <p class="summary-excerpt">${item.excerpt}</p>
@@ -415,6 +458,7 @@
 
         document.getElementById('content').innerHTML = `<div class="summaries-list">${summariesHtml}</div>`;
 
+        renderPagination(data.pagination, page);
         setTimeout(() => renderMiniCharts(data.data), 100);
       } catch (error) {
         console.error('Error loading summaries:', error);
@@ -422,8 +466,41 @@
       }
     }
 
+    function renderPagination(pagination, currentPage) {
+      if (!pagination || pagination.totalPages <= 1) {
+        document.getElementById('pagination').innerHTML = '';
+        return;
+      }
+
+      const { totalPages, hasNextPage, hasPrevPage } = pagination;
+      let html = '<div class="pagination-controls">';
+
+      if (hasPrevPage) {
+        html += `<a href="?page=${currentPage - 1}" class="page-link" data-page="${currentPage - 1}">&larr; Previous</a>`;
+      }
+
+      html += `<span class="page-info">Page ${currentPage} of ${totalPages}</span>`;
+
+      if (hasNextPage) {
+        html += `<a href="?page=${currentPage + 1}" class="page-link" data-page="${currentPage + 1}">Next &rarr;</a>`;
+      }
+
+      html += '</div>';
+      document.getElementById('pagination').innerHTML = html;
+
+      document.querySelectorAll('.page-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const page = parseInt(link.dataset.page);
+          updateUrl(page);
+          loadSummaries(page);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      });
+    }
+
     function renderMiniCharts(summaries) {
-      summaries.forEach(async (item, index) => {
+      summaries.forEach(async (item) => {
         try {
           const response = await fetch(`/api/blog/${item.date}`);
           const data = await response.json();
@@ -431,7 +508,7 @@
           if (!data.success || !data.data?.rates?.length) return;
 
           const rates = data.data.rates;
-          const canvas = document.getElementById(`canvas-${index}`);
+          const canvas = document.getElementById(`canvas-${item.date}`);
           if (!canvas) return;
 
           const ctx = canvas.getContext('2d');
@@ -472,7 +549,8 @@
       });
     }
 
-    loadSummaries();
+    const initialPage = getPageFromUrl();
+    loadSummaries(initialPage);
   </script>
   <footer class="footer">
     <div class="footer-content">
