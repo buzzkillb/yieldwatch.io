@@ -141,7 +141,7 @@ const app = new Elysia()
         day: 'numeric',
       });
       const blogUrl = `${SITE_URL}/blog/${date}`;
-      const ogImageUrl = `${SITE_URL}/og/${date}.png`;
+      const ogImageUrl = `${SITE_URL}/og-image/${date}`;
       const pageTitle = `${dateFormatted} | Treasury Yield Daily`;
       const metaDescription = blogSummary.substring(0, 160);
 
@@ -247,11 +247,10 @@ const app = new Elysia()
     }
     return new Response('OG image not yet generated', { status: 404 });
   })
-  .get('/og/:date.png', async ({ params }) => {
+  .get('/og-image/:date', async ({ params }) => {
     const { date } = params;
-    console.log('[OG] Received date param:', JSON.stringify(date), 'Regex test:', /^\d{4}-\d{2}-\d{2}$/.test(date || ''));
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return new Response(`Invalid date format: ${date}`, { status: 400 });
+      return new Response('Invalid date format', { status: 400 });
     }
 
     const cachedPath = join(process.cwd(), 'public/og', `${date}.png`);
