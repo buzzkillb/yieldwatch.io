@@ -599,13 +599,14 @@ async function warmQueryCache(): Promise<void> {
   }
 
   const latestDate = latestDateResult[0].date;
+  const today = new Date().toISOString().split('T')[0];
   const periods = [
     { from: getDateMonthsAgo(3), to: latestDate, name: '3M' },
     { from: getDateMonthsAgo(6), to: latestDate, name: '6M' },
     { from: getDateMonthsAgo(1), to: latestDate, name: '1Y' },
     { from: getDateMonthsAgo(2), to: latestDate, name: '2Y' },
     { from: getDateMonthsAgo(5), to: latestDate, name: '5Y' },
-    { from: '1990-01-01', to: latestDate, name: 'ALL' },
+    { from: '1990-01-01', to: today, name: 'ALL' },
   ];
 
   console.log('[Scheduler] Warming query cache...');
