@@ -45,7 +45,7 @@
     }
 
     .header-content {
-      max-width: 900px;
+      max-width: 1400px;
       margin: 0 auto;
       display: flex;
       justify-content: space-between;
@@ -87,7 +87,7 @@
     }
 
     .container {
-      max-width: 900px;
+      max-width: 1400px;
       margin: 0 auto;
       padding: 2rem;
     }
@@ -122,7 +122,6 @@
       padding: 1.5rem;
       transition: all 0.2s ease;
       cursor: pointer;
-      overflow: hidden;
     }
 
     .summary-card:hover {
@@ -131,33 +130,16 @@
       box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
     }
 
-    .summary-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 1rem;
-      gap: 1rem;
-      flex-shrink: 0;
-    }
-
     .summary-date {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: nowrap;
-    }
-
-    .summary-date strong {
       font-size: 1.1rem;
       color: var(--text-primary);
+      margin-bottom: 0.75rem;
     }
 
     .mini-chart {
-      flex-shrink: 0;
-      width: 120px;
-      height: 50px;
+      width: 100%;
+      height: 80px;
+      margin-bottom: 0.75rem;
     }
 
     .mini-chart canvas {
@@ -236,7 +218,7 @@
     }
 
     .footer-content {
-      max-width: 900px;
+      max-width: 1400px;
       margin: 0 auto;
       text-align: center;
     }
@@ -328,15 +310,11 @@
 
           return `
             <article class="summary-card" onclick="location.href='/blog/${item.date}'">
-              <div class="summary-header">
-                <div class="summary-date">
-                  <strong>${dateStr}</strong>
-                  <span class="analysis-tag">${item.hasFullPost ? 'Full analysis available' : 'Quick summary'}</span>
-                </div>
-                <div class="mini-chart" id="chart-${index}">
-                  <canvas id="canvas-${index}"></canvas>
-                </div>
+              <div class="summary-date">${dateStr}</div>
+              <div class="mini-chart" id="chart-${index}">
+                <canvas id="canvas-${index}"></canvas>
               </div>
+              <div class="analysis-tag">${item.hasFullPost ? 'Full analysis available' : 'Quick summary'}</div>
               <p class="summary-excerpt">${item.excerpt}</p>
             </article>
           `;
