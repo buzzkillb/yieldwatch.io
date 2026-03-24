@@ -157,6 +157,14 @@
       color: var(--text-primary);
     }
 
+    .blog-summary p {
+      margin-bottom: 1.25rem;
+    }
+
+    .blog-summary p:last-child {
+      margin-bottom: 0;
+    }
+
     .chart-section {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
@@ -371,6 +379,14 @@
 
         const chartColors = rates.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
 
+        const formatBlogSummary = (text) => {
+          return text
+            .split(/\n\n+/)
+            .filter(p => p.trim())
+            .map(p => `<p>${p.trim()}</p>`)
+            .join('');
+        };
+
         const content = `
           <article>
             <header class="post-header">
@@ -378,8 +394,8 @@
               <h1 class="post-title">Treasury Yield Curve Analysis</h1>
             </header>
 
-            <div class="blog-content">
-              <p class="blog-summary">${blogSummary}</p>
+            <div class="blog-content blog-summary">
+              ${formatBlogSummary(blogSummary)}
             </div>
 
             <section class="chart-section">
