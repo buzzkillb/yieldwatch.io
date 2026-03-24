@@ -3,11 +3,15 @@ import { cors } from '@elysiajs/cors';
 import { html } from '@elysiajs/html';
 import { rateLimit } from './middleware/rateLimit';
 import { ratesRoutes } from './routes/rates';
+import { blogRoutes } from './routes/blog';
+import { sitemapRoutes } from './routes/sitemap';
 import { db, schema } from './db';
-import { desc, asc } from 'drizzle-orm';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { desc, sql } from 'drizzle-orm';
+import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import sharp from 'sharp';
+
+const SITE_URL = 'https://yieldwatch.io';
+const POSTS_PER_PAGE = 5;
 
 const isProduction = process.env.NODE_ENV === 'production';
 let allowedOrigins: string[] | true;
@@ -29,7 +33,7 @@ const securityHeaders = {
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'",
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://static.cloudflareinsights.com",
   'Cross-Origin-Embedder-Policy': 'require-corp',
   'Cross-Origin-Opener-Policy': 'same-origin',
 };
@@ -39,11 +43,10 @@ const app = new Elysia()
     origin: allowedOrigins,
     methods: ['GET'],
     headers: ['Content-Type'],
-    credentials: allowedOrigins === true,
+    credentials: allowedOrigins === true || Array.isArray(allowedOrigins),
   }))
   .use(html())
   .use(rateLimit())
-  .use(ratesRoutes)
   .onBeforeHandle(({ set }) => {
     for (const [key, value] of Object.entries(securityHeaders)) {
       set.headers[key] = value;
@@ -51,7 +54,6 @@ const app = new Elysia()
   })
   .get('/health', () => ({
     status: 'ok',
-    timestamp: new Date().toISOString(),
   }))
   .get('/', async () => {
     try {
@@ -68,6 +70,64 @@ const app = new Elysia()
       });
     }
   })
+  .get('/blog', async ({ query }) => {
+    try {
+      const page = Math.max(1, parseInt(query.page as string) || 1);
+
+      const countResult = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.dailySummaries);
+      const totalCount = Number(countResult[0]?.count) || 0;
+      const totalPages = Math.ceil(totalCount / POSTS_PER_PAGE);
+
+      const seoMetaTags: string[] = [];
+
+      if (totalPages > 1) {
+        if (page > 1) {
+          seoMetaTags.push(`<link rel="prev" href="${SITE_URL}/blog?page=${page - 1}">`);
+        }
+        if (page < totalPages) {
+          seoMetaTags.push(`<link rel="next" href="${SITE_URL}/blog?page=${page + 1}">`);
+        }
+      }
+
+      const blogPath = join(process.cwd(), 'public/blog.html');
+      let html = readFileSync(blogPath, 'utf-8');
+
+      if (seoMetaTags.length > 0) {
+        const metaTagsHtml = '\n    ' + seoMetaTags.join('\n    ');
+        html = html.replace('</head>', `${metaTagsHtml}\n  </head>`);
+      }
+
+      return new Response(html, {
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+        },
+      });
+    } catch {
+      return new Response('<html><body><h1>Blog</h1><p>Blog not found.</p></body></html>', {
+        headers: { 'Content-Type': 'text/html' },
+      });
+    }
+  })
+  .get('/blog/:date', async ({ params }) => {
+    try {
+      const blogPath = join(process.cwd(), 'public/blog-post.html');
+      const html = readFileSync(blogPath, 'utf-8');
+      return new Response(html, {
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+        },
+      });
+    } catch {
+      return new Response('<html><body><h1>Post</h1><p>Post not found.</p></body></html>', {
+        headers: { 'Content-Type': 'text/html' },
+      });
+    }
+  })
+  .use(ratesRoutes)
+  .use(blogRoutes)
+  .use(sitemapRoutes)
   .get('/api-docs', async () => {
     try {
       const docsPath = join(process.cwd(), 'public/api-docs.html');
@@ -128,6 +188,21 @@ const app = new Elysia()
       });
     }
     return new Response('OG image not yet generated', { status: 404 });
+  })
+  .get('/api/daily-summary', async () => {
+    const latestSummary = await db
+      .select()
+      .from(schema.dailySummaries)
+      .orderBy(desc(schema.dailySummaries.date))
+      .limit(1);
+
+    if (latestSummary.length === 0) {
+      return new Response('', { status: 204 });
+    }
+
+    return new Response(latestSummary[0].summary, {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=86400' },
+    });
   })
   
 

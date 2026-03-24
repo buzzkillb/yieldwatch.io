@@ -1,9 +1,11 @@
 import { db, schema } from '../db';
-import { eq, desc, asc } from 'drizzle-orm';
+import { eq, desc, asc, lt, and, gte } from 'drizzle-orm';
 import { fetchTreasuryYieldCurve, fetchLatestDate } from './fetcher';
 import sharp from 'sharp';
-import { writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
+
+const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY;
 
 const CHECK_INTERVAL_MS = (() => {
   const val = parseInt(process.env.SCHEDULER_CHECK_INTERVAL_MS || '900000', 10);
@@ -44,6 +46,222 @@ const CSV_COLUMNS: Record<string, string> = {
 };
 
 const KNOWN_MATURITY_KEYS = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
+
+function getPreviousBusinessDay(dateStr: string): string {
+  const date = new Date(dateStr + 'T00:00:00Z');
+  let daysBack = 1;
+  
+  while (daysBack <= 7) {
+    date.setUTCDate(date.getUTCDate() - 1);
+    const dayOfWeek = date.getUTCDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      break;
+    }
+    daysBack++;
+  }
+  
+  return date.toISOString().split('T')[0];
+}
+
+function getDateMinusDays(dateStr: string, days: number): string {
+  const date = new Date(dateStr + 'T00:00:00Z');
+  date.setUTCDate(date.getUTCDate() - days);
+  return date.toISOString().split('T')[0];
+}
+
+function getDayOfWeek(dateStr: string): string {
+  const date = new Date(dateStr + 'T00:00:00Z');
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return days[date.getUTCDay()];
+}
+
+async function getRatesForDate(date: string): Promise<{ maturity: string; rate: number }[]> {
+  const results = await db
+    .select()
+    .from(schema.yieldCurveRates)
+    .where(eq(schema.yieldCurveRates.date, date));
+  
+  return results.map(r => ({
+    maturity: r.maturity,
+    rate: parseFloat(r.rate)
+  }));
+}
+
+function formatDateForPrompt(dateStr: string): { date: string; day: string } {
+  return {
+    date: dateStr,
+    day: getDayOfWeek(dateStr)
+  };
+}
+
+async function generateDailySummary(): Promise<void> {
+  if (!MINIMAX_API_KEY) {
+    console.log('[Scheduler] MINIMAX_API_KEY not set, skipping daily summary generation');
+    return;
+  }
+
+  try {
+    console.log('[Scheduler] Generating daily rate summaries with MiniMax...');
+
+    const latestDateInDb = await db
+      .select({ date: schema.yieldCurveRates.date })
+      .from(schema.yieldCurveRates)
+      .orderBy(desc(schema.yieldCurveRates.date))
+      .limit(1);
+
+    if (latestDateInDb.length === 0) {
+      console.log('[Scheduler] No data in database for summary');
+      return;
+    }
+
+    const todayDate = latestDateInDb[0].date;
+    const yesterdayDate = getPreviousBusinessDay(todayDate);
+    const lastWeekDate = getDateMinusDays(todayDate, 7);
+
+    const [todayRates, yesterdayRates, lastWeekRates] = await Promise.all([
+      getRatesForDate(todayDate),
+      getRatesForDate(yesterdayDate),
+      getRatesForDate(lastWeekDate)
+    ]);
+
+    if (todayRates.length === 0) {
+      console.log('[Scheduler] No rates data for summary');
+      return;
+    }
+
+    const dates = {
+      today: formatDateForPrompt(todayDate),
+      yesterday: formatDateForPrompt(yesterdayDate),
+      lastWeek: formatDateForPrompt(lastWeekDate),
+    };
+
+    const dataPrompt = `- Today (${dates.today.day}, ${dates.today.date}): ${JSON.stringify(todayRates)}
+- Last business day (${dates.yesterday.day}, ${dates.yesterday.date}): ${JSON.stringify(yesterdayRates)}
+- Last week (${dates.lastWeek.day}, ${dates.lastWeek.date}): ${JSON.stringify(lastWeekRates)}`;
+
+    const shortSystemPrompt = `You are a plain-spoken writer describing U.S. Treasury yield curve data. Treasury publishes rates on business days only - weekends and holidays are skipped.
+
+Rules:
+- Write 2-4 sentences as one paragraph
+- Always mention the 30-year rate prominently
+- You MUST include comparison to last week in every output
+- When describing changes, use simple language like "up from last week" or "higher than yesterday"
+- Do NOT use phrases like "percentage points" or "basis points" - just say "higher" or "lower"
+- If the yield curve is inverted, state that fact only - do not explain what it means
+- Stick to observable data comparisons - do not explain what rate movements mean for investors or markets
+- Keep it factual and straightforward
+- Never use bullet points, dashes, or list format
+- Never use foreign characters or non-ASCII symbols
+- Write in plain English only
+
+${dataPrompt}`;
+
+    const longSystemPrompt = `You are a financial journalist writing a daily market brief about U.S. Treasury yields. Treasury publishes rates on business days only - weekends and holidays are skipped.
+
+Rules:
+- Write 4-6 sentences as one rich paragraph
+- Open with the 30-year rate and key movements prominently
+- Cover all notable rate changes across the curve
+- Always compare to the previous business day AND one week ago
+- Note any inversions or unusual patterns in the yield curve
+- Use plain language - explain what the numbers mean without being educational
+- Do NOT use "percentage points" or "basis points" - just say "higher" or "lower"
+- Do NOT explain what rate movements mean for investors or markets
+- Keep it factual and informative - a trader should find this useful
+- Never use bullet points, dashes, or list format
+- Never use foreign characters or non-ASCII symbols
+- Write in plain English only
+
+${dataPrompt}`;
+
+    const shortUserMessage = `Write a brief paragraph about today's Treasury yield curve rates. Keep it to 2-4 sentences.`;
+    const longUserMessage = `Write a detailed daily market brief about today's Treasury yield curve rates in 2-3 paragraphs. This will be published on a blog. Cover the overall curve shape, notable rate movements, and how today compares to recent history. Use blank lines to separate paragraphs.`;
+
+    const [shortResponse, longResponse] = await Promise.all([
+      fetch('https://api.minimax.io/anthropic/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': MINIMAX_API_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'MiniMax-M2.7',
+          max_tokens: 1000,
+          system: shortSystemPrompt,
+          messages: [{ role: 'user', content: [{ type: 'text', text: shortUserMessage }] }],
+          temperature: 1
+        })
+      }),
+      fetch('https://api.minimax.io/anthropic/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': MINIMAX_API_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'MiniMax-M2.7',
+          max_tokens: 2000,
+          system: longSystemPrompt,
+          messages: [{ role: 'user', content: [{ type: 'text', text: longUserMessage }] }],
+          temperature: 1
+        })
+      })
+    ]);
+
+    const parseResponse = async (response: Response): Promise<string> => {
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log(`[Scheduler] MiniMax API error: ${response.status} - ${errorText}`);
+        return '';
+      }
+      const data = await response.json() as { content?: { type: string; text?: string }[] };
+      if (data.content && Array.isArray(data.content)) {
+        for (const block of data.content) {
+          if (block.type === 'text' && block.text) {
+            return block.text.trim();
+          }
+        }
+      }
+      return '';
+    };
+
+    const [shortSummary, blogSummary] = await Promise.all([
+      parseResponse(shortResponse),
+      parseResponse(longResponse)
+    ]);
+
+    if (!shortSummary) {
+      console.log('[Scheduler] No short summary generated from MiniMax');
+      return;
+    }
+
+    await db
+      .insert(schema.dailySummaries)
+      .values({
+        date: todayDate,
+        summary: shortSummary,
+        blogSummary: blogSummary || null,
+      })
+      .onConflictDoUpdate({
+        target: schema.dailySummaries.date,
+        set: {
+          summary: shortSummary,
+          blogSummary: blogSummary || null,
+          createdAt: new Date(),
+        },
+      });
+    console.log(`[Scheduler] Daily summaries saved to database for ${todayDate}`);
+    console.log(`[Scheduler] Short summary: ${shortSummary}`);
+    if (blogSummary) {
+      console.log(`[Scheduler] Blog summary: ${blogSummary.substring(0, 100)}...`);
+    }
+
+  } catch (error) {
+    console.error('[Scheduler] Error generating daily summary:', error);
+  }
+}
 
 function normalizeColumnName(col: string): string | null {
   const cleaned = col.trim();
@@ -87,8 +305,10 @@ async function fetchAndImportHistorical(): Promise<boolean> {
                 set: { rate: rate.toString(), createdAt: new Date() },
               });
             totalRecords++;
-          } catch (error) {
-            // Skip duplicate key errors silently
+          } catch (error: any) {
+            if (error?.code !== '23505') {
+              console.error(`[Scheduler] Error saving rate ${maturity} for ${day.date}:`, error);
+            }
           }
         }
         
@@ -364,6 +584,61 @@ async function regenerateOgImage(): Promise<void> {
   }
 }
 
+async function warmQueryCache(): Promise<void> {
+  const apiHost = process.env.API_HOST || 'http://api:3000';
+
+  const latestDateResult = await db
+    .select({ date: schema.yieldCurveRates.date })
+    .from(schema.yieldCurveRates)
+    .orderBy(desc(schema.yieldCurveRates.date))
+    .limit(1);
+
+  if (latestDateResult.length === 0) {
+    console.log('[Scheduler] No data in database yet, skipping cache warming');
+    return;
+  }
+
+  const latestDate = latestDateResult[0].date;
+  const today = new Date().toISOString().split('T')[0];
+  const periods = [
+    { from: getDateMonthsAgo(3), to: today, name: '3M' },
+    { from: getDateMonthsAgo(6), to: today, name: '6M' },
+    { from: getDateMonthsAgo(1), to: today, name: '1Y' },
+    { from: getDateMonthsAgo(2), to: today, name: '2Y' },
+    { from: getDateMonthsAgo(5), to: today, name: '5Y' },
+    { from: '1990-01-01', to: today, name: 'ALL' },
+  ];
+
+  console.log('[Scheduler] Warming query cache...');
+  for (const period of periods) {
+    try {
+      const url = `${apiHost}/api/rates/cache/warm?from=${period.from}&to=${period.to}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.success) {
+        console.log(`[Scheduler] Cache warmed for ${period.name}: ${data.cacheKey}`);
+      } else {
+        console.log(`[Scheduler] Cache warm failed for ${period.name}: ${data.error}`);
+      }
+    } catch (error) {
+      console.error(`[Scheduler] Error warming cache for ${period.name}:`, error);
+    }
+  }
+  console.log('[Scheduler] Query cache warming complete');
+}
+
+function getDateMonthsAgo(months: number): string {
+  const date = new Date();
+  date.setMonth(date.getMonth() - months);
+  return date.toISOString().split('T')[0];
+}
+
+function getDateYearsAgo(years: number): string {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() - years);
+  return date.toISOString().split('T')[0];
+}
+
 async function checkAndUpdate(): Promise<void> {
   console.log(`[Scheduler] Checking for updates at ${new Date().toISOString()}...`);
   
@@ -383,6 +658,8 @@ async function checkAndUpdate(): Promise<void> {
   if (result.success) {
     await saveYieldData(result);
     await regenerateOgImage();
+    await generateDailySummary();
+    await warmQueryCache();
     console.log(`[Scheduler] Update complete at ${new Date().toISOString()}`);
   } else {
     console.log(`[Scheduler] Fetch failed: ${result.error}. Will retry in 15 minutes.`);
@@ -447,6 +724,8 @@ async function main(): Promise<void> {
       await checkAndUpdate();
     } else {
       console.log(`[Scheduler] Database has existing data, starting normal update loop`);
+      await generateDailySummary();
+      await warmQueryCache();
     }
     
     await dailyUpdateLoop();

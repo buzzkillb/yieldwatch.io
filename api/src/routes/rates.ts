@@ -1,7 +1,8 @@
 import { Elysia } from 'elysia';
 import { db, schema } from '../db';
-import { eq, and, gte, lte, desc, asc } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, asc, SQL } from 'drizzle-orm';
 import { MATURITIES } from '../utils/parse';
+import { queryCache } from '../utils/cache';
 
 const VALID_MATURITIES = new Set(MATURITIES.map(m => m.label));
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -9,7 +10,11 @@ const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 function isValidDate(dateStr: string): boolean {
   if (!DATE_REGEX.test(dateStr)) return false;
   const date = new Date(dateStr);
-  return date instanceof Date && !isNaN(date.getTime());
+  if (isNaN(date.getTime())) return false;
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return date.getUTCFullYear() === year &&
+         date.getUTCMonth() + 1 === month &&
+         date.getUTCDate() === day;
 }
 
 export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
@@ -130,7 +135,7 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
       };
     }
 
-    let whereConditions: any[] = [];
+    let whereConditions: SQL[] = [];
 
     if (from) {
       whereConditions.push(gte(schema.yieldCurveRates.date, from));
@@ -188,7 +193,7 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    return {
+    const result = {
       success: true,
       data: timeSeriesData,
       meta: {
@@ -201,4 +206,78 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
         hasMore: timeSeriesData.length === parsedLimit,
       },
     };
+
+    if (maturity === undefined && offset === undefined && from && to) {
+      const cacheKey = `rates:${from}:${to}:all`;
+      queryCache.set(cacheKey, result);
+    }
+
+    return result;
+  })
+  .get('/cache/warm', async ({ query }) => {
+    const { from, to } = query as { from?: string; to?: string };
+
+    if (!from || !to) {
+      return { success: false, error: 'from and to are required' };
+    }
+
+    const cacheKey = `rates:${from}:${to}:all`;
+    const cached = queryCache.get(cacheKey);
+    if (cached) {
+      return { success: true, cached: true, cacheKey };
+    }
+
+    const data = await db
+      .select({
+        date: schema.yieldCurveRates.date,
+        maturity: schema.yieldCurveRates.maturity,
+        rate: schema.yieldCurveRates.rate,
+      })
+      .from(schema.yieldCurveRates)
+      .where(and(gte(schema.yieldCurveRates.date, from), lte(schema.yieldCurveRates.date, to)))
+      .orderBy(asc(schema.yieldCurveRates.date), asc(schema.yieldCurveRates.maturity))
+      .limit(200000);
+
+    if (data.length === 0) {
+      return { success: false, error: 'No data found' };
+    }
+
+    const grouped: Record<string, { maturity: string; rate: number }[]> = {};
+    for (const row of data) {
+      if (!grouped[row.date]) {
+        grouped[row.date] = [];
+      }
+      grouped[row.date].push({
+        maturity: row.maturity,
+        rate: parseFloat(row.rate),
+      });
+    }
+
+    const timeSeriesData = Object.entries(grouped)
+      .map(([date, rates]) => ({
+        date,
+        rates: rates.sort((a, b) => {
+          const matA = MATURITIES.find(m => m.label === a.maturity)?.years || 0;
+          const matB = MATURITIES.find(m => m.label === b.maturity)?.years || 0;
+          return matA - matB;
+        }),
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    const result = {
+      success: true,
+      data: timeSeriesData,
+      meta: {
+        from: from || 'earliest',
+        to: to || 'latest',
+        maturity: 'all',
+        count: timeSeriesData.length,
+        limit: 200000,
+        offset: 0,
+        hasMore: timeSeriesData.length === 200000,
+      },
+    };
+
+    queryCache.set(cacheKey, result);
+    return { success: true, cached: false, cacheKey, warmed: true };
   });

@@ -10,6 +10,8 @@
   
   <!-- Open Graph / Facebook / LinkedIn -->
   <meta property="og:type" content="website">
+  <meta property="og:site_name" content="YieldWatch">
+  <meta property="og:locale" content="en_US">
   <meta property="og:url" content="https://yieldwatch.io">
   <meta property="og:title" content="U.S. Treasury Yield Curve | Free Real-Time Dashboard">
   <meta property="og:description" content="Track U.S. Treasury yield curve with 35+ years of historical data. Monitor interest rates from 4-week bills to 30-year bonds updated daily.">
@@ -33,6 +35,40 @@
   <meta name="description" content="Track U.S. Treasury yield curve with 35+ years of historical data. Monitor interest rates from 4-week bills to 30-year bonds updated daily.">
   <meta name="keywords" content="treasury, yield curve, interest rates, bonds, 10 year, 2 year, 30 year, historical data, federal reserve">
   <meta name="author" content="YieldWatch">
+  <link rel="canonical" href="https://yieldwatch.io/">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="theme-color" content="#6366f1">
+  
+  <!-- Schema.org Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FinancialProduct",
+    "name": "U.S. Treasury Yield Curve",
+    "description": "Daily U.S. Treasury Par Yield Curve Rates showing interest rates across all maturities from 4-week bills to 30-year bonds",
+    "provider": {
+      "@type": "Organization",
+      "name": "YieldWatch",
+      "url": "https://yieldwatch.io"
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "U.S. Treasury Yield Curve Historical Data",
+    "description": "Historical U.S. Treasury yield curve data spanning 35+ years from 1990 to present",
+    "url": "https://yieldwatch.io",
+    "keywords": ["treasury", "yield curve", "interest rates", "bonds"],
+    "publisher": {
+      "@type": "Organization",
+      "name": "YieldWatch",
+      "url": "https://yieldwatch.io"
+    },
+    "license": "https://home.treasury.gov"
+  }
+  </script>
   
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -62,7 +98,7 @@
     }
 
     body {
-      font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
       min-height: 100vh;
       color: var(--text-primary);
@@ -75,42 +111,40 @@
       padding: 2rem;
     }
 
-    header {
+    .header {
+      background: linear-gradient(145deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1.5rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .header-content {
+      max-width: 900px;
+      margin: 0 auto;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 2rem;
-      padding-bottom: 1.5rem;
     }
 
     .logo {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-primary);
     }
 
-    .logo-icon {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, var(--accent) 0%, #a855f7 100%);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 1.2rem;
+    .logo svg {
+      width: 36px;
+      height: 36px;
     }
 
-    .logo h1 {
-      font-size: 1.5rem;
+    .logo-text {
+      font-size: 1.25rem;
       font-weight: 600;
-      letter-spacing: -0.02em;
-    }
-
-    .logo span {
-      color: var(--text-secondary);
-      font-size: 0.9rem;
-      font-weight: 400;
     }
 
     .status {
@@ -120,6 +154,67 @@
       font-size: 0.85rem;
       color: var(--text-secondary);
     }
+
+    .main-nav {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .nav-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    .nav-link:hover {
+      color: var(--accent);
+    }
+
+    .nav-link.active {
+      color: var(--accent);
+    }
+
+    .footer {
+      background: linear-gradient(145deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      border-top: 1px solid var(--border-color);
+      padding: 1.5rem 2rem;
+      margin-top: 2rem;
+    }
+
+    .footer-content {
+      max-width: 900px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+
+    .footer-links .divider {
+      color: var(--text-muted);
+    }
+
+    .footer-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+
 
     .status-dot {
       width: 8px;
@@ -212,12 +307,88 @@
       color: var(--text-primary);
     }
 
+    .daily-summary-container {
+      margin-bottom: 1.5rem;
+      background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-tertiary) 100%);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .daily-summary-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), #a855f7, var(--accent));
+      background-size: 200% 100%;
+      animation: shimmer 3s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .daily-summary-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+
+    .daily-summary-icon {
+      display: flex;
+      align-items: center;
+      opacity: 0.8;
+    }
+
+    .daily-summary {
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      line-height: 1.7;
+      padding: 0;
+      margin: 0;
+    }
+
+    @media (max-width: 768px) {
+      .daily-summary-container {
+        margin-bottom: 1rem;
+        padding: 0.875rem 1rem;
+        border-radius: 10px;
+      }
+
+      .daily-summary-container::before {
+        height: 2px;
+      }
+
+      .daily-summary {
+        font-size: 0.85rem;
+        line-height: 1.6;
+      }
+
+      .daily-summary-header {
+        font-size: 0.7rem;
+        margin-bottom: 0.5rem;
+      }
+    }
+
     .chart-container {
-      background: var(--bg-card);
+      background: linear-gradient(145deg, #141420 0%, #181828 100%);
       border-radius: 16px;
       padding: 1.5rem;
       margin-bottom: 1.5rem;
       position: relative;
+      box-shadow: 0 2px 12px rgba(99, 102, 241, 0.05);
     }
 
     .chart-container::after {
@@ -228,7 +399,7 @@
       transform: translateX(-50%);
       width: 60%;
       height: 2px;
-      background: linear-gradient(to right, #0a0a0f, #6366f1 50%, #0a0a0f);
+      background: transparent;
       border-radius: 1px;
     }
 
@@ -341,6 +512,7 @@
       border-radius: 6px;
       transition: all 0.2s ease;
       user-select: none;
+      border: 1px solid transparent;
     }
 
     .legend-item:hover {
@@ -350,6 +522,12 @@
     .legend-item:focus {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
+    }
+
+    .legend-item.active {
+      color: var(--text-primary);
+      background: var(--bg-tertiary);
+      border-color: var(--border-color);
     }
 
     .legend-item.inactive {
@@ -367,24 +545,20 @@
     }
 
     footer {
-      text-align: center;
-      padding-top: 2rem;
-      color: var(--text-muted);
-      font-size: 0.8rem;
+      padding: 0;
+      margin: 0;
+      text-align: left;
     }
 
     .footer-links {
       display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 0.5rem;
+      gap: 1rem;
+      font-size: 0.85rem;
     }
 
     .footer-links a {
       color: var(--text-secondary);
       text-decoration: none;
-      transition: color 0.2s;
     }
 
     .footer-links a:hover {
@@ -392,16 +566,7 @@
     }
 
     .footer-links .divider {
-      color: var(--border-color);
-    }
-
-    footer a {
-      color: var(--accent);
-      text-decoration: none;
-    }
-
-    footer a:hover {
-      text-decoration: underline;
+      color: var(--text-muted);
     }
 
     .loading {
@@ -485,6 +650,14 @@
         gap: 1rem;
       }
       
+      .main-nav {
+        gap: 1rem;
+      }
+      
+      .nav-link {
+        font-size: 0.85rem;
+      }
+      
       .rates-section {
         position: relative;
       }
@@ -492,7 +665,8 @@
       .logo div {
         display: flex;
         flex-direction: column;
-        gap: 0.25rem;
+        gap: 0.1rem;
+        line-height: 1.2;
       }
       
       #dataSubtitle {
@@ -523,7 +697,7 @@
       }
       
       .chart-wrapper {
-        height: 300px;
+        height: 350px;
       }
       
       .api-info {
@@ -564,16 +738,24 @@
   </style>
 </head>
 <body>
+  <header class="header">
+    <div class="header-content">
+      <a href="/" class="logo">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect fill="#6366f1" rx="15" width="100" height="100"/>
+          <path d="M20 70 L35 55 L50 65 L65 40 L80 45" stroke="white" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="80" cy="45" r="6" fill="white"/>
+        </svg>
+        <span class="logo-text">Treasury Yield</span>
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="/" class="nav-link active">Dashboard</a>
+        <a href="/blog" class="nav-link">Daily Summaries</a>
+      </nav>
+    </div>
+  </header>
+
   <div class="container">
-    <header>
-      <div class="logo">
-        <div class="logo-icon" aria-hidden="true">T</div>
-        <div>
-          <h1>Yield Curve</h1>
-          <span id="dataSubtitle">Daily Par Yield Curve Rates</span>
-        </div>
-      </div>
-    </header>
 
     <main>
       <div id="ratesContainer" role="region" aria-label="Current yield rates">
@@ -581,6 +763,19 @@
           <div class="loading-spinner" aria-hidden="true"></div>
           <span>Loading yield curve data...</span>
         </div>
+      </div>
+
+      <div class="daily-summary-container">
+        <div class="daily-summary-header">
+          <svg class="daily-summary-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          <span>Daily Summary</span>
+        </div>
+        <div id="dailySummary" class="daily-summary"></div>
       </div>
 
       <div class="chart-container">
@@ -605,13 +800,16 @@
       </div>
     </main>
 
-    <footer>
-      <div class="footer-links">
-        <a href="/api-docs">API Documentation</a>
-        <span class="divider">|</span>
-        <a href="https://home.treasury.gov" target="_blank" rel="noopener noreferrer">U.S. Treasury</a>
+    <footer class="footer">
+      <div class="footer-content">
+        <div class="footer-links">
+          <a href="/api-docs">API Documentation</a>
+          <span class="divider">|</span>
+          <a href="https://home.treasury.gov" target="_blank" rel="noopener noreferrer">U.S. Treasury</a>
+        </div>
+        <div class="footer-meta">Updated daily at 3:30 PM ET</div>
+        <div class="footer-meta">Data: <span id="lastUpdated">Loading...</span></div>
       </div>
-      <p>Updates daily at approximately 3:30 PM ET</p>
     </footer>
   </div>
 
@@ -716,6 +914,7 @@
           latestDataDate = new Date(data.data.date + 'T00:00:00Z');
           updateAvailableRanges();
           fetchHistoricalData();
+          fetchDailySummary();
         } else {
           showError('Unable to load latest rates');
         }
@@ -725,13 +924,31 @@
       }
     }
 
+    async function fetchDailySummary() {
+      try {
+        const response = await fetch('/api/daily-summary');
+        if (response.ok) {
+          const text = await response.text();
+          const summaryEl = document.getElementById('dailySummary');
+          if (text && summaryEl) {
+            summaryEl.textContent = text;
+          }
+        }
+      } catch (error) {
+        console.log('Daily summary not available');
+      }
+    }
+
     function displayLatestRates(data) {
       latestRates = {};
       data.rates.forEach(r => {
         latestRates[r.maturity] = r.rate;
       });
 
-      document.getElementById('dataSubtitle').innerHTML = `Daily Par Yield Curve Rates<br class="mobile-break">Data: ${data.dateFormatted}`;
+      const lastUpdated = document.getElementById('lastUpdated');
+      if (lastUpdated) {
+        lastUpdated.textContent = data.dateFormatted;
+      }
 
       const ratesContainer = document.getElementById('ratesContainer');
       ratesContainer.innerHTML = `
@@ -949,7 +1166,7 @@
         
         const colorIndex = index % CHART_COLORS.length;
         const item = document.createElement('div');
-        item.className = 'legend-item' + (activeMaturities.has(maturity) ? '' : ' inactive');
+        item.className = 'legend-item' + (activeMaturities.has(maturity) ? ' active' : ' inactive');
         item.dataset.maturity = maturity;
         item.tabIndex = 0;
         item.setAttribute('role', 'button');
