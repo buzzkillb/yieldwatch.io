@@ -7,7 +7,7 @@ import { blogRoutes } from './routes/blog';
 import { sitemapRoutes } from './routes/sitemap';
 import { db, schema } from './db';
 import { desc, sql } from 'drizzle-orm';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
 const SITE_URL = 'https://yieldwatch.io';
