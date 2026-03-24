@@ -236,7 +236,7 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
       .from(schema.yieldCurveRates)
       .where(and(gte(schema.yieldCurveRates.date, from), lte(schema.yieldCurveRates.date, to)))
       .orderBy(asc(schema.yieldCurveRates.date), asc(schema.yieldCurveRates.maturity))
-      .limit(150000);
+      .limit(200000);
 
     if (data.length === 0) {
       return { success: false, error: 'No data found' };
@@ -272,9 +272,9 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
         to,
         maturity: 'all',
         count: timeSeriesData.length,
-        limit: 150000,
+        limit: 200000,
         offset: 0,
-        hasMore: timeSeriesData.length === 150000,
+        hasMore: timeSeriesData.length === 200000,
       },
     };
 
