@@ -101,10 +101,7 @@
       font-size: 2rem;
       font-weight: 700;
       margin-bottom: 0.5rem;
-      background: linear-gradient(135deg, var(--accent), #a855f7);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: var(--text-primary);
     }
 
     .page-subtitle {
@@ -125,6 +122,7 @@
       padding: 1.5rem;
       transition: all 0.2s ease;
       cursor: pointer;
+      overflow: hidden;
     }
 
     .summary-card:hover {
@@ -139,29 +137,32 @@
       align-items: flex-start;
       margin-bottom: 1rem;
       gap: 1rem;
+      flex-shrink: 0;
     }
 
     .summary-date {
       font-size: 0.85rem;
       color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: nowrap;
     }
 
     .summary-date strong {
-      display: block;
       font-size: 1.1rem;
       color: var(--text-primary);
-      margin-bottom: 0.25rem;
     }
 
     .mini-chart {
       flex-shrink: 0;
-      width: 140px;
-      height: 60px;
+      width: 120px;
+      height: 50px;
     }
 
-    .mini-chart svg {
-      width: 100%;
-      height: 100%;
+    .mini-chart canvas {
+      width: 100% !important;
+      height: 100% !important;
     }
 
     .summary-excerpt {
@@ -171,14 +172,10 @@
       word-wrap: break-word;
     }
 
-    .read-more {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-top: 1rem;
+    .analysis-tag {
       color: var(--accent);
-      font-size: 0.9rem;
-      font-weight: 500;
+      font-size: 0.8rem;
+      white-space: nowrap;
     }
 
     .loading {
@@ -334,19 +331,13 @@
               <div class="summary-header">
                 <div class="summary-date">
                   <strong>${dateStr}</strong>
-                  ${item.hasFullPost ? 'Full analysis available' : 'Quick summary'}
+                  <span class="analysis-tag">${item.hasFullPost ? 'Full analysis available' : 'Quick summary'}</span>
                 </div>
                 <div class="mini-chart" id="chart-${index}">
                   <canvas id="canvas-${index}"></canvas>
                 </div>
               </div>
               <p class="summary-excerpt">${item.excerpt}</p>
-              <span class="read-more">
-                Read full analysis
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M5 12h14M12 5l7 7-7 7"/>
-                </svg>
-              </span>
             </article>
           `;
         }).join('');
@@ -414,9 +405,8 @@
         <span class="divider">|</span>
         <a href="https://home.treasury.gov" target="_blank" rel="noopener noreferrer">U.S. Treasury</a>
       </div>
-      <div class="footer-meta">
-        Updated daily at 3:30 PM ET | Data: <span id="lastUpdated">Loading...</span>
-      </div>
+      <div class="footer-meta">Updated daily at 3:30 PM ET</div>
+      <div class="footer-meta">Data: <span id="lastUpdated">Loading...</span></div>
     </div>
   </footer>
 </body>
