@@ -1,6 +1,7 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { html } from '@elysiajs/html';
+import { compress } from 'elysia-compress';
 import { rateLimit } from './middleware/rateLimit';
 import { ratesRoutes } from './routes/rates';
 import { blogRoutes } from './routes/blog';
@@ -36,6 +37,7 @@ const securityHeaders = {
 };
 
 const app = new Elysia()
+  .use(compress())
   .use(cors({
     origin: allowedOrigins,
     methods: ['GET'],

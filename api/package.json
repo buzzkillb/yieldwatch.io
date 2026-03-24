@@ -17,6 +17,7 @@
     "@elysiajs/html": "^1.0.0",
     "drizzle-orm": "^0.38.0",
     "elysia": "^1.0.0",
+    "elysia-compress": "^1.2.1",
     "postgres": "^3.4.0",
     "sharp": "^0.34.5",
     "xml2js": "^0.6.2"
