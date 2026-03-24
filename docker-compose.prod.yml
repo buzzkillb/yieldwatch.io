@@ -41,7 +41,6 @@ services:
     restart: unless-stopped
     networks:
       - treasury-network
-    command: bun run dist/index.js
 
   scheduler:
     image: treasury-scheduler
@@ -65,7 +64,6 @@ services:
     restart: unless-stopped
     networks:
       - treasury-network
-    command: bun run src/services/scheduler.ts
 
   traefik:
     image: traefik:v3.0

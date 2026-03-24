@@ -18,7 +18,10 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/drizzle.config.ts ./
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/entrypoint.sh ./entrypoint.sh
+RUN chmod +x entrypoint.sh
 
 EXPOSE 3000
 
-CMD ["bun", "run", "dist/index.js"]
+ENTRYPOINT ["./entrypoint.sh"]
+CMD ["api"]

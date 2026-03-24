@@ -253,12 +253,79 @@
       color: var(--text-primary);
     }
 
-    .daily-summary {
-      font-size: 0.95rem;
-      color: var(--text-secondary);
-      line-height: 1.6;
+    .daily-summary-container {
       margin-bottom: 1.5rem;
-      padding: 0 0.5rem;
+      background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-tertiary) 100%);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .daily-summary-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), #a855f7, var(--accent));
+      background-size: 200% 100%;
+      animation: shimmer 3s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .daily-summary-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+
+    .daily-summary-icon {
+      display: flex;
+      align-items: center;
+      opacity: 0.8;
+    }
+
+    .daily-summary {
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      line-height: 1.7;
+      padding: 0;
+      margin: 0;
+    }
+
+    @media (max-width: 768px) {
+      .daily-summary-container {
+        margin-bottom: 1rem;
+        padding: 0.875rem 1rem;
+        border-radius: 10px;
+      }
+
+      .daily-summary-container::before {
+        height: 2px;
+      }
+
+      .daily-summary {
+        font-size: 0.85rem;
+        line-height: 1.6;
+      }
+
+      .daily-summary-header {
+        font-size: 0.7rem;
+        margin-bottom: 0.5rem;
+      }
     }
 
     .chart-container {
@@ -641,7 +708,18 @@
         </div>
       </div>
 
-      <div id="dailySummary" class="daily-summary"></div>
+      <div class="daily-summary-container">
+        <div class="daily-summary-header">
+          <svg class="daily-summary-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          <span>Daily Summary</span>
+        </div>
+        <div id="dailySummary" class="daily-summary"></div>
+      </div>
 
       <div class="chart-container">
         <div class="chart-header">
