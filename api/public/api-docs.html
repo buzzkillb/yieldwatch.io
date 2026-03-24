@@ -544,7 +544,7 @@
           <span class="badge badge-get">GET</span>
           <span class="badge badge-rate">100/min</span>
         </div>
-        <p class="description">Returns year-to-date and all-time high/low rates for each maturity, with the dates when those records occurred.</p>
+        <p class="description">Returns year-to-date and all-time high/low rates for each maturity, with the dates when those records occurred. All-time stats are populated after the scheduler runs for sufficient time.</p>
 
         <h3>Response</h3>
         <div class="code-block">
@@ -553,15 +553,15 @@
   "success": true,
   "data": [
     {
-      "maturity": "4WK",
-      "yearHigh": 5.33,
-      "yearHighDate": "2025-01-13",
-      "yearLow": 3.71,
-      "yearLowDate": "2026-03-20",
-      "allTimeHigh": 5.58,
-      "allTimeHighDate": "2023-10-19",
-      "allTimeLow": 0.03,
-      "allTimeLowDate": "2020-03-03"
+      "maturity": "10YR",
+      "yearHigh": 4.39,
+      "yearHighDate": "2026-03-20",
+      "yearLow": 3.97,
+      "yearLowDate": "2026-02-27",
+      "allTimeHigh": null,
+      "allTimeHighDate": null,
+      "allTimeLow": null,
+      "allTimeLowDate": null
     }
   ]
 }</pre>
