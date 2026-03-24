@@ -1,12 +1,15 @@
+version: "3.8"
+
 services:
   db:
     image: postgres:17-alpine
+    container_name: treasury-db
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-treasury}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -31,8 +34,7 @@ services:
       RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
       TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-}
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     restart: unless-stopped
     command: bun run src/index.ts
 
@@ -52,8 +54,7 @@ services:
       SCHEDULER_CRON_HOUR: ${SCHEDULER_CRON_HOUR:-16}
       SCHEDULER_CRON_MINUTE: ${SCHEDULER_CRON_MINUTE:-30}
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     restart: unless-stopped
     command: bun run src/services/scheduler.ts
 
@@ -67,21 +68,16 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
-      - ./traefik/startup-validate.sh:/startup-validate.sh:ro
       - ./acme.json:/acme.json:rw
     environment:
       - CF_API_EMAIL=${CF_API_EMAIL}
       - CLOUDFLARE_DNS_API_TOKEN=${CF_API_TOKEN}
       - DOMAIN=${DOMAIN}
-    command: ["/startup-validate.sh"]
     restart: unless-stopped
     networks:
       - treasury-network
 
 networks:
   treasury-network:
-    external: false
-
-volumes:
-  postgres_data:
-    driver: local
+    name: treasury-network
+    driver: bridge
