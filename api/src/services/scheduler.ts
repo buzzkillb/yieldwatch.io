@@ -584,6 +584,47 @@ async function regenerateOgImage(): Promise<void> {
   }
 }
 
+async function warmQueryCache(): Promise<void> {
+  const apiHost = process.env.API_HOST || 'http://localhost:3000';
+  const periods = [
+    { from: getDateMonthsAgo(3), to: 'latest', name: '3M' },
+    { from: getDateMonthsAgo(6), to: 'latest', name: '6M' },
+    { from: getDateMonthsAgo(1), to: 'latest', name: '1Y' },
+    { from: getDateMonthsAgo(2), to: 'latest', name: '2Y' },
+    { from: getDateMonthsAgo(5), to: 'latest', name: '5Y' },
+    { from: getDateYearsAgo(35), to: 'latest', name: 'ALL' },
+  ];
+
+  console.log('[Scheduler] Warming query cache...');
+  for (const period of periods) {
+    try {
+      const url = `${apiHost}/api/rates/cache/warm?from=${period.from}&to=${period.to}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.success) {
+        console.log(`[Scheduler] Cache warmed for ${period.name}: ${data.cacheKey}`);
+      } else {
+        console.log(`[Scheduler] Cache warm failed for ${period.name}: ${data.error}`);
+      }
+    } catch (error) {
+      console.error(`[Scheduler] Error warming cache for ${period.name}:`, error);
+    }
+  }
+  console.log('[Scheduler] Query cache warming complete');
+}
+
+function getDateMonthsAgo(months: number): string {
+  const date = new Date();
+  date.setMonth(date.getMonth() - months);
+  return date.toISOString().split('T')[0];
+}
+
+function getDateYearsAgo(years: number): string {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() - years);
+  return date.toISOString().split('T')[0];
+}
+
 async function checkAndUpdate(): Promise<void> {
   console.log(`[Scheduler] Checking for updates at ${new Date().toISOString()}...`);
   
@@ -604,6 +645,7 @@ async function checkAndUpdate(): Promise<void> {
     await saveYieldData(result);
     await regenerateOgImage();
     await generateDailySummary();
+    await warmQueryCache();
     console.log(`[Scheduler] Update complete at ${new Date().toISOString()}`);
   } else {
     console.log(`[Scheduler] Fetch failed: ${result.error}. Will retry in 15 minutes.`);
@@ -669,6 +711,7 @@ async function main(): Promise<void> {
     } else {
       console.log(`[Scheduler] Database has existing data, starting normal update loop`);
       await generateDailySummary();
+      await warmQueryCache();
     }
     
     await dailyUpdateLoop();

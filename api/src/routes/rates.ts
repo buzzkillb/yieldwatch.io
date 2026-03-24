@@ -2,6 +2,7 @@ import { Elysia } from 'elysia';
 import { db, schema } from '../db';
 import { eq, and, gte, lte, desc, asc, SQL } from 'drizzle-orm';
 import { MATURITIES } from '../utils/parse';
+import { queryCache } from '../utils/cache';
 
 const VALID_MATURITIES = new Set(MATURITIES.map(m => m.label));
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -192,7 +193,7 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    return {
+    const result = {
       success: true,
       data: timeSeriesData,
       meta: {
@@ -205,4 +206,78 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
         hasMore: timeSeriesData.length === parsedLimit,
       },
     };
+
+    if (maturity === undefined && offset === undefined) {
+      const cacheKey = `rates:${from || 'earliest'}:${to || 'latest'}:all:1000:0`;
+      queryCache.set(cacheKey, result);
+    }
+
+    return result;
+  })
+  .get('/cache/warm', async ({ query }) => {
+    const { from, to } = query as { from?: string; to?: string };
+
+    if (!from || !to) {
+      return { success: false, error: 'from and to are required' };
+    }
+
+    const cacheKey = `rates:${from}:${to}:all:1000:0`;
+    const cached = queryCache.get(cacheKey);
+    if (cached) {
+      return { success: true, cached: true, cacheKey };
+    }
+
+    const data = await db
+      .select({
+        date: schema.yieldCurveRates.date,
+        maturity: schema.yieldCurveRates.maturity,
+        rate: schema.yieldCurveRates.rate,
+      })
+      .from(schema.yieldCurveRates)
+      .where(and(gte(schema.yieldCurveRates.date, from), lte(schema.yieldCurveRates.date, to)))
+      .orderBy(asc(schema.yieldCurveRates.date), asc(schema.yieldCurveRates.maturity))
+      .limit(1000);
+
+    if (data.length === 0) {
+      return { success: false, error: 'No data found' };
+    }
+
+    const grouped: Record<string, { maturity: string; rate: number }[]> = {};
+    for (const row of data) {
+      if (!grouped[row.date]) {
+        grouped[row.date] = [];
+      }
+      grouped[row.date].push({
+        maturity: row.maturity,
+        rate: parseFloat(row.rate),
+      });
+    }
+
+    const timeSeriesData = Object.entries(grouped)
+      .map(([date, rates]) => ({
+        date,
+        rates: rates.sort((a, b) => {
+          const matA = MATURITIES.find(m => m.label === a.maturity)?.years || 0;
+          const matB = MATURITIES.find(m => m.label === b.maturity)?.years || 0;
+          return matA - matB;
+        }),
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    const result = {
+      success: true,
+      data: timeSeriesData,
+      meta: {
+        from,
+        to,
+        maturity: 'all',
+        count: timeSeriesData.length,
+        limit: 1000,
+        offset: 0,
+        hasMore: timeSeriesData.length === 1000,
+      },
+    };
+
+    queryCache.set(cacheKey, result);
+    return { success: true, cached: false, cacheKey, warmed: true };
   });
