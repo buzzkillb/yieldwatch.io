@@ -249,8 +249,9 @@ const app = new Elysia()
   })
   .get('/og/:date.png', async ({ params }) => {
     const { date } = params;
+    console.log('[OG] Received date param:', JSON.stringify(date), 'Regex test:', /^\d{4}-\d{2}-\d{2}$/.test(date || ''));
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return new Response('Invalid date format', { status: 400 });
+      return new Response(`Invalid date format: ${date}`, { status: 400 });
     }
 
     const cachedPath = join(process.cwd(), 'public/og', `${date}.png`);
