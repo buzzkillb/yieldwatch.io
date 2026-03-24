@@ -27,7 +27,6 @@ services:
     container_name: treasury-api
     environment:
       POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-treasury}
@@ -52,7 +51,6 @@ services:
     container_name: treasury-scheduler
     environment:
       POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-treasury}

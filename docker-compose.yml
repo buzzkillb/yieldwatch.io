@@ -21,11 +21,8 @@ services:
     image: oven/bun:1
     container_name: treasury-api
     working_dir: /app
-    volumes:
-      - ./api:/app
     environment:
       POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER:-treasury}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-treasury}
@@ -47,11 +44,8 @@ services:
     image: oven/bun:1
     container_name: treasury-scheduler
     working_dir: /app
-    volumes:
-      - ./api:/app
     environment:
       POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER:-treasury}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-treasury}
