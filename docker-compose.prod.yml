@@ -58,6 +58,7 @@ services:
       CRON_TZ: ${CRON_TZ:-America/New_York}
       SCHEDULER_CRON_HOUR: ${SCHEDULER_CRON_HOUR:-16}
       SCHEDULER_CRON_MINUTE: ${SCHEDULER_CRON_MINUTE:-30}
+      MINIMAX_API_KEY: ${MINIMAX_API_KEY}
     depends_on:
       db:
         condition: service_healthy

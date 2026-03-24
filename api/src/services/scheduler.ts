@@ -159,11 +159,10 @@ ${dataPrompt}`;
     const longSystemPrompt = `You are a financial journalist writing a daily market brief about U.S. Treasury yields. Treasury publishes rates on business days only - weekends and holidays are skipped.
 
 Rules:
-- Write 4-6 sentences as one rich paragraph
-- Open with the 30-year rate and key movements prominently
-- Cover all notable rate changes across the curve
-- Always compare to the previous business day AND one week ago
-- Note any inversions or unusual patterns in the yield curve
+- Write exactly 3 paragraphs of 4-6 sentences each
+- Open paragraph 1 with the 30-year rate and key movements prominently
+- Paragraph 2 should cover rate changes across the curve with comparisons to yesterday and last week
+- Paragraph 3 should summarize curve shape, inversions, and notable patterns
 - Use plain language - explain what the numbers mean without being educational
 - Do NOT use "percentage points" or "basis points" - just say "higher" or "lower"
 - Do NOT explain what rate movements mean for investors or markets
@@ -171,11 +170,12 @@ Rules:
 - Never use bullet points, dashes, or list format
 - Never use foreign characters or non-ASCII symbols
 - Write in plain English only
+- Separate paragraphs with a blank line
 
 ${dataPrompt}`;
 
     const shortUserMessage = `Write a brief paragraph about today's Treasury yield curve rates. Keep it to 2-4 sentences.`;
-    const longUserMessage = `Write a detailed daily market brief about today's Treasury yield curve rates in 2-3 paragraphs. This will be published on a blog. Cover the overall curve shape, notable rate movements, and how today compares to recent history. Use blank lines to separate paragraphs.`;
+    const longUserMessage = `Write a detailed daily market brief about today's Treasury yield curve rates in exactly 3 paragraphs. This will be published on a blog. Cover the overall curve shape, notable rate movements, and how today compares to recent history. Separate paragraphs with a blank line.`;
 
     const [shortResponse, longResponse] = await Promise.all([
       fetch('https://api.minimax.io/anthropic/v1/messages', {
@@ -202,7 +202,7 @@ ${dataPrompt}`;
         },
         body: JSON.stringify({
           model: 'MiniMax-M2.7',
-          max_tokens: 2000,
+          max_tokens: 3000,
           system: longSystemPrompt,
           messages: [{ role: 'user', content: [{ type: 'text', text: longUserMessage }] }],
           temperature: 1
