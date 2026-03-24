@@ -9,6 +9,8 @@
 
   <!-- Open Graph / Facebook / LinkedIn -->
   <meta property="og:type" content="website">
+  <meta property="og:site_name" content="YieldWatch">
+  <meta property="og:locale" content="en_US">
   <meta property="og:url" content="https://yieldwatch.io/blog">
   <meta property="og:title" content="Daily Treasury Yield Summaries | AI-Powered Analysis">
   <meta property="og:description" content="Daily Treasury yield curve summaries with AI-powered analysis. Track interest rates, yield curve shifts, and market trends from 4-week bills to 30-year bonds.">
@@ -195,7 +197,12 @@
       cursor: pointer;
     }
 
-    .summary-card:hover {
+    .summary-card-link {
+      text-decoration: none;
+      display: block;
+    }
+
+    .summary-card-link:hover .summary-card {
       border-color: var(--accent);
       transform: translateY(-2px);
       box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
@@ -393,14 +400,16 @@
           const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
           return `
-            <article class="summary-card" onclick="location.href='/blog/${item.date}'">
-              <div class="summary-date">${dateStr}</div>
-              <div class="mini-chart" id="chart-${index}">
-                <canvas id="canvas-${index}"></canvas>
-              </div>
-              <div class="analysis-tag">${item.hasFullPost ? 'Full analysis available' : 'Quick summary'}</div>
-              <p class="summary-excerpt">${item.excerpt}</p>
-            </article>
+            <a href="/blog/${item.date}" class="summary-card-link">
+              <article class="summary-card">
+                <div class="summary-date">${dateStr}</div>
+                <div class="mini-chart" id="chart-${index}">
+                  <canvas id="canvas-${index}"></canvas>
+                </div>
+                <div class="analysis-tag">${item.hasFullPost ? 'Full analysis available' : 'Quick summary'}</div>
+                <p class="summary-excerpt">${item.excerpt}</p>
+              </article>
+            </a>
           `;
         }).join('');
 
