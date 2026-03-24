@@ -1,9 +1,11 @@
 import { db, schema } from '../db';
-import { eq, desc, asc } from 'drizzle-orm';
+import { eq, desc, asc, lt, and, gte } from 'drizzle-orm';
 import { fetchTreasuryYieldCurve, fetchLatestDate } from './fetcher';
 import sharp from 'sharp';
 import { writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
+
+const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY;
 
 const CHECK_INTERVAL_MS = (() => {
   const val = parseInt(process.env.SCHEDULER_CHECK_INTERVAL_MS || '900000', 10);
@@ -43,7 +45,173 @@ const CSV_COLUMNS: Record<string, string> = {
   '30Yr': '30YR', '30 YR': '30YR', '30 YEAR': '30YR',
 };
 
-const KNOWN_MATURITY_KEYS = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
+const KNOWN_MATURITY_KEYS = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
+
+function getPreviousBusinessDay(dateStr: string): string {
+  const date = new Date(dateStr + 'T00:00:00Z');
+  let daysBack = 1;
+  
+  while (daysBack <= 7) {
+    date.setUTCDate(date.getUTCDate() - 1);
+    const dayOfWeek = date.getUTCDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      break;
+    }
+    daysBack++;
+  }
+  
+  return date.toISOString().split('T')[0];
+}
+
+function getDateMinusDays(dateStr: string, days: number): string {
+  const date = new Date(dateStr + 'T00:00:00Z');
+  date.setUTCDate(date.getUTCDate() - days);
+  return date.toISOString().split('T')[0];
+}
+
+function getDayOfWeek(dateStr: string): string {
+  const date = new Date(dateStr + 'T00:00:00Z');
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return days[date.getUTCDay()];
+}
+
+async function getRatesForDate(date: string): Promise<{ maturity: string; rate: number }[]> {
+  const results = await db
+    .select()
+    .from(schema.yieldCurveRates)
+    .where(eq(schema.yieldCurveRates.date, date));
+  
+  return results.map(r => ({
+    maturity: r.maturity,
+    rate: parseFloat(r.rate)
+  }));
+}
+
+function formatDateForPrompt(dateStr: string): { date: string; day: string } {
+  return {
+    date: dateStr,
+    day: getDayOfWeek(dateStr)
+  };
+}
+
+async function generateDailySummary(): Promise<void> {
+  if (!MINIMAX_API_KEY) {
+    console.log('[Scheduler] MINIMAX_API_KEY not set, skipping daily summary generation');
+    return;
+  }
+
+  try {
+    console.log('[Scheduler] Generating daily rate summary with MiniMax...');
+
+    const latestDateInDb = await db
+      .select({ date: schema.yieldCurveRates.date })
+      .from(schema.yieldCurveRates)
+      .orderBy(desc(schema.yieldCurveRates.date))
+      .limit(1);
+
+    if (latestDateInDb.length === 0) {
+      console.log('[Scheduler] No data in database for summary');
+      return;
+    }
+
+    const todayDate = latestDateInDb[0].date;
+    const yesterdayDate = getPreviousBusinessDay(todayDate);
+    const lastWeekDate = getDateMinusDays(todayDate, 7);
+
+    const [todayRates, yesterdayRates, lastWeekRates] = await Promise.all([
+      getRatesForDate(todayDate),
+      getRatesForDate(yesterdayDate),
+      getRatesForDate(lastWeekDate)
+    ]);
+
+    if (todayRates.length === 0) {
+      console.log('[Scheduler] No rates data for summary');
+      return;
+    }
+
+    const dates = {
+      today: formatDateForPrompt(todayDate),
+      yesterday: formatDateForPrompt(yesterdayDate),
+      lastWeek: formatDateForPrompt(lastWeekDate),
+    };
+
+    const systemPrompt = `You are a plain-spoken writer describing U.S. Treasury yield curve data. Treasury publishes rates on business days only - weekends and holidays are skipped.
+
+Rules:
+- Write 2-4 sentences as one paragraph
+- Always mention the 30-year rate prominently
+- You MUST include comparison to last week in every output
+- When describing changes, use simple language like "up from last week" or "higher than yesterday"
+- Do NOT use phrases like "percentage points" or "basis points" - just say "higher" or "lower"
+- If the yield curve is inverted, state that fact only - do not explain what it means
+- Stick to observable data comparisons - do not explain what rate movements mean for investors or markets
+- Keep it factual and straightforward
+- Never use bullet points, dashes, or list format
+- Never use foreign characters or non-ASCII symbols
+- Write in plain English only
+
+Date info:
+- Today (${dates.today.day}, ${dates.today.date}): ${JSON.stringify(todayRates)}
+- Last business day (${dates.yesterday.day}, ${dates.yesterday.date}): ${JSON.stringify(yesterdayRates)}
+- Last week (${dates.lastWeek.day}, ${dates.lastWeek.date}): ${JSON.stringify(lastWeekRates)}`;
+
+    const userMessage = `Write a brief paragraph about today's Treasury yield curve rates. Treasury is closed on weekends and holidays, so compare today to the last business day and to one week ago.`;
+
+    const response = await fetch('https://api.minimax.io/anthropic/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': MINIMAX_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'MiniMax-M2.7',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [
+          { role: 'user', content: [{ type: 'text', text: userMessage }] }
+        ],
+        temperature: 1
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log(`[Scheduler] MiniMax API error: ${response.status} - ${errorText}`);
+      return;
+    }
+
+    const data = await response.json() as { content?: { type: string; text?: string }[] };
+    let generatedText = '';
+
+    if (data.content && Array.isArray(data.content)) {
+      for (const block of data.content) {
+        if (block.type === 'text' && block.text) {
+          generatedText = block.text;
+          break;
+        }
+      }
+    }
+
+    if (!generatedText) {
+      console.log('[Scheduler] No text generated from MiniMax');
+      return;
+    }
+
+    const publicDir = join(process.cwd(), 'public');
+    if (!existsSync(publicDir)) {
+      mkdirSync(publicDir, { recursive: true });
+    }
+
+    const summaryPath = join(publicDir, 'daily-summary.txt');
+    writeFileSync(summaryPath, generatedText.trim());
+    console.log(`[Scheduler] Daily summary saved: ${summaryPath}`);
+    console.log(`[Scheduler] Summary: ${generatedText.trim()}`);
+
+  } catch (error) {
+    console.error('[Scheduler] Error generating daily summary:', error);
+  }
+}
 
 function normalizeColumnName(col: string): string | null {
   const cleaned = col.trim();
@@ -383,6 +551,7 @@ async function checkAndUpdate(): Promise<void> {
   if (result.success) {
     await saveYieldData(result);
     await regenerateOgImage();
+    await generateDailySummary();
     console.log(`[Scheduler] Update complete at ${new Date().toISOString()}`);
   } else {
     console.log(`[Scheduler] Fetch failed: ${result.error}. Will retry in 15 minutes.`);
@@ -447,6 +616,7 @@ async function main(): Promise<void> {
       await checkAndUpdate();
     } else {
       console.log(`[Scheduler] Database has existing data, starting normal update loop`);
+      await generateDailySummary();
     }
     
     await dailyUpdateLoop();

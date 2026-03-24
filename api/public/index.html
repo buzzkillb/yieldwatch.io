@@ -253,6 +253,14 @@
       color: var(--text-primary);
     }
 
+    .daily-summary {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+      padding: 0 0.5rem;
+    }
+
     .chart-container {
       background: linear-gradient(145deg, #141420 0%, #181828 100%);
       border-radius: 16px;
@@ -633,6 +641,8 @@
         </div>
       </div>
 
+      <div id="dailySummary" class="daily-summary"></div>
+
       <div class="chart-container">
         <div class="chart-header">
           <h2 class="chart-title">Yield Curve Over Time</h2>
@@ -766,12 +776,28 @@
           latestDataDate = new Date(data.data.date + 'T00:00:00Z');
           updateAvailableRanges();
           fetchHistoricalData();
+          fetchDailySummary();
         } else {
           showError('Unable to load latest rates');
         }
       } catch (error) {
         showError('Connection failed. Check your internet connection or try again later.');
         setTimeout(fetchLatestRates, 10000);
+      }
+    }
+
+    async function fetchDailySummary() {
+      try {
+        const response = await fetch('/api/daily-summary');
+        if (response.ok) {
+          const text = await response.text();
+          const summaryEl = document.getElementById('dailySummary');
+          if (text && summaryEl) {
+            summaryEl.textContent = text;
+          }
+        }
+      } catch (error) {
+        console.log('Daily summary not available');
       }
     }
 

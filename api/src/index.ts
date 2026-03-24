@@ -129,6 +129,16 @@ const app = new Elysia()
     }
     return new Response('OG image not yet generated', { status: 404 });
   })
+  .get('/api/daily-summary', async () => {
+    const summaryPath = join(process.cwd(), 'public/daily-summary.txt');
+    if (existsSync(summaryPath)) {
+      const summary = readFileSync(summaryPath, 'utf-8');
+      return new Response(summary, {
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=86400' },
+      });
+    }
+    return new Response('', { status: 204 });
+  })
   
 
 function generateOgSvg(data: { maturity: string; rate: number }[] | string, date?: string, errorMsg?: string): string {
