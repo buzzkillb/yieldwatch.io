@@ -6,9 +6,19 @@ import { ratesRoutes } from './routes/rates';
 import { blogRoutes } from './routes/blog';
 import { sitemapRoutes } from './routes/sitemap';
 import { db, schema } from './db';
-import { desc, sql } from 'drizzle-orm';
-import { readFileSync, existsSync } from 'fs';
+import { desc, sql, eq } from 'drizzle-orm';
+import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { generateOgChart } from './utils/ogChart';
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 const SITE_URL = 'https://yieldwatch.io';
 const POSTS_PER_PAGE = 5;
@@ -112,16 +122,73 @@ const app = new Elysia()
   })
   .get('/blog/:date', async ({ params }) => {
     try {
+      const { date } = params;
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return new Response('<html><body><h1>Invalid Date</h1><p>Please use a valid date format (YYYY-MM-DD).</p></body></html>', {
+          headers: { 'Content-Type': 'text/html' },
+        });
+      }
+
+      const blogData = await db
+        .select()
+        .from(schema.dailySummaries)
+        .where(eq(schema.dailySummaries.date, date))
+        .limit(1);
+
+      if (blogData.length === 0) {
+        return new Response('<html><body><h1>Post Not Found</h1><p>No blog post found for this date.</p></body></html>', {
+          headers: { 'Content-Type': 'text/html' },
+          status: 404,
+        });
+      }
+
+      const blogSummary = blogData[0].blogSummary || blogData[0].summary;
+      const dateFormatted = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
+        timeZone: 'UTC',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      const blogUrl = `${SITE_URL}/blog/${date}`;
+      const ogImageUrl = `${SITE_URL}/og-image/${date}`;
+      const pageTitle = `${dateFormatted} | Treasury Yield Daily`;
+      const metaDescription = escapeHtml(blogSummary.substring(0, 160));
+
       const blogPath = join(process.cwd(), 'public/blog-post.html');
-      const html = readFileSync(blogPath, 'utf-8');
+      let html = readFileSync(blogPath, 'utf-8');
+
+      html = html.replace(/<title[^>]*>.*<\/title>/, `<title id="page-title">${escapeHtml(pageTitle)}</title>`);
+      html = html.replace(`content="Treasury yield curve daily analysis" id="meta-desc"`, `content="${metaDescription}" id="meta-desc"`);
+      html = html.replace(`id="og-url" content="https://yieldwatch.io/blog"`, `id="og-url" content="${blogUrl}"`);
+      html = html.replace(`id="og-title" content="Treasury Yield Daily Summary"`, `id="og-title" content="${escapeHtml(dateFormatted)} Treasury Yield"`);
+      html = html.replace(`id="og-description" content="Treasury yield curve daily analysis"`, `id="og-description" content="${metaDescription}"`);
+      html = html.replace(`id="og-image" content="https://yieldwatch.io/og.png"`, `id="og-image" content="${ogImageUrl}"`);
+      html = html.replace(`id="article-date" content=""`, `id="article-date" content="${date}T00:00:00Z"`);
+      html = html.replace(`id="article-modified" content=""`, `id="article-modified" content="${date}T00:00:00Z"`);
+      html = html.replace(`id="twitter-url" content="https://yieldwatch.io/blog"`, `id="twitter-url" content="${blogUrl}"`);
+      html = html.replace(`id="twitter-title" content="Treasury Yield Daily Summary"`, `id="twitter-title" content="${escapeHtml(dateFormatted)} Treasury Yield"`);
+      html = html.replace(`id="twitter-description" content="Treasury yield curve daily analysis"`, `id="twitter-description" content="${metaDescription}"`);
+      html = html.replace(`id="twitter-image" content="https://yieldwatch.io/og.png"`, `id="twitter-image" content="${ogImageUrl}"`);
+      html = html.replace(`id="canonical-url" href="https://yieldwatch.io/blog/"`, `id="canonical-url" href="${blogUrl}"`);
+
+      const breadcrumbSchemaMatch = html.match(/id="breadcrumb-schema">([\s\S]*?)<\/script>/);
+      if (breadcrumbSchemaMatch) {
+        const updatedSchema = breadcrumbSchemaMatch[1]
+          .replace(/"name": "Daily Summary"/, `"name": "${dateFormatted} Summary"`)
+          .replace(/item": "https:\/\/yieldwatch\.io\/blog"(?=[^"]*\}])/g, `item": "${blogUrl}"`);
+        html = html.replace(breadcrumbSchemaMatch[0], `id="breadcrumb-schema">\n  ${updatedSchema}\n  </script>`);
+      }
+
       return new Response(html, {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
         },
       });
-    } catch {
-      return new Response('<html><body><h1>Post</h1><p>Post not found.</p></body></html>', {
+    } catch (error) {
+      console.error('Error serving blog post:', error);
+      return new Response('<html><body><h1>Error</h1><p>Failed to load blog post.</p></body></html>', {
         headers: { 'Content-Type': 'text/html' },
+        status: 500,
       });
     }
   })
@@ -188,6 +255,50 @@ const app = new Elysia()
       });
     }
     return new Response('OG image not yet generated', { status: 404 });
+  })
+  .get('/og-image/:date', async ({ params }) => {
+    const { date } = params;
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return new Response('Invalid date format', { status: 400 });
+    }
+
+    const cachedPath = join(process.cwd(), 'public/og', `${date}.png`);
+    if (existsSync(cachedPath)) {
+      const png = readFileSync(cachedPath);
+      return new Response(png, {
+        headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' },
+      });
+    }
+
+    const ratesData = await db
+      .select()
+      .from(schema.yieldCurveRates)
+      .where(eq(schema.yieldCurveRates.date, date));
+
+    if (ratesData.length === 0) {
+      return new Response('No data for this date', { status: 404 });
+    }
+
+    const rates = ratesData.map(r => ({ maturity: r.maturity, rate: parseFloat(r.rate) }));
+
+    let pngBuffer: Buffer;
+    try {
+      pngBuffer = await generateOgChart(rates);
+    } catch (error) {
+      console.error('Error generating OG chart:', error);
+      return new Response('Failed to generate image', { status: 500 });
+    }
+
+    const ogDir = join(process.cwd(), 'public/og');
+    if (!existsSync(ogDir)) {
+      mkdirSync(ogDir, { recursive: true });
+    }
+
+    writeFileSync(cachedPath, pngBuffer);
+
+    return new Response(pngBuffer, {
+      headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' },
+    });
   })
   .get('/api/daily-summary', async () => {
     const latestSummary = await db

@@ -1,7 +1,7 @@
 import { db, schema } from '../db';
 import { eq, desc, asc, lt, and, gte } from 'drizzle-orm';
 import { fetchTreasuryYieldCurve, fetchLatestDate } from './fetcher';
-import sharp from 'sharp';
+import { generateOgChart } from '../utils/ogChart';
 import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 
@@ -256,6 +256,11 @@ ${dataPrompt}`;
     console.log(`[Scheduler] Short summary: ${shortSummary}`);
     if (blogSummary) {
       console.log(`[Scheduler] Blog summary: ${blogSummary.substring(0, 100)}...`);
+    }
+
+    const ogImageResult = await generateOgImageForDate(todayDate);
+    if (!ogImageResult) {
+      console.log('[Scheduler] WARNING: Failed to generate OG image for today\'s blog post');
     }
 
   } catch (error) {
@@ -532,55 +537,55 @@ async function regenerateOgImage(): Promise<void> {
     }
 
     const latestDate = latestData[0].date;
-    const todayRates = latestData
+    const rates = latestData
       .filter(r => r.date === latestDate)
       .map(r => ({ maturity: r.maturity, rate: parseFloat(r.rate) }));
 
-    const maturities = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
-    const maturityLabels: Record<string, string> = {
-      '4WK': '4W', '6WK': '6W', '2MO': '2M', '3MO': '3M', '4MO': '4M', '6MO': '6M',
-      '1YR': '1Y', '2YR': '2Y', '3YR': '3Y', '5YR': '5Y', '7YR': '7Y', '10YR': '10Y', '20YR': '20Y', '30YR': '30Y'
-    };
-
-    const ratesMap = new Map(todayRates.map(d => [d.maturity, d.rate]));
-    const rates = maturities.map(m => ({ maturity: m, rate: ratesMap.get(m) || 0 }));
-    const maxRate = Math.max(...rates.map(r => r.rate));
-    const minRate = Math.min(...rates.map(r => r.rate));
-    const rateRange = maxRate - minRate || 1;
-
-    const chartX = 50;
-    const chartY = 50;
-    const chartW = 1100;
-    const chartH = 530;
-    const pointSpacing = chartW / (rates.length - 1);
-
-    let pathD = '';
-    rates.forEach((r, i) => {
-      const x = chartX + i * pointSpacing;
-      const y = chartY + chartH - ((r.rate - minRate + 0.5) / (rateRange + 1)) * chartH;
-      pathD += i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
-    });
-
-    const circles = rates.map((r, i) => {
-      const x = chartX + i * pointSpacing;
-      const y = chartY + chartH - ((r.rate - minRate + 0.5) / (rateRange + 1)) * chartH;
-      return `<circle cx="${x}" cy="${y}" r="10" fill="#6366f1" stroke="white" stroke-width="3"/>`;
-    }).join('');
-
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630"><defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#0a0a0f"/><stop offset="100%" style="stop-color:#12121a"/></linearGradient><linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#6366f1"/><stop offset="50%" style="stop-color:#818cf8"/><stop offset="100%" style="stop-color:#a855f7"/></linearGradient><linearGradient id="areaGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.4"/><stop offset="100%" style="stop-color:#6366f1;stop-opacity:0"/></linearGradient></defs><rect fill="url(#bg)" width="1200" height="630"/><path d="${pathD} ${chartX + chartW} ${chartY + chartH} L ${chartX} ${chartY + chartH} Z" fill="url(#areaGrad)"/><path d="${pathD}" fill="none" stroke="url(#lineGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>${circles}</svg>`;
+    const pngBuffer = await generateOgChart(rates);
 
     const publicDir = join(process.cwd(), 'public');
     if (!existsSync(publicDir)) {
       mkdirSync(publicDir, { recursive: true });
     }
 
-    const pngBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
     const pngPath = join(publicDir, 'og.png');
     writeFileSync(pngPath, pngBuffer);
     
     console.log(`[Scheduler] OG image regenerated: ${pngPath}`);
   } catch (error) {
     console.error('[Scheduler] Error regenerating OG image:', error);
+  }
+}
+
+async function generateOgImageForDate(date: string): Promise<string | null> {
+  try {
+    const data = await db
+      .select()
+      .from(schema.yieldCurveRates)
+      .where(eq(schema.yieldCurveRates.date, date));
+
+    if (data.length === 0) {
+      console.log(`[Scheduler] No data for OG image for date: ${date}`);
+      return null;
+    }
+
+    const rates = data.map(r => ({ maturity: r.maturity, rate: parseFloat(r.rate) }));
+    const pngBuffer = await generateOgChart(rates);
+
+    const publicDir = join(process.cwd(), 'public');
+    const ogDir = join(publicDir, 'og');
+    if (!existsSync(ogDir)) {
+      mkdirSync(ogDir, { recursive: true });
+    }
+
+    const pngPath = join(ogDir, `${date}.png`);
+    writeFileSync(pngPath, pngBuffer);
+    
+    console.log(`[Scheduler] OG image generated for ${date}: ${pngPath}`);
+    return pngPath;
+  } catch (error) {
+    console.error(`[Scheduler] Error generating OG image for ${date}:`, error);
+    return null;
   }
 }
 

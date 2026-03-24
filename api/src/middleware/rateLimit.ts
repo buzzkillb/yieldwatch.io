@@ -64,7 +64,7 @@ function isValidPublicIP(ip: string): boolean {
 function isPrivateIP(ip: string): boolean {
   if (!ip) return true;
   
-  if (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost') return true;
+  if (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost' || ip === '::0' || ip === '::') return true;
   if (ip.startsWith('10.')) return true;
   if (ip.startsWith('192.168.')) return true;
   if (ip.startsWith('172.')) {
@@ -73,7 +73,16 @@ function isPrivateIP(ip: string): boolean {
   }
   if (ip.startsWith('fc00:') || ip.startsWith('fd00:')) return true;
   if (ip.startsWith('fe80:')) return true;
-  if (ip.startsWith('::ffff:')) return true;
+  if (ip.startsWith('::ffff:')) {
+    const mapped = ip.substring(7);
+    if (mapped.startsWith('127.') || mapped === '127.0.0.1') return true;
+    if (mapped.startsWith('10.')) return true;
+    if (mapped.startsWith('192.168.')) return true;
+    if (mapped.startsWith('172.')) {
+      const second = parseInt(mapped.split('.')[1], 10);
+      if (second >= 16 && second <= 31) return true;
+    }
+  }
   
   return false;
 }

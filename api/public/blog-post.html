@@ -13,7 +13,7 @@
   <meta property="og:url" id="og-url" content="https://yieldwatch.io/blog">
   <meta property="og:title" id="og-title" content="Treasury Yield Daily Summary">
   <meta property="og:description" id="og-description" content="Treasury yield curve daily analysis">
-  <meta property="og:image" content="https://yieldwatch.io/og.png">
+  <meta property="og:image" id="og-image" content="https://yieldwatch.io/og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="U.S. Treasury Yield Curve Dashboard">
@@ -25,7 +25,7 @@
   <meta name="twitter:url" id="twitter-url" content="https://yieldwatch.io/blog">
   <meta name="twitter:title" id="twitter-title" content="Treasury Yield Daily Summary">
   <meta name="twitter:description" id="twitter-description" content="Treasury yield curve daily analysis">
-  <meta name="twitter:image" content="https://yieldwatch.io/og.png">
+  <meta name="twitter:image" id="twitter-image" content="https://yieldwatch.io/og.png">
   <meta name="twitter:image:alt" content="U.S. Treasury Yield Curve Dashboard">
   <meta name="twitter:image:width" content="1200">
   <meta name="twitter:image:height" content="630">
@@ -108,7 +108,7 @@
     }
 
     .header-content {
-      max-width: 900px;
+      max-width: 1100px;
       margin: 0 auto;
       display: flex;
       justify-content: space-between;
@@ -150,7 +150,7 @@
     }
 
     .container {
-      max-width: 900px;
+      max-width: 1100px;
       margin: 0 auto;
       padding: 2rem;
     }
@@ -306,7 +306,7 @@
     }
 
     .footer-content {
-      max-width: 900px;
+      max-width: 1100px;
       margin: 0 auto;
       text-align: center;
     }
@@ -404,14 +404,17 @@
         document.getElementById('meta-desc').content = blogSummary.substring(0, 160);
 
         const blogUrl = `https://yieldwatch.io/blog/${date}`;
+        const ogImageUrl = `https://yieldwatch.io/og-image/${date}`;
         document.getElementById('og-url').content = blogUrl;
-        document.getElementById('og-title').content = `${dateFormatted} | Treasury Yield Daily Summary`;
+        document.getElementById('og-title').content = `${dateFormatted} Treasury Yield`;
         document.getElementById('og-description').content = blogSummary.substring(0, 160);
+        document.getElementById('og-image').content = ogImageUrl;
         document.getElementById('article-date').content = `${date}T00:00:00Z`;
         document.getElementById('article-modified').content = `${date}T00:00:00Z`;
         document.getElementById('twitter-url').content = blogUrl;
-        document.getElementById('twitter-title').content = `${dateFormatted} | Treasury Yield Daily Summary`;
+        document.getElementById('twitter-title').content = `${dateFormatted} Treasury Yield`;
         document.getElementById('twitter-description').content = blogSummary.substring(0, 160);
+        document.getElementById('twitter-image').content = ogImageUrl;
         document.getElementById('canonical-url').href = blogUrl;
 
         const breadcrumbSchema = JSON.parse(document.getElementById('breadcrumb-schema').textContent);
