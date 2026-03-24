@@ -16,6 +16,8 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    networks:
+      - treasury-network
 
   api:
     build:
@@ -36,6 +38,8 @@ services:
     depends_on:
       - db
     restart: unless-stopped
+    networks:
+      - treasury-network
     command: bun run dist/index.js
 
   scheduler:
@@ -56,6 +60,8 @@ services:
     depends_on:
       - db
     restart: unless-stopped
+    networks:
+      - treasury-network
     command: bun run src/services/scheduler.ts
 
   traefik:
