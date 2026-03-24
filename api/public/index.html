@@ -162,6 +162,30 @@
       color: var(--text-secondary);
     }
 
+    .main-nav {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .nav-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 0.5rem 0;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .nav-link:hover {
+      color: var(--accent);
+    }
+
+    .nav-link.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
     .status-dot {
       width: 8px;
       height: 8px;
@@ -609,6 +633,14 @@
         gap: 1rem;
       }
       
+      .main-nav {
+        gap: 1rem;
+      }
+      
+      .nav-link {
+        font-size: 0.85rem;
+      }
+      
       .rates-section {
         position: relative;
       }
@@ -698,6 +730,10 @@
           <span id="dataSubtitle">Daily Par Yield Curve Rates</span>
         </div>
       </div>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="/" class="nav-link active">Dashboard</a>
+        <a href="/blog" class="nav-link">Daily Summaries</a>
+      </nav>
     </header>
 
     <main>
