@@ -1,23 +1,13 @@
 FROM oven/bun:1 AS base
 WORKDIR /app
 
-FROM base AS deps
-COPY package.json bun.lock ./
-RUN bun install --ignore-scripts
-
-FROM base AS builder
-COPY --from=deps /app/node_modules /app/node_modules
-COPY . .
-RUN npm run build
-
 FROM base AS runner
-WORKDIR /app
-COPY --from=builder /app/src ./src
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/drizzle.config.ts ./
-COPY --from=builder /app/public ./public
+COPY package.json ./
+COPY drizzle.config.ts ./
+COPY public ./public
+COPY src ./src
+COPY dist ./dist
+COPY node_modules ./node_modules
 
 RUN groupadd --gid 1001 appgroup && useradd --uid 1001 --gid appgroup --shell /bin/false --create-home appuser
 USER appuser
