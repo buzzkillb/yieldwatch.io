@@ -365,26 +365,22 @@ async function regenerateOgImage(): Promise<void> {
         </linearGradient>
       </defs>
       <rect fill="url(#bg)" width="1200" height="630"/>
-      <rect fill="#6366f1" x="60" y="40" width="70" height="70" rx="15"/>
-      <text x="95" y="90" font-family="system-ui, sans-serif" font-size="36" font-weight="bold" fill="white" text-anchor="middle">T</text>
-      <text x="150" y="75" font-family="system-ui, sans-serif" font-size="32" font-weight="bold" fill="white">U.S. Treasury Yield Curve</text>
-      <text x="150" y="100" font-family="system-ui, sans-serif" font-size="18" fill="#9090a0">${dateFormatted}</text>
       <path d="${pathD} ${chartX + chartW} ${chartY + chartH} L ${chartX} ${chartY + chartH} Z" fill="url(#areaGrad)"/>
-      <path d="${pathD}" fill="none" stroke="url(#lineGrad)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="${pathD}" fill="none" stroke="url(#lineGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
       ${rates.map((r, i) => {
         const x = chartX + i * pointSpacing;
         const y = chartY + chartH - ((r.rate - minRate + 0.5) / (rateRange + 1)) * chartH;
-        return `<circle cx="${x}" cy="${y}" r="6" fill="#6366f1" stroke="white" stroke-width="2"/>`;
+        return `<circle cx="${x}" cy="${y}" r="8" fill="#6366f1" stroke="white" stroke-width="2"/>`;
       }).join('\n      ')}
       ${rates.map((r, i) => {
         const x = chartX + i * pointSpacing;
-        return `<text x="${x}" y="${chartY + chartH + 30}" font-family="system-ui, sans-serif" font-size="14" fill="#787890" text-anchor="middle">${maturityLabels[r.maturity]}</text>`;
+        return `<text x="${x}" y="${chartY + chartH + 30}" font-family="Arial, sans-serif" font-size="16" fill="#9090a0" text-anchor="middle">${maturityLabels[r.maturity]}</text>`;
       }).join('\n      ')}
-      ${rates.slice(0, 7).map((r, i) => {
+      ${rates.map((r, i) => {
         const x = chartX + i * pointSpacing;
-        return `<text x="${x}" y="${chartY + chartH + 55}" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" fill="#f0f0f5" text-anchor="middle">${r.rate.toFixed(2)}%</text>`;
+        const y = chartY + chartH - ((r.rate - minRate + 0.5) / (rateRange + 1)) * chartH;
+        return `<text x="${x}" y="${y - 15}" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#f0f0f5" text-anchor="middle">${r.rate.toFixed(2)}%</text>`;
       }).join('\n      ')}
-      <text x="600" y="600" font-family="system-ui, sans-serif" font-size="20" fill="#6366f1" text-anchor="middle">yieldwatch.io</text>
     </svg>`;
 
     const publicDir = join(process.cwd(), 'public');
