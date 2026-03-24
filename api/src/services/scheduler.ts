@@ -258,7 +258,10 @@ ${dataPrompt}`;
       console.log(`[Scheduler] Blog summary: ${blogSummary.substring(0, 100)}...`);
     }
 
-    await generateOgImageForDate(todayDate);
+    const ogImageResult = await generateOgImageForDate(todayDate);
+    if (!ogImageResult) {
+      console.log('[Scheduler] WARNING: Failed to generate OG image for today\'s blog post');
+    }
 
   } catch (error) {
     console.error('[Scheduler] Error generating daily summary:', error);
