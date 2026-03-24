@@ -129,41 +129,7 @@ const app = new Elysia()
     }
     return new Response('OG image not yet generated', { status: 404 });
   })
-  .post('/og/regenerate', async () => {
-    try {
-      const latestData = await db
-        .select()
-        .from(schema.yieldCurveRates)
-        .orderBy(desc(schema.yieldCurveRates.date), asc(schema.yieldCurveRates.maturity))
-        .limit(14);
-
-      if (latestData.length === 0) {
-        return Response.json({ error: 'No data available' }, { status: 404 });
-      }
-
-      const latestDate = latestData[0].date;
-      const todayRates = latestData
-        .filter(r => r.date === latestDate)
-        .map(r => ({ maturity: r.maturity, rate: parseFloat(r.rate) }));
-
-      const dateFormatted = new Date(latestDate + 'T00:00:00Z').toLocaleDateString('en-US', {
-        timeZone: 'UTC',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-
-      const svg = generateOgSvg(todayRates, dateFormatted);
-      const pngBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
-      const pngPath = join(process.cwd(), 'public/og.png');
-      writeFileSync(pngPath, pngBuffer);
-
-      return Response.json({ success: true, date: latestDate });
-    } catch (error) {
-      console.error('OG PNG generation error:', error);
-      return Response.json({ error: 'Failed to generate PNG' }, { status: 500 });
-    }
-  });
+  
 
 function generateOgSvg(data: { maturity: string; rate: number }[] | string, date?: string, errorMsg?: string): string {
   if (typeof data === 'string' || errorMsg) {
