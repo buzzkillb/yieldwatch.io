@@ -173,7 +173,7 @@ Rules:
 ${dataPrompt}`;
 
     const shortUserMessage = `Write a brief paragraph about today's Treasury yield curve rates. Keep it to 2-4 sentences.`;
-    const longUserMessage = `Write a detailed daily market brief about today's Treasury yield curve rates. This will be published on a blog. Include meaningful analysis of the curve shape, notable maturities, and how rates compare to recent history.`;
+    const longUserMessage = `Write a detailed daily market brief about today's Treasury yield curve rates in 2-3 paragraphs. This will be published on a blog. Cover the overall curve shape, notable rate movements, and how today compares to recent history. Use blank lines to separate paragraphs.`;
 
     const [shortResponse, longResponse] = await Promise.all([
       fetch('https://api.minimax.io/anthropic/v1/messages', {
