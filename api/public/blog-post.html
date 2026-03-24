@@ -378,15 +378,6 @@
 
     function renderChart(rates, colors) {
       const ctx = document.getElementById('yieldChart').getContext('2d');
-      const chartCanvas = document.getElementById('yieldChart');
-
-      const gradient = ctx.createLinearGradient(0, 0, chartCanvas.width, 0);
-      const ratesCount = rates.length - 1;
-      rates.forEach((_, i) => {
-        const position = i / ratesCount;
-        gradient.addColorStop(position, CHART_COLORS[i] + '50');
-      });
-      gradient.addColorStop(1, CHART_COLORS[rates.length - 1] + '50');
 
       new Chart(ctx, {
         type: 'line',
@@ -396,9 +387,9 @@
             label: 'Yield',
             data: rates.map(r => r.rate),
             borderColor: colors,
-            backgroundColor: gradient,
+            backgroundColor: 'transparent',
             borderWidth: 3,
-            fill: true,
+            fill: false,
             tension: 0.4,
             pointRadius: 6,
             pointBackgroundColor: colors,
