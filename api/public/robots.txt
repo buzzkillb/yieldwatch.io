@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Allow: /blog/
+Disallow: /api/
+Disallow: /og-image/
+Disallow: /og.png
+Disallow: /health
+
+Sitemap: https://yieldwatch.io/sitemap.xml

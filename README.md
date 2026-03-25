@@ -147,7 +147,8 @@ chmod 600 acme.json
 
 ```bash
 # Start with production config (includes Traefik)
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Note: Use DOCKER_BUILDKIT=0 to work around bun install issues on some VPS setups
+DOCKER_BUILDKIT=0 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 # Watch Traefik logs for SSL certificate issuance
 docker compose logs -f traefik
