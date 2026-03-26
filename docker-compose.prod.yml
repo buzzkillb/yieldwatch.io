@@ -41,6 +41,8 @@ services:
     restart: unless-stopped
     networks:
       - treasury-network
+    volumes:
+      - ./og_persist:/app/public/og
     command: bun run dist/index.js
 
   scheduler:
@@ -65,6 +67,8 @@ services:
     restart: unless-stopped
     networks:
       - treasury-network
+    volumes:
+      - ./og_persist:/app/public/og
     command: bun run src/services/scheduler.ts
 
   traefik:

@@ -210,6 +210,21 @@ const app = new Elysia()
       });
     }
   })
+  .get('/faq', async () => {
+    try {
+      const faqPath = join(process.cwd(), 'public/faq.html');
+      const html = readFileSync(faqPath, 'utf-8');
+      return new Response(html, {
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+        },
+      });
+    } catch {
+      return new Response('<html><body><h1>FAQ</h1><p>Page not found.</p></body></html>', {
+        headers: { 'Content-Type': 'text/html' },
+      });
+    }
+  })
   .get('/og', async () => {
     try {
       const latestData = await db
@@ -247,7 +262,7 @@ const app = new Elysia()
     }
   })
   .get('/og.png', async () => {
-    const pngPath = join(process.cwd(), 'public/og.png');
+    const pngPath = join(process.cwd(), 'public/og/og.png');
     if (existsSync(pngPath)) {
       const png = readFileSync(pngPath);
       return new Response(png, {

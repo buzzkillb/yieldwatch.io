@@ -64,6 +64,12 @@ export const sitemapRoutes = new Elysia({ prefix: '' })
           priority: '0.9',
         },
         {
+          loc: `${SITE_URL}/faq`,
+          lastmod: today,
+          changefreq: 'weekly',
+          priority: '0.8',
+        },
+        {
           loc: `${SITE_URL}/api-docs`,
           lastmod: today,
           changefreq: 'weekly',
