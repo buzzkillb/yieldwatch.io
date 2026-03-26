@@ -57,6 +57,38 @@
       },
       {
         "@type": "Question",
+        "name": "What do the maturity terms mean?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The chart shows rates for different timeframes, from 1-month to 30-year. The labels on the x-axis are abbreviations: 4WK means 4-week, 2MO means 2-month, 3MO means 3-month, and so on up to 30YR which means 30-year. Think of it as how long you are lending your money to the government."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the difference between a Treasury bond and a Treasury bill?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "It comes down to timeframe. Bills are short term, from 4 weeks to 1 year. Bonds are longer term, from 2 to 30 years. Bills are purchased at a discount and mature at face value. Bonds pay interest twice a year and return the principal at maturity. Most of what you see on the yield curve are notes and bonds, with bills trading on the shorter end."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I read the yield curve chart?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The horizontal axis shows time, from short-term on the left to long-term on the right. The vertical axis shows the interest rate. Each dot is the rate Treasury set for that maturity on that day. The line connects them to show the full curve. The shaded bands behind the line show the year high and year low for each maturity, so you can see where today's rate sits within the recent range."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the Federal Reserves role in yields?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The Fed controls short-term rates through monetary policy. When the Fed raises or lowers its target rate, it directly affects the shortest maturities. Longer-term yields are set by the market and reflect expectations about future economic growth and inflation. So the Fed influences the front end, but the market drives the rest of the curve."
+        }
+      },
+      {
+        "@type": "Question",
         "name": "How often are Treasury rates updated?",
         "acceptedAnswer": {
           "@type": "Answer",
@@ -69,6 +101,14 @@
         "acceptedAnswer": {
           "@type": "Answer",
           "text": "Each day we run the Treasury yield data through an AI model that writes a plain English summary of what happened. It covers rate movements across the full curve, highlights notable changes, and puts today in context compared to the prior week. Think of it as getting a quick market briefing rather than reading raw numbers."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I download the data?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. The API lets you pull rates for any date range. You can fetch daily summaries, specific maturity rates, or the full historical record going back to 1990. Check the API documentation for endpoints and examples."
         }
       },
       {
@@ -362,6 +402,26 @@
       </div>
 
       <div class="faq-item">
+        <h2 class="faq-question">What do the maturity terms mean?</h2>
+        <p class="faq-answer">The chart shows rates for different timeframes, from 1-month to 30-year. The labels on the x-axis are abbreviations: 4WK means 4-week, 2MO means 2-month, 3MO means 3-month, and so on up to 30YR which means 30-year. Think of it as how long you are lending your money to the government.</p>
+      </div>
+
+      <div class="faq-item">
+        <h2 class="faq-question">What is the difference between a Treasury bond and a Treasury bill?</h2>
+        <p class="faq-answer">It comes down to timeframe. Bills are short term, from 4 weeks to 1 year. Bonds are longer term, from 2 to 30 years. Bills are purchased at a discount and mature at face value. Bonds pay interest twice a year and return the principal at maturity. Most of what you see on the yield curve are notes and bonds, with bills trading on the shorter end.</p>
+      </div>
+
+      <div class="faq-item">
+        <h2 class="faq-question">How do I read the yield curve chart?</h2>
+        <p class="faq-answer">The horizontal axis shows time, from short-term on the left to long-term on the right. The vertical axis shows the interest rate. Each dot is the rate Treasury set for that maturity on that day. The line connects them to show the full curve. The shaded bands behind the line show the year high and year low for each maturity, so you can see where today's rate sits within the recent range.</p>
+      </div>
+
+      <div class="faq-item">
+        <h2 class="faq-question">What is the Federal Reserves role in yields?</h2>
+        <p class="faq-answer">The Fed controls short-term rates through monetary policy. When the Fed raises or lowers its target rate, it directly affects the shortest maturities. Longer-term yields are set by the market and reflect expectations about future economic growth and inflation. So the Fed influences the front end, but the market drives the rest of the curve.</p>
+      </div>
+
+      <div class="faq-item">
         <h2 class="faq-question">How often are Treasury rates updated?</h2>
         <p class="faq-answer">The U.S. Treasury publishes daily yield data around 3:30 PM ET on business days. We update our dashboard daily shortly after they publish.</p>
       </div>
@@ -369,6 +429,11 @@
       <div class="faq-item">
         <h2 class="faq-question">What are the daily summaries?</h2>
         <p class="faq-answer">Each day we run the Treasury yield data through an AI model that writes a plain English summary of what happened. It covers rate movements across the full curve, highlights notable changes, and puts today in context compared to the prior week. Think of it as getting a quick market briefing rather than reading raw numbers.</p>
+      </div>
+
+      <div class="faq-item">
+        <h2 class="faq-question">Can I download the data?</h2>
+        <p class="faq-answer">Yes. The API lets you pull rates for any date range. You can fetch daily summaries, specific maturity rates, or the full historical record going back to 1990. Check the <a href="https://yieldwatch.io/api-docs" style="color: var(--accent);">API documentation</a> for endpoints and examples.</p>
       </div>
 
       <div class="faq-item">
