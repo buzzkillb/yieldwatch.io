@@ -581,6 +581,9 @@ async function generateOgImageForDate(date: string): Promise<string | null> {
     const pngPath = join(ogDir, `${date}.png`);
     writeFileSync(pngPath, pngBuffer);
     
+    const mainOgPath = join(publicDir, 'og.png');
+    writeFileSync(mainOgPath, pngBuffer);
+    
     console.log(`[Scheduler] OG image generated for ${date}: ${pngPath}`);
     return pngPath;
   } catch (error) {
