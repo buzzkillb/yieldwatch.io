@@ -262,7 +262,7 @@ const app = new Elysia()
     }
   })
   .get('/og.png', async () => {
-    const pngPath = join(process.cwd(), 'public/og.png');
+    const pngPath = join(process.cwd(), 'public/og/og.png');
     if (existsSync(pngPath)) {
       const png = readFileSync(pngPath);
       return new Response(png, {
