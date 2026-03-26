@@ -210,6 +210,21 @@ const app = new Elysia()
       });
     }
   })
+  .get('/faq', async () => {
+    try {
+      const faqPath = join(process.cwd(), 'public/faq.html');
+      const html = readFileSync(faqPath, 'utf-8');
+      return new Response(html, {
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+        },
+      });
+    } catch {
+      return new Response('<html><body><h1>FAQ</h1><p>Page not found.</p></body></html>', {
+        headers: { 'Content-Type': 'text/html' },
+      });
+    }
+  })
   .get('/og', async () => {
     try {
       const latestData = await db
