@@ -117,11 +117,13 @@ async function generateDailySummary(): Promise<void> {
     const todayDate = latestDateInDb[0].date;
     const yesterdayDate = getPreviousBusinessDay(todayDate);
     const lastWeekDate = getDateMinusDays(todayDate, 7);
+    const thirtyDaysAgoDate = getPreviousBusinessDayFromDate(todayDate, 30);
 
-    const [todayRates, yesterdayRates, lastWeekRates] = await Promise.all([
+    const [todayRates, yesterdayRates, lastWeekRates, thirtyDaysRates] = await Promise.all([
       getRatesForDate(todayDate),
       getRatesForDate(yesterdayDate),
-      getRatesForDate(lastWeekDate)
+      getRatesForDate(lastWeekDate),
+      getRatesForDate(thirtyDaysAgoDate)
     ]);
 
     if (todayRates.length === 0) {
@@ -133,11 +135,13 @@ async function generateDailySummary(): Promise<void> {
       today: formatDateForPrompt(todayDate),
       yesterday: formatDateForPrompt(yesterdayDate),
       lastWeek: formatDateForPrompt(lastWeekDate),
+      thirtyDays: formatDateForPrompt(thirtyDaysAgoDate),
     };
 
     const dataPrompt = `- Today (${dates.today.day}, ${dates.today.date}): ${JSON.stringify(todayRates)}
-- Last business day (${dates.yesterday.day}, ${dates.yesterday.date}): ${JSON.stringify(yesterdayRates)}
-- Last week (${dates.lastWeek.day}, ${dates.lastWeek.date}): ${JSON.stringify(lastWeekRates)}`;
+- Yesterday (${dates.yesterday.day}, ${dates.yesterday.date}): ${JSON.stringify(yesterdayRates)}
+- One week ago (${dates.lastWeek.day}, ${dates.lastWeek.date}): ${JSON.stringify(lastWeekRates)}
+- One month ago (${dates.thirtyDays.day}, ${dates.thirtyDays.date}): ${JSON.stringify(thirtyDaysRates)}`;
 
     const shortSystemPrompt = `You are a plain-spoken writer describing U.S. Treasury yield curve data. Treasury publishes rates on business days only - weekends and holidays are skipped.
 
@@ -159,14 +163,15 @@ ${dataPrompt}`;
     const longSystemPrompt = `You are a financial journalist writing a daily market brief about U.S. Treasury yields. Treasury publishes rates on business days only - weekends and holidays are skipped.
 
 Rules:
-- Write exactly 3 paragraphs of 4-6 sentences each
-- Open paragraph 1 with the 30-year rate and key movements prominently
-- Paragraph 2 should cover rate changes across the curve with comparisons to yesterday and last week
-- Paragraph 3 should summarize curve shape, inversions, and notable patterns
-- Use plain language - explain what the numbers mean without being educational
+- Write exactly 4 paragraphs of 3-5 sentences each
+- Paragraph 1: Open with the 30-year rate and key weekly movements (vs last week)
+- Paragraph 2: Cover the broader curve - rate changes across maturities compared to last week
+- Paragraph 3: Discuss how rates have changed over the past month (vs 30 days ago) - highlight notable moves at different parts of the curve
+- Paragraph 4: Summarize curve shape changes, inversions, and any notable patterns compared to both last week and 30 days ago
+- Use plain language - no jargon or educational explanations
 - Do NOT use "percentage points" or "basis points" - just say "higher" or "lower"
 - Do NOT explain what rate movements mean for investors or markets
-- Keep it factual and informative - a trader should find this useful
+- Keep it factual and informative
 - Never use bullet points, dashes, or list format
 - Never use foreign characters or non-ASCII symbols
 - Write in plain English only
@@ -174,8 +179,8 @@ Rules:
 
 ${dataPrompt}`;
 
-    const shortUserMessage = `Write a brief paragraph about today's Treasury yield curve rates. Keep it to 2-4 sentences.`;
-    const longUserMessage = `Write a detailed daily market brief about today's Treasury yield curve rates in exactly 3 paragraphs. This will be published on a blog. Cover the overall curve shape, notable rate movements, and how today compares to recent history. Separate paragraphs with a blank line.`;
+    const shortUserMessage = `Write a brief paragraph about today's Treasury yield curve rates. Keep it to 2-4 sentences. Focus on the 30-year rate and how it compares to last week.`;
+    const longUserMessage = `Write a detailed daily market brief about today's Treasury yield curve rates in exactly 4 paragraphs. This will be published on a blog. Cover the overall curve shape, notable rate movements, how today compares to last week, and how the curve has shifted over the past month. Separate paragraphs with a blank line.`;
 
     const [shortResponse, longResponse] = await Promise.all([
       fetch('https://api.minimax.io/anthropic/v1/messages', {
@@ -644,6 +649,22 @@ function getDateMonthsAgo(months: number): string {
 function getDateYearsAgo(years: number): string {
   const date = new Date();
   date.setFullYear(date.getFullYear() - years);
+  return date.toISOString().split('T')[0];
+}
+
+function getPreviousBusinessDayFromDate(dateStr: string, daysBack: number): string {
+  const date = new Date(dateStr + 'T00:00:00Z');
+  let daysChecked = 0;
+  
+  while (daysChecked < daysBack + 7) {
+    date.setUTCDate(date.getUTCDate() - 1);
+    const dayOfWeek = date.getUTCDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      daysChecked++;
+      if (daysChecked === daysBack) break;
+    }
+  }
+  
   return date.toISOString().split('T')[0];
 }
 
