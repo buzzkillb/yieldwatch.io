@@ -1,7 +1,7 @@
 import { db, schema } from '../db';
 import { eq, desc, asc, gte, lte } from 'drizzle-orm';
 import { generateOgChart } from '../utils/ogChart';
-import { join, dirname } from 'path';
+import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 
 const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY;

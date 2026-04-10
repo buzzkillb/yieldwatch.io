@@ -16,9 +16,9 @@ export const blogRoutes = new Elysia({ prefix: '/api/blog' })
     let whereClause = undefined;
     if (year && month) {
       const monthPadded = month.padStart(2, '0');
-      whereClause = like(schema.dailySummaries.date, `${year}-${monthPadded}%`);
+      whereClause = like(sql`${schema.dailySummaries.date}::text`, `${year}-${monthPadded}%`);
     } else if (year) {
-      whereClause = like(schema.dailySummaries.date, `${year}%`);
+      whereClause = like(sql`${schema.dailySummaries.date}::text`, `${year}%`);
     }
 
     const countResult = await db
@@ -135,28 +135,38 @@ export const blogRoutes = new Elysia({ prefix: '/api/blog' })
       .limit(limit)
       .offset(offset);
 
-    const summariesWithRates = await Promise.all(
-      summaries.map(async (s) => {
-        const ratesData = await db
+    const dates = summaries.map(s => s.date);
+    const allRates = dates.length > 0
+      ? await db
           .select()
           .from(schema.yieldCurveRates)
-          .where(eq(schema.yieldCurveRates.date, s.date));
+          .where(sql`${schema.yieldCurveRates.date} = ANY(${dates})`)
+      : [];
 
-        const rates = ratesData
-          .map(r => ({
-            maturity: r.maturity,
-            rate: parseFloat(r.rate),
-          }))
-          .sort((a, b) => MATURITY_ORDER.indexOf(a.maturity) - MATURITY_ORDER.indexOf(b.maturity));
+    const ratesByDate = new Map<string, typeof allRates>();
+    for (const rate of allRates) {
+      if (!ratesByDate.has(rate.date)) {
+        ratesByDate.set(rate.date, []);
+      }
+      ratesByDate.get(rate.date)!.push(rate);
+    }
 
-        return {
-          date: s.date,
-          excerpt: s.summary || '',
-          hasFullPost: !!s.blogSummary,
-          rates,
-        };
-      })
-    );
+    const summariesWithRates = summaries.map(s => {
+      const ratesData = ratesByDate.get(s.date) || [];
+      const rates = ratesData
+        .map(r => ({
+          maturity: r.maturity,
+          rate: parseFloat(r.rate),
+        }))
+        .sort((a, b) => MATURITY_ORDER.indexOf(a.maturity) - MATURITY_ORDER.indexOf(b.maturity));
+
+      return {
+        date: s.date,
+        excerpt: s.summary || '',
+        hasFullPost: !!s.blogSummary,
+        rates,
+      };
+    });
 
     return {
       success: true,

@@ -646,12 +646,6 @@ function getDateMonthsAgo(months: number): string {
   return date.toISOString().split('T')[0];
 }
 
-function getDateYearsAgo(years: number): string {
-  const date = new Date();
-  date.setFullYear(date.getFullYear() - years);
-  return date.toISOString().split('T')[0];
-}
-
 function getPreviousBusinessDayFromDate(dateStr: string, daysBack: number): string {
   const date = new Date(dateStr + 'T00:00:00Z');
   let daysChecked = 0;

@@ -87,40 +87,6 @@ export function parseYieldXml(xml: string): ParsedYieldCurve[] {
   return results.sort((a, b) => a.date.localeCompare(b.date));
 }
 
-export function parseWeeklyAverages(xml: string): {
-  weekOfMonth: number;
-  averages: Record<string, number>;
-}[] {
-  const results: {
-    weekOfMonth: number;
-    averages: Record<string, number>;
-  }[] = [];
-  
-  const weekRegex = /<G_WEEK_OF_MONTH>[\s\S]*?<WEEK_OF_MONTH>(\d+)<\/WEEK_OF_MONTH>[\s\S]*?<AVERAGE_1MONTH>([\d.-]+)<\/AVERAGE_1MONTH>[\s\S]*?<\/G_WEEK_OF_MONTH>/g;
-  
-  let match;
-  while ((match = weekRegex.exec(xml)) !== null) {
-    const [fullMatch, weekOfMonth] = match;
-    
-    const averages: Record<string, number> = {};
-    
-    for (const [key, value] of Object.entries(MATURITY_MAP)) {
-      const avgRegex = new RegExp(`<AVERAGE_${key.replace('BC_', '')}>([\\d.-]+)</AVERAGE_${key.replace('BC_', '')}>`);
-      const avgMatch = avgRegex.exec(fullMatch);
-      if (avgMatch && avgMatch[1]) {
-        averages[value.label] = parseFloat(avgMatch[1]);
-      }
-    }
-    
-    results.push({
-      weekOfMonth: parseInt(weekOfMonth),
-      averages,
-    });
-  }
-  
-  return results;
-}
-
 export function parseYearHighLow(xml: string): {
   maturity: string;
   yearHigh: number;
