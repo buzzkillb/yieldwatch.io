@@ -1024,7 +1024,10 @@
         const data = await response.json();
         
         if (data.success && data.data) {
-          processChartData(data.data);
+          // Use Web Worker for heavy processing
+          const result = await processInWorker(data.data);
+          chartData.labels = result.labels;
+          chartData.datasets = result.datasets;
           renderChart();
           renderLegend();
         } else {
@@ -1035,6 +1038,37 @@
       } finally {
         setLoading(false);
       }
+    }
+
+    // Web Worker for heavy data processing
+    let chartWorker = null;
+    
+    function processInWorker(rawData) {
+      return new Promise((resolve, reject) => {
+        if (!chartWorker) {
+          chartWorker = new Worker('/chartWorker.js');
+        }
+        
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Worker timeout - falling back to main thread'));
+        }, 30000);
+        
+        chartWorker.onmessage = function(e) {
+          clearTimeout(timeoutId);
+          if (e.data.success) {
+            resolve(e.data.data);
+          } else {
+            reject(new Error(e.data.error));
+          }
+        };
+        
+        chartWorker.onerror = function(e) {
+          clearTimeout(timeoutId);
+          reject(e);
+        };
+        
+        chartWorker.postMessage(rawData);
+      });
     }
 
     function processChartData(rawData) {
