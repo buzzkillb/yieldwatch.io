@@ -65,6 +65,19 @@ const app = new Elysia()
   .get('/health', () => ({
     status: 'ok',
   }))
+  .get('/chartWorker.js', async () => {
+    try {
+      const workerPath = join(process.cwd(), 'public/chartWorker.js');
+      const js = readFileSync(workerPath, 'utf-8');
+      return new Response(js, {
+        headers: {
+          'Content-Type': 'text/javascript; charset=utf-8',
+        },
+      });
+    } catch {
+      return new Response('// Worker not found', { status: 404 });
+    }
+  })
   .get('/', async () => {
     try {
       const indexPath = join(process.cwd(), 'public/index.html');
