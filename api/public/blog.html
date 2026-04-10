@@ -165,6 +165,30 @@
       text-align: center;
     }
 
+    .filter-bar {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-bar select {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      min-width: 120px;
+    }
+
+    .filter-bar select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
     .content-wrap {
       max-width: 1100px;
       margin: 0 auto;
@@ -268,6 +292,21 @@
 
       .page-title {
         font-size: 1.5rem;
+      }
+
+      .filter-bar {
+        gap: 0.5rem;
+      }
+
+      .filter-bar select {
+        min-width: 100px;
+        padding: 0.4rem 0.75rem;
+        font-size: 0.85rem;
+      }
+
+      .reset-btn {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.85rem;
       }
 
       .summary-card {
@@ -385,6 +424,14 @@
     </div>
 
     <div class="content-wrap">
+      <div class="filter-bar">
+        <select id="yearFilter">
+          <option value="">All Years</option>
+        </select>
+        <select id="monthFilter" disabled>
+          <option value="">All Months</option>
+        </select>
+      </div>
       <div id="content">
         <div class="loading">Loading summaries...</div>
       </div>
@@ -400,151 +447,191 @@
       '#f59e0b', '#ef4444'
     ];
 
+    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'];
+
+    let availableYears = [];
+    let currentPage = 1;
+    let totalPages = 1;
+
     function getPageFromUrl() {
       const params = new URLSearchParams(window.location.search);
       return Math.max(1, parseInt(params.get('page')) || 1);
     }
 
-    function updateUrl(page) {
+    function updateUrl(page, year, month) {
       const url = new URL(window.location);
       url.searchParams.set('page', page);
+      if (year) url.searchParams.set('year', year);
+      if (month) url.searchParams.set('month', month);
       window.history.pushState({}, '', url);
     }
 
-    async function loadSummaries(page = 1) {
-      try {
-        const [ratesRes, summariesRes] = await Promise.all([
-          fetch('/api/rates/latest'),
-          fetch(`/api/blog/list?page=${page}`)
-        ]);
-        const ratesData = await ratesRes.json();
-        const data = await summariesRes.json();
+    function getFiltersFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        year: params.get('year') || '',
+        month: params.get('month') || '',
+        page: Math.max(1, parseInt(params.get('page')) || 1)
+      };
+    }
 
-        if (ratesData.success && ratesData.data) {
-          const lastUpdated = document.getElementById('lastUpdated');
-          if (lastUpdated) {
-            lastUpdated.textContent = ratesData.data.dateFormatted;
-          }
+    async function loadAvailableYears() {
+      try {
+        const res = await fetch('/api/blog/years');
+        const data = await res.json();
+        if (data.success && data.data) {
+          availableYears = data.data.sort().reverse();
+          populateYearDropdown();
         }
+      } catch (e) {
+        console.error('Error loading years:', e);
+      }
+    }
+
+    function populateYearDropdown() {
+      const yearSelect = document.getElementById('yearFilter');
+      yearSelect.innerHTML = '<option value="">All Years</option>';
+      availableYears.forEach(year => {
+        const opt = document.createElement('option');
+        opt.value = year;
+        opt.textContent = year;
+        yearSelect.appendChild(opt);
+      });
+
+      const filters = getFiltersFromUrl();
+      if (filters.year) {
+        yearSelect.value = filters.year;
+        populateMonthsDropdown(filters.year);
+      }
+    }
+
+    function populateMonthsDropdown(year) {
+      const monthSelect = document.getElementById('monthFilter');
+      monthSelect.innerHTML = '<option value="">All Months</option>';
+      monthSelect.disabled = !year;
+
+      if (year) {
+        const allMonths = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+        allMonths.forEach((monthNum, idx) => {
+          const opt = document.createElement('option');
+          opt.value = monthNum;
+          opt.textContent = MONTHS[idx];
+          monthSelect.appendChild(opt);
+        });
+      }
+    }
+
+    async function loadSummaries() {
+      const filters = getFiltersFromUrl();
+      currentPage = filters.page;
+
+      const yearSelect = document.getElementById('yearFilter');
+      const monthSelect = document.getElementById('monthFilter');
+      const year = yearSelect.value;
+      const month = monthSelect.value;
+
+      try {
+        let url = `/api/blog/list?page=${currentPage}`;
+        if (year) url += `&year=${year}`;
+        if (month) url += `&month=${month}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
 
         if (!data.success || !data.data.length) {
-          document.getElementById('content').innerHTML = '<div class="error">No summaries available yet.</div>';
+          document.getElementById('content').innerHTML = '<div class="error">No summaries found.</div>';
+          document.getElementById('pagination').innerHTML = '';
           return;
         }
 
-        const summariesHtml = data.data.map((item) => {
-          const date = new Date(item.date + 'T00:00:00');
-          const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-
-          return `
-            <a href="/blog/${item.date}" class="summary-card-link">
-              <article class="summary-card">
-                <div class="summary-date">${dateStr}</div>
-                <div class="mini-chart" id="chart-${item.date}">
-                  <canvas id="canvas-${item.date}"></canvas>
-                </div>
-                <div class="analysis-tag">${item.hasFullPost ? 'Full analysis available' : 'Quick summary'}</div>
-                <p class="summary-excerpt">${item.excerpt}</p>
-              </article>
-            </a>
-          `;
-        }).join('');
-
-        document.getElementById('content').innerHTML = `<div class="summaries-list">${summariesHtml}</div>`;
-
-        renderPagination(data.pagination, page);
-        setTimeout(() => renderMiniCharts(data.data), 100);
+        totalPages = data.pagination.totalPages;
+        renderSummaries(data.data);
+        renderPagination();
       } catch (error) {
         console.error('Error loading summaries:', error);
         document.getElementById('content').innerHTML = '<div class="error">Failed to load summaries. Please try again.</div>';
       }
     }
 
-    function renderPagination(pagination, currentPage) {
-      if (!pagination || pagination.totalPages <= 1) {
+    function renderSummaries(summaries) {
+      const summariesHtml = summaries.map((item) => {
+        const date = new Date(item.date + 'T00:00:00');
+        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+        return `
+          <a href="/blog/${item.date}" class="summary-card-link">
+            <article class="summary-card">
+              <div class="summary-date">${dateStr}</div>
+              <div class="analysis-tag">${item.hasFullPost ? 'Full analysis available' : 'Quick summary'}</div>
+              <p class="summary-excerpt">${item.excerpt}</p>
+            </article>
+          </a>
+        `;
+      }).join('');
+
+      document.getElementById('content').innerHTML = `<div class="summaries-list">${summariesHtml}</div>`;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderPagination() {
+      if (totalPages <= 1) {
         document.getElementById('pagination').innerHTML = '';
         return;
       }
 
-      const { totalPages, hasNextPage, hasPrevPage } = pagination;
+      const filters = getFiltersFromUrl();
       let html = '<div class="pagination-controls">';
 
-      if (hasPrevPage) {
-        html += `<a href="?page=${currentPage - 1}" class="page-link" data-page="${currentPage - 1}">&larr; Previous</a>`;
+      if (currentPage > 1) {
+        html += `<button class="page-link" data-page="${currentPage - 1}">&larr; Previous</button>`;
       }
 
       html += `<span class="page-info">Page ${currentPage} of ${totalPages}</span>`;
 
-      if (hasNextPage) {
-        html += `<a href="?page=${currentPage + 1}" class="page-link" data-page="${currentPage + 1}">Next &rarr;</a>`;
+      if (currentPage < totalPages) {
+        html += `<button class="page-link" data-page="${currentPage + 1}">Next &rarr;</button>`;
       }
 
       html += '</div>';
       document.getElementById('pagination').innerHTML = html;
 
-      document.querySelectorAll('.page-link').forEach(link => {
-        link.addEventListener('click', (e) => {
-          e.preventDefault();
-          const page = parseInt(link.dataset.page);
-          updateUrl(page);
-          loadSummaries(page);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+      document.querySelectorAll('.page-link').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const filters = getFiltersFromUrl();
+          const year = document.getElementById('yearFilter').value;
+          const month = document.getElementById('monthFilter').value;
+          updateUrl(parseInt(btn.dataset.page), year, month);
+          loadSummaries();
         });
       });
     }
 
-    function renderMiniCharts(summaries) {
-      summaries.forEach(async (item) => {
-        try {
-          const response = await fetch(`/api/blog/${item.date}`);
-          const data = await response.json();
+    function initFilters() {
+      const yearSelect = document.getElementById('yearFilter');
+      const monthSelect = document.getElementById('monthFilter');
 
-          if (!data.success || !data.data?.rates?.length) return;
-
-          const rates = data.data.rates;
-          const canvas = document.getElementById(`canvas-${item.date}`);
-          if (!canvas) return;
-
-          const ctx = canvas.getContext('2d');
-
-          const lineGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-          lineGradient.addColorStop(0, '#2a2a3a');
-          lineGradient.addColorStop(1, '#f0f0f5');
-
-          new Chart(ctx, {
-            type: 'line',
-            data: {
-              labels: rates.map(r => r.maturity),
-              datasets: [{
-                data: rates.map((r, i) => ({ x: i, y: r.rate })),
-                borderColor: lineGradient,
-                backgroundColor: 'transparent',
-                fill: false,
-                tension: 0.4,
-                pointRadius: 3,
-                pointBackgroundColor: CHART_COLORS,
-                borderWidth: 2,
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { display: false }, tooltip: { enabled: false } },
-              scales: {
-                x: { display: false },
-                y: { display: false }
-              },
-              animation: false
-            }
-          });
-        } catch (e) {
-          console.error('Error rendering mini chart:', e);
-        }
+      yearSelect.addEventListener('change', () => {
+        populateMonthsDropdown(yearSelect.value);
+        const filters = getFiltersFromUrl();
+        updateUrl(1, yearSelect.value, monthSelect.value);
+        loadSummaries();
       });
+
+      monthSelect.addEventListener('change', () => {
+        const filters = getFiltersFromUrl();
+        updateUrl(1, yearSelect.value, monthSelect.value);
+        loadSummaries();
+      });
+
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('year')) yearSelect.value = params.get('year');
+      if (params.get('month')) monthSelect.value = params.get('month');
     }
 
-    const initialPage = getPageFromUrl();
-    loadSummaries(initialPage);
+    loadAvailableYears();
+    initFilters();
+    loadSummaries();
   </script>
   <footer class="footer">
     <div class="footer-content">

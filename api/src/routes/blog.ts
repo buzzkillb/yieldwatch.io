@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia';
 import { db, schema } from '../db';
-import { desc, eq, sql } from 'drizzle-orm';
+import { desc, eq, sql, like, and, gte, lte } from 'drizzle-orm';
 
 const MATURITY_ORDER = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
 const POSTS_PER_PAGE = 5;
@@ -8,13 +8,25 @@ const POSTS_PER_PAGE = 5;
 export const blogRoutes = new Elysia({ prefix: '/api/blog' })
   .get('/list', async ({ query }) => {
     const page = Math.max(1, parseInt(query.page as string) || 1);
-    const offset = (page - 1) * POSTS_PER_PAGE;
+    const year = query.year as string;
+    const month = query.month as string;
+    const limit = POSTS_PER_PAGE;
+    const offset = (page - 1) * limit;
+
+    let whereClause = undefined;
+    if (year && month) {
+      const monthPadded = month.padStart(2, '0');
+      whereClause = like(schema.dailySummaries.date, `${year}-${monthPadded}%`);
+    } else if (year) {
+      whereClause = like(schema.dailySummaries.date, `${year}%`);
+    }
 
     const countResult = await db
       .select({ count: sql<number>`count(*)` })
-      .from(schema.dailySummaries);
+      .from(schema.dailySummaries)
+      .where(whereClause);
     const totalCount = Number(countResult[0]?.count) || 0;
-    const totalPages = Math.ceil(totalCount / POSTS_PER_PAGE);
+    const totalPages = Math.ceil(totalCount / limit);
 
     const summaries = await db
       .select({
@@ -24,8 +36,9 @@ export const blogRoutes = new Elysia({ prefix: '/api/blog' })
         createdAt: schema.dailySummaries.createdAt,
       })
       .from(schema.dailySummaries)
+      .where(whereClause)
       .orderBy(desc(schema.dailySummaries.date))
-      .limit(POSTS_PER_PAGE)
+      .limit(limit)
       .offset(offset);
 
     const result = summaries.map(s => ({
@@ -92,5 +105,61 @@ export const blogRoutes = new Elysia({ prefix: '/api/blog' })
         blogSummary: summary.blogSummary || summary.summary || '',
         rates: ratesForDate,
       }
+    };
+  })
+  .get('/years', async () => {
+    const years = await db
+      .select({ year: sql<string>`substring(${schema.dailySummaries.date}::text, 1, 4) as year` })
+      .from(schema.dailySummaries)
+      .groupBy(sql`year`)
+      .orderBy(desc(sql`year`));
+
+    return {
+      success: true,
+      data: years.map(y => y.year),
+    };
+  })
+  .get('/with-rates', async ({ query }) => {
+    const page = Math.max(1, parseInt(query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(query.limit as string) || 10));
+    const offset = (page - 1) * limit;
+
+    const summaries = await db
+      .select({
+        date: schema.dailySummaries.date,
+        summary: schema.dailySummaries.summary,
+        blogSummary: schema.dailySummaries.blogSummary,
+      })
+      .from(schema.dailySummaries)
+      .orderBy(desc(schema.dailySummaries.date))
+      .limit(limit)
+      .offset(offset);
+
+    const summariesWithRates = await Promise.all(
+      summaries.map(async (s) => {
+        const ratesData = await db
+          .select()
+          .from(schema.yieldCurveRates)
+          .where(eq(schema.yieldCurveRates.date, s.date));
+
+        const rates = ratesData
+          .map(r => ({
+            maturity: r.maturity,
+            rate: parseFloat(r.rate),
+          }))
+          .sort((a, b) => MATURITY_ORDER.indexOf(a.maturity) - MATURITY_ORDER.indexOf(b.maturity));
+
+        return {
+          date: s.date,
+          excerpt: s.summary || '',
+          hasFullPost: !!s.blogSummary,
+          rates,
+        };
+      })
+    );
+
+    return {
+      success: true,
+      data: summariesWithRates,
     };
   });
