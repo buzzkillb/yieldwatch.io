@@ -191,12 +191,27 @@ ${dataPrompt}`;
     if (data.content && Array.isArray(data.content)) {
       for (const block of data.content) {
         if (block.type === 'text' && block.text) {
-          return block.text.trim();
+          const text = block.text.trim();
+          if (isValidSummary(text)) {
+            return text;
+          }
         }
       }
     }
     return '';
   };
+
+  function isValidSummary(text: string): boolean {
+    if (!text || text.length < 50) return false;
+    if (text.length > 8000) return false;
+    if (text.includes('We need to produce') || text.includes('Must adhere to') || 
+        text.includes('style rules') || text.includes('paragraph') && text.includes('sentence')) {
+      return false;
+    }
+    if (text.includes('{"') || text.startsWith('{') || text.startsWith('[')) return false;
+    if (!text.includes('.') && !text.includes('!') && !text.includes('?')) return false;
+    return true;
+  }
   
   const [shortSummary, blogSummary] = await Promise.all([
     parseResponse(shortResponse),
