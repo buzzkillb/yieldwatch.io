@@ -91,10 +91,33 @@ const app = new Elysia()
       return new Response('User-agent: *\nAllow: /\n', { status: 200 });
     }
   })
-  .get('/', async () => {
+  .get('/.well-known/api-catalog', async () => {
+    const catalog = {
+      '@context': 'https://agent-contexts.github.io/schemas/api-catalog-context.json',
+      'api-version': '1.0',
+      'endpoint': `${SITE_URL}/api/rates`,
+      'description': 'U.S. Treasury Yield Curve API - Real-time and historical yield curve data',
+      'links': [
+        { rel: 'service-desc', url: `${SITE_URL}/api-docs`, title: 'API Documentation' },
+        { rel: 'service-doc', url: `${SITE_URL}/faq`, title: 'API Usage Guide' },
+        { rel: 'describedby', url: `${SITE_URL}/og`, title: 'OpenGraph Schema' },
+      ],
+    };
+    return new Response(JSON.stringify(catalog, null, 2), {
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+    });
+  })
+  .get('/', async ({ set }) => {
     try {
       const indexPath = join(process.cwd(), 'public/index.html');
       const html = readFileSync(indexPath, 'utf-8');
+      set.headers['Link'] = [
+        '</.well-known/api-catalog>; rel="api-catalog"',
+        '</api-docs>; rel="service-desc"',
+        '</faq>; rel="service-doc"',
+      ].join(', ');
       return new Response(html, {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
