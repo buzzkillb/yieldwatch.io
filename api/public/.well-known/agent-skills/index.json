@@ -35,6 +35,13 @@
       "description": "Publish OAuth/OIDC discovery metadata for agent authentication.",
       "url": "/.well-known/agent-skills/oauth-discovery/SKILL.md",
       "digest": "sha256:d0e386d49411418a3a0f8ec1922fe832ab906b2ae449480e860d5208cb3756d8"
+    },
+    {
+      "name": "webmcp",
+      "type": "skill-md",
+      "description": "Expose site tools to AI agents via browser using WebMCP API (navigator.modelContext.registerTool).",
+      "url": "/.well-known/agent-skills/webmcp/SKILL.md",
+      "digest": "sha256:79d63d00836b8212217cce2d9efdd84edaab4637eca3c4353f4c31151dd7b21a"
     }
   ]
 }

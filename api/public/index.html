@@ -1355,6 +1355,84 @@
     };
 
     fetchLatestRates();
+
+    if (navigator.modelContext && navigator.modelContext.registerTool) {
+      const controller = new AbortController();
+
+      const tools = [
+        {
+          name: 'get_latest_yield_rates',
+          description: 'Get the latest U.S. Treasury yield curve rates for all maturities (4WK to 30YR)',
+          inputSchema: { type: 'object', properties: {} },
+          execute: async () => {
+            const response = await fetch('/api/rates/latest');
+            const data = await response.json();
+            return { success: true, data };
+          },
+        },
+        {
+          name: 'get_historical_yield_rates',
+          description: 'Get historical Treasury yield rates for a date range and optional maturity',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              from: { type: 'string', description: 'Start date (YYYY-MM-DD)' },
+              to: { type: 'string', description: 'End date (YYYY-MM-DD)' },
+              maturity: { type: 'string', description: 'Optional maturity (e.g., 10YR)' },
+            },
+          },
+          execute: async ({ from, to, maturity }) => {
+            const params = new URLSearchParams();
+            if (from) params.set('from', from);
+            if (to) params.set('to', to);
+            if (maturity) params.set('maturity', maturity);
+            const response = await fetch(`/api/rates?${params}`);
+            const data = await response.json();
+            return { success: true, data };
+          },
+        },
+        {
+          name: 'get_available_maturities',
+          description: 'Get list of available Treasury maturity tenors',
+          inputSchema: { type: 'object', properties: {} },
+          execute: async () => {
+            const response = await fetch('/api/rates/maturities');
+            const data = await response.json();
+            return { success: true, data };
+          },
+        },
+        {
+          name: 'get_yield_statistics',
+          description: 'Get historical high/low statistics for Treasury yields',
+          inputSchema: { type: 'object', properties: {} },
+          execute: async () => {
+            const response = await fetch('/api/rates/stats');
+            const data = await response.json();
+            return { success: true, data };
+          },
+        },
+        {
+          name: 'get_blog_posts',
+          description: 'Get Treasury yield analysis blog posts with AI summaries',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              page: { type: 'number', description: 'Page number (default: 1)' },
+            },
+          },
+          execute: async ({ page = 1 }) => {
+            const response = await fetch(`/blog?page=${page}`);
+            return { success: true, message: 'Blog page retrieved' };
+          },
+        },
+      ];
+
+      tools.forEach(tool => {
+        navigator.modelContext.registerTool(tool, { signal: controller.signal });
+      });
+
+      window.addEventListener('unload', () => controller.abort());
+    }
   </script>
 </body>
 </html>
