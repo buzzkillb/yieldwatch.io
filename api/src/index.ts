@@ -78,6 +78,19 @@ const app = new Elysia()
       return new Response('// Worker not found', { status: 404 });
     }
   })
+  .get('/robots.txt', async () => {
+    try {
+      const robotsPath = join(process.cwd(), 'public/robots.txt');
+      const txt = readFileSync(robotsPath, 'utf-8');
+      return new Response(txt, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+        },
+      });
+    } catch {
+      return new Response('User-agent: *\nAllow: /\n', { status: 200 });
+    }
+  })
   .get('/', async () => {
     try {
       const indexPath = join(process.cwd(), 'public/index.html');
