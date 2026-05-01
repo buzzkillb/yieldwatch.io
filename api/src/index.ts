@@ -139,7 +139,7 @@ const app = new Elysia()
         '</faq>; rel="service-doc"',
       ].join(', ');
 
-      const accept = headers.get('accept') || '';
+      const accept = (headers['accept'] as string) || '';
       if (accept.includes('text/markdown')) {
         const markdown = htmlToMarkdown(html);
         const tokenCount = markdown.split(/\s+/).length;
@@ -158,7 +158,7 @@ const app = new Elysia()
       });
     } catch {
       const fallback = '<html><body><h1>Treasury Dashboard</h1><p>Frontend not found. Please build the frontend first.</p></body></html>';
-      const accept = headers.get('accept') || '';
+      const accept = (headers['accept'] as string) || '';
       if (accept.includes('text/markdown')) {
         return new Response(htmlToMarkdown(fallback), {
           headers: { 'Content-Type': 'text/markdown; charset=utf-8' },
