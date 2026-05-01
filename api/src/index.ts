@@ -112,20 +112,22 @@ const app = new Elysia()
     }
   })
   .get('/.well-known/api-catalog', async () => {
-    const catalog = {
-      '@context': 'https://agent-contexts.github.io/schemas/api-catalog-context.json',
-      'api-version': '1.0',
-      'endpoint': `${SITE_URL}/api/rates`,
-      'description': 'U.S. Treasury Yield Curve API - Real-time and historical yield curve data',
-      'links': [
-        { rel: 'service-desc', url: `${SITE_URL}/api-docs`, title: 'API Documentation' },
-        { rel: 'service-doc', url: `${SITE_URL}/faq`, title: 'API Usage Guide' },
-        { rel: 'describedby', url: `${SITE_URL}/og`, title: 'OpenGraph Schema' },
+    const linkset = {
+      linkset: [
+        {
+          anchor: `${SITE_URL}/api/rates`,
+          link: [
+            { rel: 'service-desc', href: `${SITE_URL}/api-docs` },
+            { rel: 'service-doc', href: `${SITE_URL}/faq` },
+            { rel: 'status', href: `${SITE_URL}/health` },
+            { rel: 'describedby', href: `${SITE_URL}/og` },
+          ],
+        },
       ],
     };
-    return new Response(JSON.stringify(catalog, null, 2), {
+    return new Response(JSON.stringify(linkset, null, 2), {
       headers: {
-        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Type': 'application/linkset+json; charset=utf-8',
       },
     });
   })
