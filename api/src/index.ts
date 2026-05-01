@@ -131,6 +131,47 @@ const app = new Elysia()
       },
     });
   })
+  .get('/.well-known/mcp/server-card.json', async () => {
+    const serverCard = {
+      serverInfo: {
+        name: 'yieldwatch.io/treasury-api',
+        version: '1.0.0',
+        description: 'U.S. Treasury Yield Curve API - Real-time and historical yield curve data',
+      },
+      endpoint: `${SITE_URL}/api/rates`,
+      capabilities: {
+        tools: [
+          {
+            name: 'get_latest_rates',
+            description: 'Get the latest Treasury yield curve rates',
+          },
+          {
+            name: 'get_rates_range',
+            description: 'Get historical yield rates for a date range',
+          },
+          {
+            name: 'get_maturities',
+            description: 'Get available maturity tenors',
+          },
+          {
+            name: 'get_stats',
+            description: 'Get historical high/low statistics',
+          },
+        ],
+        resources: [
+          {
+            name: 'daily-summaries',
+            description: 'Daily Treasury yield curve analysis summaries',
+          },
+        ],
+      },
+    };
+    return new Response(JSON.stringify(serverCard, null, 2), {
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+    });
+  })
   .get('/', async ({ set, headers }) => {
     try {
       const indexPath = join(process.cwd(), 'public/index.html');
