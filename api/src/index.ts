@@ -20,6 +20,26 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#039;');
 }
 
+function htmlToMarkdown(html: string): string {
+  let markdown = html
+    .replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n')
+    .replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n\n')
+    .replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n\n')
+    .replace(/<h4[^>]*>(.*?)<\/h4>/gi, '#### $1\n\n')
+    .replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return markdown;
+}
+
 const SITE_URL = 'https://yieldwatch.io';
 const POSTS_PER_PAGE = 5;
 
@@ -109,7 +129,7 @@ const app = new Elysia()
       },
     });
   })
-  .get('/', async ({ set }) => {
+  .get('/', async ({ set, headers }) => {
     try {
       const indexPath = join(process.cwd(), 'public/index.html');
       const html = readFileSync(indexPath, 'utf-8');
@@ -118,13 +138,33 @@ const app = new Elysia()
         '</api-docs>; rel="service-desc"',
         '</faq>; rel="service-doc"',
       ].join(', ');
+
+      const accept = headers.get('accept') || '';
+      if (accept.includes('text/markdown')) {
+        const markdown = htmlToMarkdown(html);
+        const tokenCount = markdown.split(/\s+/).length;
+        set.headers['x-markdown-tokens'] = String(tokenCount);
+        return new Response(markdown, {
+          headers: {
+            'Content-Type': 'text/markdown; charset=utf-8',
+          },
+        });
+      }
+
       return new Response(html, {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
         },
       });
     } catch {
-      return new Response('<html><body><h1>Treasury Dashboard</h1><p>Frontend not found. Please build the frontend first.</p></body></html>', {
+      const fallback = '<html><body><h1>Treasury Dashboard</h1><p>Frontend not found. Please build the frontend first.</p></body></html>';
+      const accept = headers.get('accept') || '';
+      if (accept.includes('text/markdown')) {
+        return new Response(htmlToMarkdown(fallback), {
+          headers: { 'Content-Type': 'text/markdown; charset=utf-8' },
+        });
+      }
+      return new Response(fallback, {
         headers: { 'Content-Type': 'text/html' },
       });
     }
