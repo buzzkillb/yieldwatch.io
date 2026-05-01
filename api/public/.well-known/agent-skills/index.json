@@ -1,0 +1,40 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "link-headers",
+      "type": "skill-md",
+      "description": "Add RFC 8288 Link headers to homepage for agent discovery.",
+      "url": "/.well-known/agent-skills/link-headers/SKILL.md",
+      "digest": "sha256:622b116833cab7b48bcc37f0811da44795a99639eb29f0ba818d078d844b7041"
+    },
+    {
+      "name": "markdown-negotiation",
+      "type": "skill-md",
+      "description": "Support Accept: text/markdown for markdown-formatted responses to agents.",
+      "url": "/.well-known/agent-skills/markdown-negotiation/SKILL.md",
+      "digest": "sha256:a092005a7e36ae8862dc6ba5582290f1a10e85eeeca88a58bbad68d87c046afd"
+    },
+    {
+      "name": "api-catalog",
+      "type": "skill-md",
+      "description": "Publish RFC 9727 API catalog at /.well-known/api-catalog with application/linkset+json.",
+      "url": "/.well-known/agent-skills/api-catalog/SKILL.md",
+      "digest": "sha256:8b88b970c5348f098fa68992fe5611852c3be1df3a89c8c0e56343845f7dfe78"
+    },
+    {
+      "name": "mcp-server-card",
+      "type": "skill-md",
+      "description": "Publish MCP Server Card (SEP-1649) at /.well-known/mcp/server-card.json.",
+      "url": "/.well-known/agent-skills/mcp-server-card/SKILL.md",
+      "digest": "sha256:87eafc9b2eb6454553950cb998eb09daf10b81e9d5f0996fff01355ebf9bb4d5"
+    },
+    {
+      "name": "oauth-discovery",
+      "type": "skill-md",
+      "description": "Publish OAuth/OIDC discovery metadata for agent authentication.",
+      "url": "/.well-known/agent-skills/oauth-discovery/SKILL.md",
+      "digest": "sha256:d0e386d49411418a3a0f8ec1922fe832ab906b2ae449480e860d5208cb3756d8"
+    }
+  ]
+}

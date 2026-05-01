@@ -98,6 +98,28 @@ const app = new Elysia()
       return new Response('// Worker not found', { status: 404 });
     }
   })
+  .get('/.well-known/agent-skills/index.json', async () => {
+    try {
+      const indexPath = join(process.cwd(), 'public/.well-known/agent-skills/index.json');
+      const json = readFileSync(indexPath, 'utf-8');
+      return new Response(json, {
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      });
+    } catch {
+      return new Response('{"error": "Not found"}', { status: 404 });
+    }
+  })
+  .get('/.well-known/agent-skills/*', async ({ params }) => {
+    try {
+      const skillPath = join(process.cwd(), 'public/.well-known/agent-skills/', params['*']);
+      const content = readFileSync(skillPath, 'utf-8');
+      return new Response(content, {
+        headers: { 'Content-Type': 'text/markdown; charset=utf-8' },
+      });
+    } catch {
+      return new Response('Not found', { status: 404 });
+    }
+  })
   .get('/robots.txt', async () => {
     try {
       const robotsPath = join(process.cwd(), 'public/robots.txt');
