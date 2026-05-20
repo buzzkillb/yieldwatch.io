@@ -6,7 +6,7 @@ import { ratesRoutes } from './routes/rates';
 import { blogRoutes } from './routes/blog';
 import { sitemapRoutes } from './routes/sitemap';
 import { db, schema } from './db';
-import { desc, sql, eq } from 'drizzle-orm';
+import { desc, sql, eq, asc } from 'drizzle-orm';
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { generateOgChart } from './utils/ogChart';
@@ -332,6 +332,56 @@ const app = new Elysia()
           .replace(/item": "https:\/\/yieldwatch\.io\/blog"(?=[^"]*\}])/g, `item": "${blogUrl}"`);
         html = html.replace(breadcrumbSchemaMatch[0], `id="breadcrumb-schema">\n  ${updatedSchema}\n  </script>`);
       }
+
+      const ratesData = await db
+        .select()
+        .from(schema.yieldCurveRates)
+        .where(eq(schema.yieldCurveRates.date, date))
+        .orderBy(asc(schema.yieldCurveRates.maturity));
+
+      const rates = ratesData.map(r => ({ maturity: r.maturity, rate: parseFloat(r.rate) }));
+      const stripHtml = (str: string) => str.replace(/<[^>]*>/g, '');
+      const formatBlogSummary = (text: string) => {
+        return text
+          .split(/\n\n+/)
+          .filter((p: string) => p.trim())
+          .map((p: string) => `<p>${stripHtml(p.trim())}</p>`)
+          .join('');
+      };
+
+      const CHART_COLORS = ['#6366f1', '#a855f7', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
+
+      const ratesHtml = rates.map((r, i) => `
+                  <div class="rate-item" style="border-top: 3px solid ${CHART_COLORS[i % CHART_COLORS.length]}">
+                    <div class="rate-maturity">${r.maturity}</div>
+                    <div class="rate-value">${r.rate.toFixed(2)}%</div>
+                  </div>
+                `).join('');
+
+      const articleContent = `
+          <article>
+            <header class="post-header">
+              <p class="post-date">${dateFormatted}</p>
+              <h1 class="post-title">Treasury Yield Curve Analysis</h1>
+            </header>
+
+            <div class="blog-content blog-summary">
+              ${formatBlogSummary(blogSummary)}
+            </div>
+
+            <section class="chart-section">
+              <h2 class="chart-title">Yield Curve</h2>
+              <div class="chart-wrapper">
+                <canvas id="yieldChart"></canvas>
+              </div>
+              <div class="rates-grid">
+                ${ratesHtml}
+              </div>
+            </section>
+          </article>
+        `;
+
+      html = html.replace('<div id="content">\n      <div class="loading">Loading summary...</div>\n    </div>', `<div id="content">${articleContent}</div>`);
 
       return new Response(html, {
         headers: {
