@@ -73,27 +73,6 @@ export async function fetchTreasuryYieldCurve(retries = 3, delayMs = 5000): Prom
   return { success: false, error: 'Max retries exceeded', retryable: true };
 }
 
-export async function fetchLatestDate(): Promise<string | null> {
-  try {
-    const response = await fetch(TREASURY_XML_URL, {
-      headers: {
-        'Accept': 'application/xml',
-        'User-Agent': 'TreasuryDashboard/1.0',
-      },
-    });
-    
-    if (!response.ok) return null;
-    
-    const xml = await response.text();
-    const data = parseYieldXml(xml);
-    
-    if (data.length === 0) return null;
-    
-    return data[data.length - 1].date;
-  } catch {
-    return null;
-  }
-}
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));

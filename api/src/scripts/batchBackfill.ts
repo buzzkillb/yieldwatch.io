@@ -4,10 +4,10 @@ import { generateOgChart } from '../utils/ogChart';
 import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 
-const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY;
+const LLM_API_KEY = process.env.LLM_API_KEY;
 
-if (!MINIMAX_API_KEY) {
-  console.error('MINIMAX_API_KEY not set');
+if (!LLM_API_KEY) {
+  console.error('LLM_API_KEY not set');
   process.exit(1);
 }
 
@@ -182,7 +182,7 @@ ${dataPrompt}`;
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.LLM_API_KEY || MINIMAX_API_KEY}`
+        'Authorization': `Bearer ${LLM_API_KEY}`
       },
       body: JSON.stringify({
         max_tokens: 1000,
@@ -197,7 +197,7 @@ ${dataPrompt}`;
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.LLM_API_KEY || MINIMAX_API_KEY}`
+        'Authorization': `Bearer ${LLM_API_KEY}`
       },
       body: JSON.stringify({
         max_tokens: 3000,

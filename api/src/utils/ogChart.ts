@@ -1,5 +1,3 @@
-import sharp from 'sharp';
-
 const MATURITY_ORDER = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
 
 const CHART_COLORS = [
@@ -64,6 +62,9 @@ export async function generateOgChart(rates: Rate[]): Promise<Buffer> {
     ${circles}
   </svg>`;
 
+  // Dynamic import: keeps server boot working even if sharp's native binary
+  // fails to load locally (e.g. macOS code-signing); used in Docker in prod.
+  const { default: sharp } = await import('sharp');
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 

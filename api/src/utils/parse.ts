@@ -7,20 +7,6 @@ export interface ParsedYieldCurve {
   }[];
 }
 
-export interface TreasuryApiResponse {
-  date: string;
-  dayOfWeek: string;
-  rates: {
-    maturity: string;
-    label: string;
-    rate: number;
-  }[];
-  yearHigh: number;
-  yearHighDate: string;
-  yearLow: number;
-  yearLowDate: string;
-}
-
 export const MATURITY_MAP: Record<string, { label: string; years: number }> = {
   BC_1MONTH: { label: '4WK', years: 1 / 12 },
   BC_1_5MONTH: { label: '6WK', years: 1.5 / 12 },
