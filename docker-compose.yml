@@ -53,6 +53,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-treasury}
       CRON_TZ: ${CRON_TZ:-America/New_York}
       NODE_ENV: ${NODE_ENV:-development}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.bwengr.com}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      MINIMAX_API_KEY: ${MINIMAX_API_KEY:-}
     volumes:
       - public_assets:/app/public
     depends_on:
