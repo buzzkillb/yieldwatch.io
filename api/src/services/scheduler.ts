@@ -1,6 +1,6 @@
 import { db, schema } from '../db';
-import { eq, desc, asc, lt, and, gte } from 'drizzle-orm';
-import { fetchTreasuryYieldCurve, fetchLatestDate } from './fetcher';
+import { eq, desc, asc } from 'drizzle-orm';
+import { fetchTreasuryYieldCurve } from './fetcher';
 import { generateOgChart } from '../utils/ogChart';
 import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
@@ -26,23 +26,20 @@ const ARCHIVE_CSV_URLS = [
 ];
 
 const CSV_COLUMNS: Record<string, string> = {
-  '4Wk': '4WK', '4 MO': '4WK', '4 WEEK': '4WK',
-  '6Wk': '6WK', '6 MO': '6WK', '6 WEEK': '6WK',
-  '6 WEEKS': '6WK', '6WEEKS': '6WK',
-  '2Mo': '2MO', '2 MO': '2MO', '2 MONTH': '2MO',
-  '3Mo': '3MO', '3 MO': '3MO', '3 MONTH': '3MO',
-  '4Mo': '4MO', '4 MO': '4MO', '4 MONTH': '4MO',
-  '6Mo': '6MO', '6 MO': '6MO', '6 MONTH': '6MO',
-  '1 Mo': '4WK', '1Mo': '4WK', '1 MO': '4WK', '1 MONTH': '4WK', '1MONTH': '4WK',
-  '1.5 Mo': '6WK', '1.5Mo': '6WK', '1.5 MO': '6WK', '1.5 Month': '6WK', '1.5MONTH': '6WK',
-  '1Yr': '1YR', '1 YR': '1YR', '1 YEAR': '1YR',
-  '2Yr': '2YR', '2 YR': '2YR', '2 YEAR': '2YR',
-  '3Yr': '3YR', '3 YR': '3YR', '3 YEAR': '3YR',
-  '5Yr': '5YR', '5 YR': '5YR', '5 YEAR': '5YR',
-  '7Yr': '7YR', '7 YR': '7YR', '7 YEAR': '7YR',
-  '10Yr': '10YR', '10 YR': '10YR', '10 YEAR': '10YR',
-  '20Yr': '20YR', '20 YR': '20YR', '20 YEAR': '20YR',
-  '30Yr': '30YR', '30 YR': '30YR', '30 YEAR': '30YR',
+  '1 MO': '4WK', '1MONTH': '4WK', '1 MONTH': '4WK', '1Mo': '4WK',
+  '1.5 MO': '6WK', '1.5MONTH': '6WK', '1.5 MONTH': '6WK', '1.5Mo': '6WK', '1.5 Month': '6WK',
+  '2 MO': '2MO', '2 MONTH': '2MO', '2Mo': '2MO',
+  '3 MO': '3MO', '3 MONTH': '3MO', '3Mo': '3MO',
+  '4 MO': '4MO', '4 MONTH': '4MO', '4Mo': '4MO',
+  '6 MO': '6MO', '6 MONTH': '6MO', '6Mo': '6MO',
+  '1 YR': '1YR', '1 YEAR': '1YR', '1Yr': '1YR',
+  '2 YR': '2YR', '2 YEAR': '2YR', '2Yr': '2YR',
+  '3 YR': '3YR', '3 YEAR': '3YR', '3Yr': '3YR',
+  '5 YR': '5YR', '5 YEAR': '5YR', '5Yr': '5YR',
+  '7 YR': '7YR', '7 YEAR': '7YR', '7Yr': '7YR',
+  '10 YR': '10YR', '10 YEAR': '10YR', '10Yr': '10YR',
+  '20 YR': '20YR', '20 YEAR': '20YR', '20Yr': '20YR',
+  '30 YR': '30YR', '30 YEAR': '30YR', '30Yr': '30YR',
 };
 
 const KNOWN_MATURITY_KEYS = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
@@ -106,7 +103,7 @@ async function fetchMiniMaxWithRetry(body: Record<string, unknown>, label: strin
           'Content-Type': 'application/json',
           'x-api-key': MINIMAX_API_KEY,
           'anthropic-version': '2023-06-01'
-        },
+        } as Record<string, string>,
         body: JSON.stringify(body)
       });
 
@@ -451,24 +448,6 @@ function parseDate(dateStr: string): string | null {
   return null;
 }
 
-function getCronTime(): { hour: number; minute: number } {
-  const cronTz = process.env.CRON_TZ || 'America/New_York';
-  try {
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: cronTz,
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: false,
-    });
-    const parts = formatter.formatToParts(new Date());
-    const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '16');
-    const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '30');
-    return { hour, minute };
-  } catch {
-    return { hour: CRON_HOUR, minute: CRON_MINUTE };
-  }
-}
-
 function shouldRunNow(): boolean {
   const cronHour = CRON_HOUR;
   const cronMinute = CRON_MINUTE;
@@ -664,7 +643,7 @@ async function warmQueryCache(): Promise<void> {
     try {
       const url = `${apiHost}/api/rates/cache/warm?from=${period.from}&to=${period.to}`;
       const response = await fetch(url);
-      const data = await response.json();
+      const data = await response.json() as { success?: boolean; cacheKey?: string; error?: string };
       if (data.success) {
         console.log(`[Scheduler] Cache warmed for ${period.name}: ${data.cacheKey}`);
       } else {
@@ -777,8 +756,7 @@ async function backfillMissingSummaries(): Promise<void> {
 async function dailyUpdateLoop(): Promise<void> {
   console.log(`[Scheduler] Starting daily update loop...`);
   console.log(`[Scheduler] Cron timezone: ${process.env.CRON_TZ || 'America/New_York'}`);
-  const { hour, minute } = getCronTime();
-  console.log(`[Scheduler] Target update time: ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} ${process.env.CRON_TZ || 'America/New_York'}`);
+  console.log(`[Scheduler] Target update time: ${CRON_HOUR.toString().padStart(2, '0')}:${CRON_MINUTE.toString().padStart(2, '0')} ${process.env.CRON_TZ || 'America/New_York'}`);
   
   while (true) {
     const now = new Date();
