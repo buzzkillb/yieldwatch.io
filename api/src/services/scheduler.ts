@@ -217,12 +217,15 @@ async function generateDailySummary(targetDate?: string): Promise<void> {
 
 Rules:
 - Write 2-4 sentences as one paragraph
+- State today's full date (e.g. September 10, 2026) in the first sentence
+- Refer to rates by full searchable name at least once: "30-year Treasury yield", "10-year Treasury rate", "Treasury yield curve"
 - Always mention the 30-year rate prominently
 - You MUST include comparison to last week in every output
 - When describing changes, use simple language like "up from last week" or "higher than yesterday"
 - Do NOT use phrases like "percentage points" or "basis points" - just say "higher" or "lower"
 - If the yield curve is inverted, state that fact only - do not explain what it means
 - Stick to observable data comparisons - do not explain what rate movements mean for investors or markets
+- Begin with a plain statement of fact, never a generic opener like "In today's market" or "As of late"
 - Keep it factual and straightforward
 - Never use bullet points, dashes, or list format
 - Never use foreign characters or non-ASCII symbols
@@ -234,13 +237,17 @@ ${dataPrompt}`;
 
 Rules:
 - Write exactly 4 paragraphs of 3-5 sentences each
-- Paragraph 1: Open with the 30-year rate and key weekly movements (vs last week)
+- State today's full date (e.g. September 10, 2026) in the first sentence of paragraph 1
+- Refer to rates by full searchable name at least once each: "30-year Treasury yield", "10-year Treasury rate", "2-year Treasury rate", "Treasury yield curve"
+- Paragraph 1: Open with the 30-year Treasury yield and key weekly movements (vs last week)
 - Paragraph 2: Cover the broader curve - rate changes across maturities compared to last week
 - Paragraph 3: Discuss how rates have changed over the past month (vs 30 days ago) - highlight notable moves at different parts of the curve
-- Paragraph 4: Summarize curve shape changes, inversions, and any notable patterns compared to both last week and 30 days ago
+- Paragraph 4: Describe the Treasury yield curve shape and any inversions compared to both last week and 30 days ago - report them only as observed facts, make no interpretation of what they mean for investors, markets, or the economy
 - Use plain language - no jargon or educational explanations
 - Do NOT use "percentage points" or "basis points" - just say "higher" or "lower"
 - Do NOT explain what rate movements mean for investors or markets
+- Do NOT include predictions, forecasts, outlook, or speculation of any kind - describe only what the data shows
+- Begin with a plain statement of fact, never a generic opener like "In today's market" or "Investors are watching"
 - Keep it factual and informative
 - Never use bullet points, dashes, or list format
 - Never use foreign characters or non-ASCII symbols
@@ -249,8 +256,8 @@ Rules:
 
 ${dataPrompt}`;
 
-    const shortUserMessage = `Write a brief paragraph about today's Treasury yield curve rates. Keep it to 2-4 sentences. Focus on the 30-year rate and how it compares to last week.`;
-    const longUserMessage = `Write a detailed daily market brief about today's Treasury yield curve rates in exactly 4 paragraphs. This will be published on a blog. Cover the overall curve shape, notable rate movements, how today compares to last week, and how the curve has shifted over the past month. Separate paragraphs with a blank line.`;
+    const shortUserMessage = `Write a brief paragraph about today's Treasury yield curve rates. Keep it to 2-4 sentences. Open with today's date, use the full name "30-year Treasury yield" at least once, focus on the 30-year rate, and how it compares to last week.`;
+    const longUserMessage = `Write a detailed daily market brief about today's Treasury yield curve rates in exactly 4 paragraphs. This will be published on a public finance blog, so write for readers searching for current Treasury rates. Open with today's date and use full rate names ("30-year Treasury yield", "10-year Treasury rate", "Treasury yield curve"). Cover the overall curve shape, notable rate movements, how today compares to last week, and how the curve has shifted over the past month. Separate paragraphs with a blank line.`;
 
     const [shortResponse, longResponse] = await Promise.all([
       fetchLLMWithRetry({
@@ -259,7 +266,7 @@ ${dataPrompt}`;
           { role: 'system', content: shortSystemPrompt },
           { role: 'user', content: shortUserMessage }
         ],
-        temperature: 1
+        temperature: 0.4
       }, 'short summary'),
       fetchLLMWithRetry({
         max_tokens: 3000,
@@ -267,7 +274,7 @@ ${dataPrompt}`;
           { role: 'system', content: longSystemPrompt },
           { role: 'user', content: longUserMessage }
         ],
-        temperature: 1
+        temperature: 0.4
       }, 'blog summary')
     ]);
 
