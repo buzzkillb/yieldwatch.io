@@ -94,7 +94,41 @@ function formatDateForPrompt(dateStr: string): { date: string; day: string } {
   };
 }
 
-async function generateDailySummary(): Promise<void> {
+async function fetchMiniMaxWithRetry(body: Record<string, unknown>, label: string): Promise<Response> {
+  const MAX_ATTEMPTS = 4;
+  const RETRY_DELAY_MS = 60_000;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch('https://api.minimax.io/anthropic/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': MINIMAX_API_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (response.ok || (response.status < 500 && response.status !== 429)) {
+        return response;
+      }
+
+      console.log(`[Scheduler] MiniMax ${label} attempt ${attempt}/${MAX_ATTEMPTS} failed: ${response.status}. Retrying in ${RETRY_DELAY_MS / 1000}s...`);
+    } catch (error) {
+      console.log(`[Scheduler] MiniMax ${label} attempt ${attempt}/${MAX_ATTEMPTS} network error: ${error}. Retrying in ${RETRY_DELAY_MS / 1000}s...`);
+    }
+
+    if (attempt < MAX_ATTEMPTS) {
+      await sleep(RETRY_DELAY_MS * attempt);
+    }
+  }
+
+  // Return a synthetic failed response so parseResponse logs and returns ''
+  return new Response(JSON.stringify({ type: 'error', error: { type: 'exhausted_retries', message: `${label} failed after ${MAX_ATTEMPTS} attempts` } }), { status: 503 });
+}
+
+async function generateDailySummary(targetDate?: string): Promise<void> {
   if (!MINIMAX_API_KEY) {
     console.log('[Scheduler] MINIMAX_API_KEY not set, skipping daily summary generation');
     return;
@@ -103,18 +137,22 @@ async function generateDailySummary(): Promise<void> {
   try {
     console.log('[Scheduler] Generating daily rate summaries with MiniMax...');
 
-    const latestDateInDb = await db
-      .select({ date: schema.yieldCurveRates.date })
-      .from(schema.yieldCurveRates)
-      .orderBy(desc(schema.yieldCurveRates.date))
-      .limit(1);
+    let todayDate: string;
+    if (targetDate) {
+      todayDate = targetDate;
+    } else {
+      const latestDateInDb = await db
+        .select({ date: schema.yieldCurveRates.date })
+        .from(schema.yieldCurveRates)
+        .orderBy(desc(schema.yieldCurveRates.date))
+        .limit(1);
 
-    if (latestDateInDb.length === 0) {
-      console.log('[Scheduler] No data in database for summary');
-      return;
+      if (latestDateInDb.length === 0) {
+        console.log('[Scheduler] No data in database for summary');
+        return;
+      }
+      todayDate = latestDateInDb[0].date;
     }
-
-    const todayDate = latestDateInDb[0].date;
     const yesterdayDate = getPreviousBusinessDay(todayDate);
     const lastWeekDate = getDateMinusDays(todayDate, 7);
     const thirtyDaysAgoDate = getPreviousBusinessDayFromDate(todayDate, 30);
@@ -183,36 +221,20 @@ ${dataPrompt}`;
     const longUserMessage = `Write a detailed daily market brief about today's Treasury yield curve rates in exactly 4 paragraphs. This will be published on a blog. Cover the overall curve shape, notable rate movements, how today compares to last week, and how the curve has shifted over the past month. Separate paragraphs with a blank line.`;
 
     const [shortResponse, longResponse] = await Promise.all([
-      fetch('https://api.minimax.io/anthropic/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': MINIMAX_API_KEY,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: 'MiniMax-M2.7',
-          max_tokens: 1000,
-          system: shortSystemPrompt,
-          messages: [{ role: 'user', content: [{ type: 'text', text: shortUserMessage }] }],
-          temperature: 1
-        })
-      }),
-      fetch('https://api.minimax.io/anthropic/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': MINIMAX_API_KEY,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: 'MiniMax-M2.7',
-          max_tokens: 3000,
-          system: longSystemPrompt,
-          messages: [{ role: 'user', content: [{ type: 'text', text: longUserMessage }] }],
-          temperature: 1
-        })
-      })
+      fetchMiniMaxWithRetry({
+        model: 'MiniMax-M2.7',
+        max_tokens: 1000,
+        system: shortSystemPrompt,
+        messages: [{ role: 'user', content: [{ type: 'text', text: shortUserMessage }] }],
+        temperature: 1
+      }, 'short summary'),
+      fetchMiniMaxWithRetry({
+        model: 'MiniMax-M2.7',
+        max_tokens: 3000,
+        system: longSystemPrompt,
+        messages: [{ role: 'user', content: [{ type: 'text', text: longUserMessage }] }],
+        temperature: 1
+      }, 'blog summary')
     ]);
 
     const parseResponse = async (response: Response): Promise<string> => {
@@ -704,6 +726,54 @@ async function checkAndUpdate(): Promise<void> {
   }
 }
 
+async function hasSummaryForDate(date: string): Promise<boolean> {
+  const result = await db
+    .select({ date: schema.dailySummaries.date })
+    .from(schema.dailySummaries)
+    .where(eq(schema.dailySummaries.date, date))
+    .limit(1);
+  return result.length > 0;
+}
+
+/**
+ * Backfill: regenerate summaries for recent dates that have yield data but no summary.
+ * Covers days where the MiniMax call failed and never got retried.
+ */
+async function backfillMissingSummaries(): Promise<void> {
+  if (!MINIMAX_API_KEY) {
+    return;
+  }
+  try {
+    const datesWithRates = await db
+      .selectDistinct({ date: schema.yieldCurveRates.date })
+      .from(schema.yieldCurveRates)
+      .orderBy(desc(schema.yieldCurveRates.date))
+      .limit(30);
+
+    const datesWithSummaries = await db
+      .select({ date: schema.dailySummaries.date })
+      .from(schema.dailySummaries);
+
+    const summarySet = new Set(datesWithSummaries.map(s => s.date));
+    const missing = datesWithRates.map(d => d.date).filter(d => !summarySet.has(d));
+
+    if (missing.length === 0) {
+      console.log('[Scheduler] Backfill: no missing summaries found');
+      return;
+    }
+
+    console.log(`[Scheduler] Backfill: generating summaries for ${missing.length} missing date(s): ${missing.join(', ')}`);
+    for (const date of missing) {
+      await generateDailySummary(date);
+      if (!(await hasSummaryForDate(date))) {
+        console.log(`[Scheduler] Backfill: still no summary for ${date}, will retry on next loop iteration`);
+      }
+    }
+  } catch (error) {
+    console.error('[Scheduler] Backfill error:', error);
+  }
+}
+
 async function dailyUpdateLoop(): Promise<void> {
   console.log(`[Scheduler] Starting daily update loop...`);
   console.log(`[Scheduler] Cron timezone: ${process.env.CRON_TZ || 'America/New_York'}`);
@@ -720,7 +790,17 @@ async function dailyUpdateLoop(): Promise<void> {
         console.log(`[Scheduler] Target time reached, checking for new data...`);
         await checkAndUpdate();
       } else {
-        console.log(`[Scheduler] Today's data already exists, skipping update`);
+        // Yield data exists but the summary may have failed earlier (e.g. MiniMax 529s).
+        // Self-heal: regenerate the summary if it's missing.
+        const today = new Date().toISOString().split('T')[0];
+        const hasSummary = await hasSummaryForDate(today);
+        if (!hasSummary) {
+          console.log(`[Scheduler] Yield data exists but summary missing for ${today}, regenerating...`);
+          await generateDailySummary(today);
+          await backfillMissingSummaries();
+        } else {
+          console.log(`[Scheduler] Today's data already exists, skipping update`);
+        }
       }
       
       const nextMidnight = new Date(now);
@@ -762,6 +842,7 @@ async function main(): Promise<void> {
       await checkAndUpdate();
     } else {
       console.log(`[Scheduler] Database has existing data, starting normal update loop`);
+      await backfillMissingSummaries();
       await generateDailySummary();
       await warmQueryCache();
     }
