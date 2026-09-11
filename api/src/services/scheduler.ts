@@ -6,6 +6,8 @@ import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 
 const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY;
+const LLM_BASE_URL = (process.env.LLM_BASE_URL || 'https://api.bwengr.com').replace(/\/+$/, '');
+const LLM_API_KEY = process.env.LLM_API_KEY || process.env.MINIMAX_API_KEY;
 
 const CHECK_INTERVAL_MS = (() => {
   const val = parseInt(process.env.SCHEDULER_CHECK_INTERVAL_MS || '900000', 10);
@@ -91,48 +93,81 @@ function formatDateForPrompt(dateStr: string): { date: string; day: string } {
   };
 }
 
-async function fetchMiniMaxWithRetry(body: Record<string, unknown>, label: string): Promise<Response> {
+// Discover whatever model is currently loaded on the gateway — swaps are invisible to us.
+let cachedModelId: string | null = null;
+
+async function discoverModelId(): Promise<string> {
+  if (cachedModelId) return cachedModelId;
+  const response = await fetch(`${LLM_BASE_URL}/v1/models`, {
+    headers: { 'Authorization': `Bearer ${LLM_API_KEY}` } as Record<string, string>
+  });
+  if (!response.ok) {
+    throw new Error(`/v1/models failed: ${response.status}`);
+  }
+  const data = await response.json() as { data?: { id: string }[] };
+  const modelId = data.data?.[0]?.id;
+  if (!modelId) {
+    throw new Error('/v1/models returned no models');
+  }
+  console.log(`[Scheduler] LLM model discovered: ${modelId}`);
+  cachedModelId = modelId;
+  return modelId;
+}
+
+function isModelNotFound(status: number, bodyText: string): boolean {
+  return status === 404 || /model\s*not\s*found|does\s*not\s*exist/i.test(bodyText);
+}
+
+async function fetchLLMWithRetry(body: Record<string, unknown>, label: string, attempt = 1): Promise<Response> {
   const MAX_ATTEMPTS = 4;
   const RETRY_DELAY_MS = 60_000;
 
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    try {
-      const response = await fetch('https://api.minimax.io/anthropic/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': MINIMAX_API_KEY,
-          'anthropic-version': '2023-06-01'
-        } as Record<string, string>,
-        body: JSON.stringify(body)
-      });
+  try {
+    const modelId = await discoverModelId();
+    const response = await fetch(`${LLM_BASE_URL}/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${LLM_API_KEY}`
+      } as Record<string, string>,
+      body: JSON.stringify({ ...body, model: modelId })
+    });
 
-      if (response.ok || (response.status < 500 && response.status !== 429)) {
-        return response;
+    // Model was swapped mid-flight: forget the cached name, refetch, retry once
+    if (response.status === 404 || (response.ok === false && response.status === 400 && attempt === 1 && isModelNotFound(400, await response.clone().text()))) {
+      if (attempt === 1) {
+        console.log(`[Scheduler] LLM ${label}: model no longer available (${response.status}), rediscovering...`);
+        cachedModelId = null;
+        return fetchLLMWithRetry(body, label, 2);
       }
-
-      console.log(`[Scheduler] MiniMax ${label} attempt ${attempt}/${MAX_ATTEMPTS} failed: ${response.status}. Retrying in ${RETRY_DELAY_MS / 1000}s...`);
-    } catch (error) {
-      console.log(`[Scheduler] MiniMax ${label} attempt ${attempt}/${MAX_ATTEMPTS} network error: ${error}. Retrying in ${RETRY_DELAY_MS / 1000}s...`);
     }
 
-    if (attempt < MAX_ATTEMPTS) {
-      await sleep(RETRY_DELAY_MS * attempt);
+    if (response.ok || (response.status < 500 && response.status !== 429)) {
+      return response;
     }
+
+    console.log(`[Scheduler] LLM ${label} attempt ${attempt}/${MAX_ATTEMPTS} failed: ${response.status}. Retrying in ${RETRY_DELAY_MS / 1000}s...`);
+  } catch (error) {
+    console.log(`[Scheduler] LLM ${label} attempt ${attempt}/${MAX_ATTEMPTS} network error: ${error}. Retrying in ${RETRY_DELAY_MS / 1000}s...`);
+  }
+
+  if (attempt < MAX_ATTEMPTS) {
+    await sleep(RETRY_DELAY_MS * attempt);
+    return fetchLLMWithRetry(body, label, attempt + 1);
   }
 
   // Return a synthetic failed response so parseResponse logs and returns ''
-  return new Response(JSON.stringify({ type: 'error', error: { type: 'exhausted_retries', message: `${label} failed after ${MAX_ATTEMPTS} attempts` } }), { status: 503 });
+  return new Response(JSON.stringify({ error: { message: `${label} failed after ${MAX_ATTEMPTS} attempts` } }), { status: 503 });
 }
 
 async function generateDailySummary(targetDate?: string): Promise<void> {
-  if (!MINIMAX_API_KEY) {
-    console.log('[Scheduler] MINIMAX_API_KEY not set, skipping daily summary generation');
+  if (!LLM_API_KEY) {
+    console.log('[Scheduler] LLM_API_KEY not set, skipping daily summary generation');
     return;
   }
 
   try {
-    console.log('[Scheduler] Generating daily rate summaries with MiniMax...');
+    console.log('[Scheduler] Generating daily rate summaries with LLM gateway...');
 
     let todayDate: string;
     if (targetDate) {
@@ -218,18 +253,20 @@ ${dataPrompt}`;
     const longUserMessage = `Write a detailed daily market brief about today's Treasury yield curve rates in exactly 4 paragraphs. This will be published on a blog. Cover the overall curve shape, notable rate movements, how today compares to last week, and how the curve has shifted over the past month. Separate paragraphs with a blank line.`;
 
     const [shortResponse, longResponse] = await Promise.all([
-      fetchMiniMaxWithRetry({
-        model: 'MiniMax-M2.7',
+      fetchLLMWithRetry({
         max_tokens: 1000,
-        system: shortSystemPrompt,
-        messages: [{ role: 'user', content: [{ type: 'text', text: shortUserMessage }] }],
+        messages: [
+          { role: 'system', content: shortSystemPrompt },
+          { role: 'user', content: shortUserMessage }
+        ],
         temperature: 1
       }, 'short summary'),
-      fetchMiniMaxWithRetry({
-        model: 'MiniMax-M2.7',
+      fetchLLMWithRetry({
         max_tokens: 3000,
-        system: longSystemPrompt,
-        messages: [{ role: 'user', content: [{ type: 'text', text: longUserMessage }] }],
+        messages: [
+          { role: 'system', content: longSystemPrompt },
+          { role: 'user', content: longUserMessage }
+        ],
         temperature: 1
       }, 'blog summary')
     ]);
@@ -237,22 +274,16 @@ ${dataPrompt}`;
     const parseResponse = async (response: Response): Promise<string> => {
       if (!response.ok) {
         const errorText = await response.text();
-        console.log(`[Scheduler] MiniMax API error: ${response.status} - ${errorText}`);
+        console.log(`[Scheduler] LLM API error: ${response.status} - ${errorText}`);
         return '';
       }
-      const data = await response.json() as { content?: { type: string; text?: string }[] };
-      if (data.content && Array.isArray(data.content)) {
-        for (const block of data.content) {
-          if (block.type === 'text' && block.text) {
-            const text = block.text.trim();
-            if (isValidSummary(text)) {
-              return text;
-            }
-          }
-        }
+      const data = await response.json() as { choices?: { message?: { content?: string } }[] };
+      const text = data.choices?.[0]?.message?.content?.trim();
+      if (text && isValidSummary(text)) {
+        return text;
       }
       return '';
-    };
+    }
 
     function isValidSummary(text: string): boolean {
       if (!text || text.length < 50) return false;
