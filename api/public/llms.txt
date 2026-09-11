@@ -1,0 +1,26 @@
+# YieldWatch
+
+> Daily U.S. Treasury yield curve rates and analysis. Free, no account required.
+
+YieldWatch tracks U.S. Treasury par yield curve rates from 4-week bills to 30-year bonds, with 35+ years of historical data (1990–present). Rates are published every business day when the U.S. Treasury updates its data, along with a plain-English daily market brief.
+
+## Key pages
+
+- [Dashboard](https://yieldwatch.io/): Current Treasury yield curve rates for all maturities, updated daily
+- [Daily Summaries](https://yieldwatch.io/blog): Plain-English analysis of each business day's Treasury yield data
+- [FAQ](https://yieldwatch.io/faq): What the yield curve means, inversions, and Treasury basics
+- [API Docs](https://yieldwatch.io/api-docs): Free public JSON API for all rates data
+
+## Common questions
+
+- What is the current 30-year Treasury yield? See the dashboard at https://yieldwatch.io/
+- What is today's 10-year Treasury rate? See the dashboard, or the latest daily summary at https://yieldwatch.io/blog
+- What does an inverted yield curve mean? See https://yieldwatch.io/faq
+
+## Data source
+
+All rates come from the U.S. Department of the Treasury's published daily par yield curve rates. Data updates every business day, typically in the afternoon Eastern Time.
+
+## Contact
+
+Public JSON API available at https://yieldwatch.io/api-docs. Data may be used with attribution to YieldWatch (https://yieldwatch.io).

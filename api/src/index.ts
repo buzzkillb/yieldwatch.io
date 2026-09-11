@@ -72,8 +72,8 @@ const app = new Elysia()
   .use(cors({
     origin: allowedOrigins,
     methods: ['GET'],
-    headers: ['Content-Type'],
-    credentials: allowedOrigins === true || Array.isArray(allowedOrigins),
+    
+    credentials: true,
   }))
   .use(html())
   .use(rateLimit())
@@ -131,6 +131,19 @@ const app = new Elysia()
       });
     } catch {
       return new Response('User-agent: *\nAllow: /\n', { status: 200 });
+    }
+  })
+  .get('/llms.txt', async () => {
+    try {
+      const llmsPath = join(process.cwd(), 'public/llms.txt');
+      const txt = readFileSync(llmsPath, 'utf-8');
+      return new Response(txt, {
+        headers: {
+          'Content-Type': 'text/markdown; charset=utf-8',
+        },
+      });
+    } catch {
+      return new Response('Not found', { status: 404 });
     }
   })
   .get('/.well-known/api-catalog', async () => {
@@ -197,7 +210,36 @@ const app = new Elysia()
   .get('/', async ({ set, headers }) => {
     try {
       const indexPath = join(process.cwd(), 'public/index.html');
-      const html = readFileSync(indexPath, 'utf-8');
+      let html = readFileSync(indexPath, 'utf-8');
+
+      // Server-side SEO block: crawlable plain-text rates for non-JS crawlers / answer engines
+      try {
+        const latestDateRow = await db
+          .select({ date: schema.yieldCurveRates.date })
+          .from(schema.yieldCurveRates)
+          .orderBy(desc(schema.yieldCurveRates.date))
+          .limit(1);
+        if (latestDateRow.length > 0) {
+          const latestDate = latestDateRow[0].date;
+          const ratesData = await db
+            .select()
+            .from(schema.yieldCurveRates)
+            .where(eq(schema.yieldCurveRates.date, latestDate))
+            .orderBy(asc(schema.yieldCurveRates.maturity));
+          const keyRates = ratesData
+            .filter(r => ['4WK', '2YR', '10YR', '30YR'].includes(r.maturity))
+            .map(r => `${r.maturity === '4WK' ? '4-week' : r.maturity.replace('YR', '-year')} Treasury ${(r.maturity === '4WK' ? 'bill rate' : 'yield')} at ${r.rate} percent`);
+          const dateFormatted = new Date(latestDate + 'T00:00:00').toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' });
+          const seoBlock = `<section id="seo-static-rates" aria-label="Current Treasury rates summary">
+  <h2 style="position:absolute;left:-9999px;">Current U.S. Treasury Yield Curve Rates</h2>
+  <p style="position:absolute;left:-9999px;">U.S. Treasury yield curve rates for ${dateFormatted}: ${keyRates.join(', ')}. The full Treasury yield curve with 35+ years of historical data is available on this dashboard and in our daily summaries.</p>
+</section>`;
+          html = html.replace('<div class="container">', `<div class="container">\n    ${seoBlock}`);
+        }
+      } catch (seoError) {
+        console.error('SEO block injection failed:', seoError);
+      }
+
       set.headers['Link'] = [
         '</.well-known/api-catalog>; rel="api-catalog"',
         '</api-docs>; rel="service-desc"',
@@ -306,6 +348,7 @@ const app = new Elysia()
       const blogUrl = `${SITE_URL}/blog/${date}`;
       const ogImageUrl = `${SITE_URL}/og-image/${date}`;
       const pageTitle = `${dateFormatted} | Treasury Yield Daily`;
+      const articleH1 = `Treasury Yield Curve Analysis — ${dateFormatted}`;
       const metaDescription = escapeHtml(blogSummary.substring(0, 160));
 
       const blogPath = join(process.cwd(), 'public/blog-post.html');
@@ -332,6 +375,28 @@ const app = new Elysia()
           .replace(/item": "https:\/\/yieldwatch\.io\/blog"(?=[^"]*\}])/g, `item": "${blogUrl}"`);
         html = html.replace(breadcrumbSchemaMatch[0], `id="breadcrumb-schema">\n  ${updatedSchema}\n  </script>`);
       }
+
+      const articleSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: `${dateFormatted} Treasury Yield Curve Analysis`,
+        description: blogSummary.substring(0, 300),
+        datePublished: `${date}T00:00:00Z`,
+        dateModified: `${date}T00:00:00Z`,
+        mainEntityOfPage: { '@type': 'WebPage', '@id': blogUrl },
+        image: ogImageUrl,
+        author: { '@type': 'Organization', name: 'YieldWatch', url: SITE_URL },
+        publisher: {
+          '@type': 'Organization',
+          name: 'YieldWatch',
+          url: SITE_URL,
+          logo: { '@type': 'ImageObject', url: `${SITE_URL}/og/og.png` }
+        }
+      };
+      html = html.replace(
+        '</head>',
+        `<script type="application/ld+json">\n  ${JSON.stringify(articleSchema, null, 2)}\n  </script>\n</head>`
+      );
 
       const ratesData = await db
         .select()
@@ -362,7 +427,7 @@ const app = new Elysia()
           <article>
             <header class="post-header">
               <p class="post-date">${dateFormatted}</p>
-              <h1 class="post-title">Treasury Yield Curve Analysis</h1>
+              <h1 class="post-title">${escapeHtml(articleH1)}</h1>
             </header>
 
             <div class="blog-content blog-summary">

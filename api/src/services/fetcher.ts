@@ -48,7 +48,7 @@ export async function fetchTreasuryYieldCurve(retries = 3, delayMs = 5000): Prom
       
       console.log(`[Fetcher] Successfully fetched ${data.length} days of yield curve data`);
       
-      return { success: true, data, yearHighLow };
+      return { success: true, data, yearHighLow, retryable: false };
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);

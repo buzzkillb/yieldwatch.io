@@ -25,7 +25,8 @@ function getDirectIP(context: Context): string | null {
 }
 
 function getSocketIP(context: Context): string | null {
-  return context.request?.socket?.remoteAddress || null;
+  // Bun's Request has no socket; server IP detection falls back to proxy headers
+  return (context.request as unknown as { socket?: { remoteAddress?: string } })?.socket?.remoteAddress || null;
 }
 
 function getClientIP(context: Context): string {
@@ -160,7 +161,7 @@ export const rateLimit = () => {
         ...context.set.headers,
         'X-RateLimit-Limit': MAX_REQUESTS.toString(),
         'X-RateLimit-Remaining': String(MAX_REQUESTS - entry.count),
-      };
+      } as typeof context.set.headers;
     });
   };
 };

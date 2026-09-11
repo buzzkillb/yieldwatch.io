@@ -178,33 +178,33 @@ ${dataPrompt}`;
   console.log(`[BatchBackfill] Calling MiniMax API for ${date}...`);
   
   const [shortResponse, longResponse] = await Promise.all([
-    fetch('https://api.minimax.io/anthropic/v1/messages', {
+    fetch(`${process.env.LLM_BASE_URL || 'https://api.bwengr.com'}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': MINIMAX_API_KEY,
-        'anthropic-version': '2023-06-01'
+        'Authorization': `Bearer ${process.env.LLM_API_KEY || MINIMAX_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'MiniMax-M2.7',
         max_tokens: 1000,
-        system: shortSystemPrompt,
-        messages: [{ role: 'user', content: [{ type: 'text', text: shortUserMessage }] }],
+        messages: [
+          { role: 'system', content: shortSystemPrompt },
+          { role: 'user', content: shortUserMessage }
+        ],
         temperature: 1
       })
     }),
-    fetch('https://api.minimax.io/anthropic/v1/messages', {
+    fetch(`${process.env.LLM_BASE_URL || 'https://api.bwengr.com'}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': MINIMAX_API_KEY,
-        'anthropic-version': '2023-06-01'
+        'Authorization': `Bearer ${process.env.LLM_API_KEY || MINIMAX_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'MiniMax-M2.7',
         max_tokens: 3000,
-        system: longSystemPrompt,
-        messages: [{ role: 'user', content: [{ type: 'text', text: longUserMessage }] }],
+        messages: [
+          { role: 'system', content: longSystemPrompt },
+          { role: 'user', content: longUserMessage }
+        ],
         temperature: 1
       })
     })
@@ -216,15 +216,8 @@ ${dataPrompt}`;
       console.log(`[BatchBackfill] MiniMax API error: ${response.status} - ${errorText}`);
       return '';
     }
-    const data = await response.json() as { content?: { type: string; text?: string }[] };
-    if (data.content && Array.isArray(data.content)) {
-      for (const block of data.content) {
-        if (block.type === 'text' && block.text) {
-          return block.text.trim();
-        }
-      }
-    }
-    return '';
+    const data = await response.json() as { choices?: { message?: { content?: string } }[] };
+    return data.choices?.[0]?.message?.content?.trim() || '';
   };
   
   const [shortSummary, blogSummary] = await Promise.all([
@@ -255,7 +248,7 @@ ${dataPrompt}`;
   
   console.log(`[BatchBackfill] Summary saved for ${date}: ${shortSummary.substring(0, 80)}...`);
   
-  const rates = todayRates.map(r => ({ maturity: r.maturity, rate: parseFloat(r.rate) }));
+  const rates = todayRates.map(r => ({ maturity: r.maturity, rate: r.rate }));
   const pngBuffer = await generateOgChart(rates);
   
   const publicDir = join(process.cwd(), 'public');

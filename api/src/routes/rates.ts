@@ -4,7 +4,7 @@ import { eq, and, gte, lte, desc, asc, SQL } from 'drizzle-orm';
 import { MATURITIES } from '../utils/parse';
 import { queryCache } from '../utils/cache';
 
-const VALID_MATURITIES = new Set(MATURITIES.map(m => m.label));
+const VALID_MATURITIES = new Set(MATURITIES.map(m => m.maturity));
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 function isValidDate(dateStr: string): boolean {
@@ -186,8 +186,8 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
       .map(([date, rates]) => ({
         date,
         rates: rates.sort((a, b) => {
-          const matA = MATURITIES.find(m => m.label === a.maturity)?.years || 0;
-          const matB = MATURITIES.find(m => m.label === b.maturity)?.years || 0;
+          const matA = MATURITIES.find(m => m.maturity === a.maturity)?.years || 0;
+          const matB = MATURITIES.find(m => m.maturity === b.maturity)?.years || 0;
           return matA - matB;
         }),
       }))
@@ -257,8 +257,8 @@ export const ratesRoutes = new Elysia({ prefix: '/api/rates' })
       .map(([date, rates]) => ({
         date,
         rates: rates.sort((a, b) => {
-          const matA = MATURITIES.find(m => m.label === a.maturity)?.years || 0;
-          const matB = MATURITIES.find(m => m.label === b.maturity)?.years || 0;
+          const matA = MATURITIES.find(m => m.maturity === a.maturity)?.years || 0;
+          const matB = MATURITIES.find(m => m.maturity === b.maturity)?.years || 0;
           return matA - matB;
         }),
       }))

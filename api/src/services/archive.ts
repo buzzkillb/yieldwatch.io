@@ -14,7 +14,6 @@ const CSV_COLUMNS: Record<string, string> = {
   '4 MO': '4WK',
   '4 WEEK': '4WK',
   '6Wk': '6WK',
-  '6 MO': '6WK',
   '6 WEEK': '6WK',
   '2Mo': '2MO',
   '2 MO': '2MO',
