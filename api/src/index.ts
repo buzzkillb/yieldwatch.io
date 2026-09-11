@@ -228,7 +228,7 @@ const app = new Elysia()
             .orderBy(asc(schema.yieldCurveRates.maturity));
           const keyRates = ratesData
             .filter(r => ['4WK', '2YR', '10YR', '30YR'].includes(r.maturity))
-            .map(r => `${r.maturity === '4WK' ? '4-week' : r.maturity.replace('YR', '-year')} Treasury ${(r.maturity === '4WK' ? 'bill rate' : 'yield')} at ${r.rate} percent`);
+            .map(r => `${r.maturity === '4WK' ? '4-week' : r.maturity.replace('YR', '-year')} Treasury ${(r.maturity === '4WK' ? 'bill rate' : 'yield')} at ${Number(r.rate).toFixed(2)} percent`);
           const dateFormatted = new Date(latestDate + 'T00:00:00').toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' });
           const seoBlock = `<section id="seo-static-rates" aria-label="Current Treasury rates summary">
   <h2 style="position:absolute;left:-9999px;">Current U.S. Treasury Yield Curve Rates</h2>
