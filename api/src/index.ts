@@ -9,6 +9,7 @@ import { db, schema } from './db';
 import { desc, sql, eq, asc } from 'drizzle-orm';
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { readStaticFile, readStaticFileString } from './utils/staticFiles';
 import { generateOgChart } from './utils/ogChart';
 
 function escapeHtml(str: string): string {
@@ -88,7 +89,7 @@ const app = new Elysia()
   .get('/chartWorker.js', async () => {
     try {
       const workerPath = join(process.cwd(), 'public/chartWorker.js');
-      const js = readFileSync(workerPath, 'utf-8');
+      const js = readStaticFileString(workerPath);
       return new Response(js, {
         headers: {
           'Content-Type': 'text/javascript; charset=utf-8',
@@ -101,7 +102,7 @@ const app = new Elysia()
   .get('/.well-known/agent-skills/index.json', async () => {
     try {
       const indexPath = join(process.cwd(), 'public/.well-known/agent-skills/index.json');
-      const json = readFileSync(indexPath, 'utf-8');
+      const json = readStaticFileString(indexPath);
       return new Response(json, {
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
       });
@@ -112,7 +113,7 @@ const app = new Elysia()
   .get('/.well-known/agent-skills/*', async ({ params }) => {
     try {
       const skillPath = join(process.cwd(), 'public/.well-known/agent-skills/', params['*']);
-      const content = readFileSync(skillPath, 'utf-8');
+      const content = readStaticFileString(skillPath);
       return new Response(content, {
         headers: { 'Content-Type': 'text/markdown; charset=utf-8' },
       });
@@ -123,7 +124,7 @@ const app = new Elysia()
   .get('/robots.txt', async () => {
     try {
       const robotsPath = join(process.cwd(), 'public/robots.txt');
-      const txt = readFileSync(robotsPath, 'utf-8');
+      const txt = readStaticFileString(robotsPath);
       return new Response(txt, {
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',
@@ -136,7 +137,7 @@ const app = new Elysia()
   .get('/llms.txt', async () => {
     try {
       const llmsPath = join(process.cwd(), 'public/llms.txt');
-      const txt = readFileSync(llmsPath, 'utf-8');
+      const txt = readStaticFileString(llmsPath);
       return new Response(txt, {
         headers: {
           'Content-Type': 'text/markdown; charset=utf-8',
@@ -210,7 +211,7 @@ const app = new Elysia()
   .get('/', async ({ set, headers }) => {
     try {
       const indexPath = join(process.cwd(), 'public/index.html');
-      let html = readFileSync(indexPath, 'utf-8');
+      let html = readStaticFileString(indexPath);
 
       // Server-side SEO block: crawlable plain-text rates for non-JS crawlers / answer engines
       try {
@@ -298,7 +299,7 @@ const app = new Elysia()
       }
 
       const blogPath = join(process.cwd(), 'public/blog.html');
-      let html = readFileSync(blogPath, 'utf-8');
+      let html = readStaticFileString(blogPath);
 
       if (seoMetaTags.length > 0) {
         const metaTagsHtml = '\n    ' + seoMetaTags.join('\n    ');
@@ -352,7 +353,7 @@ const app = new Elysia()
       const metaDescription = escapeHtml(blogSummary.substring(0, 160));
 
       const blogPath = join(process.cwd(), 'public/blog-post.html');
-      let html = readFileSync(blogPath, 'utf-8');
+      let html = readStaticFileString(blogPath);
 
       html = html.replace(/<title[^>]*>.*<\/title>/, `<title id="page-title">${escapeHtml(pageTitle)}</title>`);
       html = html.replace(`content="Treasury yield curve daily analysis" id="meta-desc"`, `content="${metaDescription}" id="meta-desc"`);
@@ -467,7 +468,7 @@ const app = new Elysia()
   .get('/api-docs', async () => {
     try {
       const docsPath = join(process.cwd(), 'public/api-docs.html');
-      const html = readFileSync(docsPath, 'utf-8');
+      const html = readStaticFileString(docsPath);
       return new Response(html, {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
@@ -482,7 +483,7 @@ const app = new Elysia()
   .get('/faq', async () => {
     try {
       const faqPath = join(process.cwd(), 'public/faq.html');
-      const html = readFileSync(faqPath, 'utf-8');
+      const html = readStaticFileString(faqPath);
       return new Response(html, {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',

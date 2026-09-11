@@ -1,6 +1,15 @@
 import { db, schema } from '../db';
 import { eq, desc, asc } from 'drizzle-orm';
 import { fetchTreasuryYieldCurve } from './fetcher';
+import {
+  getRatesForDate,
+  getPreviousBusinessDay,
+  getDateMinusDays,
+  getPreviousBusinessDayFromDate,
+  getDayOfWeek,
+  sleep,
+  generateAndSaveSummaries,
+} from './summaryService';
 import { generateOgChart } from '../utils/ogChart';
 import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
@@ -46,126 +55,7 @@ const CSV_COLUMNS: Record<string, string> = {
 
 const KNOWN_MATURITY_KEYS = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
 
-function getPreviousBusinessDay(dateStr: string): string {
-  const date = new Date(dateStr + 'T00:00:00Z');
-  let daysBack = 1;
-  
-  while (daysBack <= 7) {
-    date.setUTCDate(date.getUTCDate() - 1);
-    const dayOfWeek = date.getUTCDay();
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      break;
-    }
-    daysBack++;
-  }
-  
-  return date.toISOString().split('T')[0];
-}
-
-function getDateMinusDays(dateStr: string, days: number): string {
-  const date = new Date(dateStr + 'T00:00:00Z');
-  date.setUTCDate(date.getUTCDate() - days);
-  return date.toISOString().split('T')[0];
-}
-
-function getDayOfWeek(dateStr: string): string {
-  const date = new Date(dateStr + 'T00:00:00Z');
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  return days[date.getUTCDay()];
-}
-
-async function getRatesForDate(date: string): Promise<{ maturity: string; rate: number }[]> {
-  const results = await db
-    .select()
-    .from(schema.yieldCurveRates)
-    .where(eq(schema.yieldCurveRates.date, date));
-  
-  return results.map(r => ({
-    maturity: r.maturity,
-    rate: parseFloat(r.rate)
-  }));
-}
-
-function formatDateForPrompt(dateStr: string): { date: string; day: string } {
-  return {
-    date: dateStr,
-    day: getDayOfWeek(dateStr)
-  };
-}
-
-// Discover whatever model is currently loaded on the gateway — swaps are invisible to us.
-let cachedModelId: string | null = null;
-
-async function discoverModelId(): Promise<string> {
-  if (cachedModelId) return cachedModelId;
-  const response = await fetch(`${LLM_BASE_URL}/v1/models`, {
-    headers: { 'Authorization': `Bearer ${LLM_API_KEY}` } as Record<string, string>
-  });
-  if (!response.ok) {
-    throw new Error(`/v1/models failed: ${response.status}`);
-  }
-  const data = await response.json() as { data?: { id: string }[] };
-  const modelId = data.data?.[0]?.id;
-  if (!modelId) {
-    throw new Error('/v1/models returned no models');
-  }
-  console.log(`[Scheduler] LLM model discovered: ${modelId}`);
-  cachedModelId = modelId;
-  return modelId;
-}
-
-function isModelNotFound(status: number, bodyText: string): boolean {
-  return status === 404 || /model\s*not\s*found|does\s*not\s*exist/i.test(bodyText);
-}
-
-async function fetchLLMWithRetry(body: Record<string, unknown>, label: string, attempt = 1): Promise<Response> {
-  const MAX_ATTEMPTS = 4;
-  const RETRY_DELAY_MS = 60_000;
-
-  try {
-    const modelId = await discoverModelId();
-    const response = await fetch(`${LLM_BASE_URL}/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LLM_API_KEY}`
-      } as Record<string, string>,
-      body: JSON.stringify({ ...body, model: modelId })
-    });
-
-    // Model was swapped mid-flight: forget the cached name, refetch, retry once
-    if (response.status === 404 || (response.ok === false && response.status === 400 && attempt === 1 && isModelNotFound(400, await response.clone().text()))) {
-      if (attempt === 1) {
-        console.log(`[Scheduler] LLM ${label}: model no longer available (${response.status}), rediscovering...`);
-        cachedModelId = null;
-        return fetchLLMWithRetry(body, label, 2);
-      }
-    }
-
-    if (response.ok || (response.status < 500 && response.status !== 429)) {
-      return response;
-    }
-
-    console.log(`[Scheduler] LLM ${label} attempt ${attempt}/${MAX_ATTEMPTS} failed: ${response.status}. Retrying in ${RETRY_DELAY_MS / 1000}s...`);
-  } catch (error) {
-    console.log(`[Scheduler] LLM ${label} attempt ${attempt}/${MAX_ATTEMPTS} network error: ${error}. Retrying in ${RETRY_DELAY_MS / 1000}s...`);
-  }
-
-  if (attempt < MAX_ATTEMPTS) {
-    await sleep(RETRY_DELAY_MS * attempt);
-    return fetchLLMWithRetry(body, label, attempt + 1);
-  }
-
-  // Return a synthetic failed response so parseResponse logs and returns ''
-  return new Response(JSON.stringify({ error: { message: `${label} failed after ${MAX_ATTEMPTS} attempts` } }), { status: 503 });
-}
-
 async function generateDailySummary(targetDate?: string): Promise<void> {
-  if (!LLM_API_KEY) {
-    console.log('[Scheduler] LLM_API_KEY not set, skipping daily summary generation');
-    return;
-  }
-
   try {
     console.log('[Scheduler] Generating daily rate summaries with LLM gateway...');
 
@@ -185,150 +75,14 @@ async function generateDailySummary(targetDate?: string): Promise<void> {
       }
       todayDate = latestDateInDb[0].date;
     }
-    const yesterdayDate = getPreviousBusinessDay(todayDate);
-    const lastWeekDate = getDateMinusDays(todayDate, 7);
-    const thirtyDaysAgoDate = getPreviousBusinessDayFromDate(todayDate, 30);
 
-    const [todayRates, yesterdayRates, lastWeekRates, thirtyDaysRates] = await Promise.all([
-      getRatesForDate(todayDate),
-      getRatesForDate(yesterdayDate),
-      getRatesForDate(lastWeekDate),
-      getRatesForDate(thirtyDaysAgoDate)
-    ]);
-
-    if (todayRates.length === 0) {
-      console.log('[Scheduler] No rates data for summary');
-      return;
-    }
-
-    const dates = {
-      today: formatDateForPrompt(todayDate),
-      yesterday: formatDateForPrompt(yesterdayDate),
-      lastWeek: formatDateForPrompt(lastWeekDate),
-      thirtyDays: formatDateForPrompt(thirtyDaysAgoDate),
-    };
-
-    const dataPrompt = `- Today (${dates.today.day}, ${dates.today.date}): ${JSON.stringify(todayRates)}
-- Yesterday (${dates.yesterday.day}, ${dates.yesterday.date}): ${JSON.stringify(yesterdayRates)}
-- One week ago (${dates.lastWeek.day}, ${dates.lastWeek.date}): ${JSON.stringify(lastWeekRates)}
-- One month ago (${dates.thirtyDays.day}, ${dates.thirtyDays.date}): ${JSON.stringify(thirtyDaysRates)}`;
-
-    const shortSystemPrompt = `You are a plain-spoken writer describing U.S. Treasury yield curve data. Treasury publishes rates on business days only - weekends and holidays are skipped.
-
-Rules:
-- Write 2-4 sentences as one paragraph
-- State today's full date (e.g. September 10, 2026) in the first sentence
-- Refer to rates by full searchable name at least once: "30-year Treasury yield", "10-year Treasury rate", "Treasury yield curve"
-- Always mention the 30-year rate prominently
-- You MUST include comparison to last week in every output
-- When describing changes, use simple language like "up from last week" or "higher than yesterday"
-- Do NOT use phrases like "percentage points" or "basis points" - just say "higher" or "lower"
-- If the yield curve is inverted, state that fact only - do not explain what it means
-- Stick to observable data comparisons - do not explain what rate movements mean for investors or markets
-- Begin with a plain statement of fact, never a generic opener like "In today's market" or "As of late"
-- Keep it factual and straightforward
-- Never use bullet points, dashes, or list format
-- Never use foreign characters or non-ASCII symbols
-- Write in plain English only
-
-${dataPrompt}`;
-
-    const longSystemPrompt = `You are a financial journalist writing a daily market brief about U.S. Treasury yields. Treasury publishes rates on business days only - weekends and holidays are skipped.
-
-Rules:
-- Write exactly 4 paragraphs of 3-5 sentences each
-- State today's full date (e.g. September 10, 2026) in the first sentence of paragraph 1
-- Refer to rates by full searchable name at least once each: "30-year Treasury yield", "10-year Treasury rate", "2-year Treasury rate", "Treasury yield curve"
-- Paragraph 1: Open with the 30-year Treasury yield and key weekly movements (vs last week)
-- Paragraph 2: Cover the broader curve - rate changes across maturities compared to last week
-- Paragraph 3: Discuss how rates have changed over the past month (vs 30 days ago) - highlight notable moves at different parts of the curve
-- Paragraph 4: Describe the Treasury yield curve shape and any inversions compared to both last week and 30 days ago - report them only as observed facts, make no interpretation of what they mean for investors, markets, or the economy
-- Use plain language - no jargon or educational explanations
-- Do NOT use "percentage points" or "basis points" - just say "higher" or "lower"
-- Do NOT explain what rate movements mean for investors or markets
-- Do NOT include predictions, forecasts, outlook, or speculation of any kind - describe only what the data shows
-- Begin with a plain statement of fact, never a generic opener like "In today's market" or "Investors are watching"
-- Keep it factual and informative
-- Never use bullet points, dashes, or list format
-- Never use foreign characters or non-ASCII symbols
-- Write in plain English only
-- Separate paragraphs with a blank line
-
-${dataPrompt}`;
-
-    const shortUserMessage = `Write a brief paragraph about today's Treasury yield curve rates. Keep it to 2-4 sentences. Open with today's date, use the full name "30-year Treasury yield" at least once, focus on the 30-year rate, and how it compares to last week.`;
-    const longUserMessage = `Write a detailed daily market brief about today's Treasury yield curve rates in exactly 4 paragraphs. This will be published on a public finance blog, so write for readers searching for current Treasury rates. Open with today's date and use full rate names ("30-year Treasury yield", "10-year Treasury rate", "Treasury yield curve"). Cover the overall curve shape, notable rate movements, how today compares to last week, and how the curve has shifted over the past month. Separate paragraphs with a blank line.`;
-
-    const [shortResponse, longResponse] = await Promise.all([
-      fetchLLMWithRetry({
-        max_tokens: 1000,
-        messages: [
-          { role: 'system', content: shortSystemPrompt },
-          { role: 'user', content: shortUserMessage }
-        ],
-        temperature: 0.4
-      }, 'short summary'),
-      fetchLLMWithRetry({
-        max_tokens: 3000,
-        messages: [
-          { role: 'system', content: longSystemPrompt },
-          { role: 'user', content: longUserMessage }
-        ],
-        temperature: 0.4
-      }, 'blog summary')
-    ]);
-
-    const parseResponse = async (response: Response): Promise<string> => {
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.log(`[Scheduler] LLM API error: ${response.status} - ${errorText}`);
-        return '';
-      }
-      const data = await response.json() as { choices?: { message?: { content?: string } }[] };
-      const text = data.choices?.[0]?.message?.content?.trim();
-      if (text && isValidSummary(text)) {
-        return text;
-      }
-      return '';
-    }
-
-    function isValidSummary(text: string): boolean {
-      if (!text || text.length < 50) return false;
-      if (text.length > 8000) return false;
-      if (text.includes('We need to produce') || text.includes('Must adhere to') ||
-          text.includes('style rules') || (text.includes('paragraph') && text.includes('sentence'))) {
-        return false;
-      }
-      if (text.includes('{"') || text.startsWith('{') || text.startsWith('[')) return false;
-      if (!text.includes('.') && !text.includes('!') && !text.includes('?')) return false;
-      return true;
-    }
-
-    const [shortSummary, blogSummary] = await Promise.all([
-      parseResponse(shortResponse),
-      parseResponse(longResponse)
-    ]);
+    const { short: shortSummary, long: blogSummary } = await generateAndSaveSummaries(todayDate);
 
     if (!shortSummary) {
-      console.log('[Scheduler] No short summary generated from MiniMax');
+      console.log('[Scheduler] No short summary generated for', todayDate);
       return;
     }
 
-    await db
-      .insert(schema.dailySummaries)
-      .values({
-        date: todayDate,
-        summary: shortSummary,
-        blogSummary: blogSummary || null,
-      })
-      .onConflictDoUpdate({
-        target: schema.dailySummaries.date,
-        set: {
-          summary: shortSummary,
-          blogSummary: blogSummary || null,
-          createdAt: new Date(),
-        },
-      });
     console.log(`[Scheduler] Daily summaries saved to database for ${todayDate}`);
     console.log(`[Scheduler] Short summary: ${shortSummary}`);
     if (blogSummary) {
@@ -337,7 +91,7 @@ ${dataPrompt}`;
 
     const ogImageResult = await generateOgImageForDate(todayDate);
     if (!ogImageResult) {
-      console.log('[Scheduler] WARNING: Failed to generate OG image for today\'s blog post');
+      console.log("[Scheduler] WARNING: Failed to generate OG image for today's blog post");
     }
 
   } catch (error) {
@@ -700,22 +454,6 @@ function getDateMonthsAgo(months: number): string {
   return date.toISOString().split('T')[0];
 }
 
-function getPreviousBusinessDayFromDate(dateStr: string, daysBack: number): string {
-  const date = new Date(dateStr + 'T00:00:00Z');
-  let daysChecked = 0;
-  
-  while (daysChecked < daysBack + 7) {
-    date.setUTCDate(date.getUTCDate() - 1);
-    const dayOfWeek = date.getUTCDay();
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      daysChecked++;
-      if (daysChecked === daysBack) break;
-    }
-  }
-  
-  return date.toISOString().split('T')[0];
-}
-
 async function checkAndUpdate(): Promise<void> {
   console.log(`[Scheduler] Checking for updates at ${new Date().toISOString()}...`);
   
@@ -831,10 +569,6 @@ async function dailyUpdateLoop(): Promise<void> {
       await sleep(CHECK_INTERVAL_MS);
     }
   }
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function main(): Promise<void> {
