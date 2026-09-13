@@ -10,6 +10,7 @@ import {
   buildLongSystemPrompt,
 } from '../services/summaryService';
 import { generateOgChart, MATURITY_ORDER, CHART_COLORS } from '../utils/ogChart';
+import { buildRssFeed } from '../routes/sitemap';
 
 describe('getOneYearAgoBusinessDay', () => {
   it('subtracts one year and lands on a business day', () => {
@@ -58,6 +59,27 @@ describe('prompt year-over-year context', () => {
       dates: { today: '2026-09-10', yesterday: '2026-09-09', lastWeek: '2026-09-03', thirtyDays: '2026-08-11' },
     });
     expect(p).toContain('one year ago');
+  });
+});
+
+describe('buildRssFeed', () => {
+  it('produces valid RSS with items and escapes XML', () => {
+    const rss = buildRssFeed([
+      { date: '2026-09-11', excerpt: 'Yields rose & the 10-year hit 4.96 <percent>' },
+      { date: '2026-09-10', excerpt: 'Curve steepened' },
+    ]);
+    expect(rss).toContain('<rss version="2.0"');
+    expect(rss).toContain('Treasury Yield Curve Summary for 2026-09-11');
+    expect(rss).toContain('https://yieldwatch.io/blog/2026-09-11');
+    expect(rss).toContain('Yields rose &amp; the 10-year hit 4.96 &lt;percent&gt;');
+    expect(rss).toMatch(/pubDate>\w{3}, \d{2} \w{3} \d{4} \d{2}:\d{2}:\d{2} GMT</);
+    expect(rss.indexOf('2026-09-11')).toBeLessThan(rss.indexOf('2026-09-10'));
+  });
+
+  it('handles empty post list', () => {
+    const rss = buildRssFeed([]);
+    expect(rss).toContain('<rss version="2.0"');
+    expect(rss).not.toContain('<item>');
   });
 });
 
