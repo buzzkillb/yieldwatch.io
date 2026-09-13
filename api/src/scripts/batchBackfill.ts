@@ -34,16 +34,21 @@ function getBusinessDaysInRange(start: string, end: string): string[] {
   return days;
 }
 
-async function backfillDate(date: string): Promise<boolean> {
-  const existing = await db
-    .select()
-    .from(schema.dailySummaries)
-    .where(eq(schema.dailySummaries.date, date))
-    .limit(1);
+// Force mode regenerates even if a summary already exists (e.g. after prompt improvements).
+const force = process.argv.includes('--force');
 
-  if (existing.length > 0) {
-    console.log(`[BatchBackfill] ${date} already has summary, skipping`);
-    return true;
+async function backfillDate(date: string): Promise<boolean> {
+  if (!force) {
+    const existing = await db
+      .select()
+      .from(schema.dailySummaries)
+      .where(eq(schema.dailySummaries.date, date))
+      .limit(1);
+
+    if (existing.length > 0) {
+      console.log(`[BatchBackfill] ${date} already has summary, skipping`);
+      return true;
+    }
   }
 
   console.log(`[BatchBackfill] Processing ${date}...`);
