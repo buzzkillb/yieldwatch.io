@@ -43,7 +43,6 @@ services:
       - treasury-network
     volumes:
       - ./api/public:/app/public:ro
-      - ./og_persist:/app/public/og
     command: bun run dist/index.js
 
   scheduler:
@@ -71,7 +70,6 @@ services:
       - treasury-network
     volumes:
       - ./api/public:/app/public:ro
-      - ./og_persist:/app/public/og
     command: bun run src/services/scheduler.ts
 
   traefik:
