@@ -60,7 +60,8 @@ services:
       CRON_TZ: ${CRON_TZ:-America/New_York}
       SCHEDULER_CRON_HOUR: ${SCHEDULER_CRON_HOUR:-16}
       SCHEDULER_CRON_MINUTE: ${SCHEDULER_CRON_MINUTE:-30}
-      MINIMAX_API_KEY: ${MINIMAX_API_KEY}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.bwengr.com}
+      LLM_API_KEY: ${LLM_API_KEY}
     depends_on:
       db:
         condition: service_healthy
@@ -84,7 +85,7 @@ services:
       - ./acme.json:/acme.json:rw
     environment:
       - CF_API_EMAIL=${CF_API_EMAIL}
-      - CF_API_TOKEN=${CF_API_TOKEN}
+      - CLOUDFLARE_DNS_API_TOKEN=${CF_API_TOKEN}
       - DOMAIN=${DOMAIN}
     restart: unless-stopped
     networks:
