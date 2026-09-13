@@ -1006,11 +1006,14 @@
     let sparklineData = {};   // maturity -> [[date, rate], ...] over 3 months
     let sparklineHover = {};  // maturity -> hovered rate (persist across redraws)
 
-    function buildSparklines(rows) {
-      // rows: [{date, maturity, rate}] for ~3 months, all maturities
+    function buildSparklines(data) {
+      // API returns rows grouped by date: [{date, rates: [{maturity, rate}]}]
       const byMaturity = {};
-      for (const r of rows) {
-        (byMaturity[r.maturity] = byMaturity[r.maturity] || []).push([r.date, parseFloat(r.rate)]);
+      for (const day of data) {
+        const rates = day.rates || [];
+        for (const r of rates) {
+          (byMaturity[r.maturity] = byMaturity[r.maturity] || []).push([day.date, parseFloat(r.rate)]);
+        }
       }
       for (const k of Object.keys(byMaturity)) {
         byMaturity[k].sort((a, b) => a[0] < b[0] ? -1 : 1);
