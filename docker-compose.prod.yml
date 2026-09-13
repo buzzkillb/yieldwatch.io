@@ -42,7 +42,7 @@ services:
     networks:
       - treasury-network
     volumes:
-      - ./api/public:/app/public:ro
+      - ./api/public:/app/public
     command: bun run dist/index.js
 
   scheduler:
@@ -69,7 +69,7 @@ services:
     networks:
       - treasury-network
     volumes:
-      - ./api/public:/app/public:ro
+      - ./api/public:/app/public
     command: bun run src/services/scheduler.ts
 
   traefik:
