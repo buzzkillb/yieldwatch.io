@@ -14,10 +14,6 @@ import { generateOgChart } from '../utils/ogChart';
 import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 
-const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY;
-const LLM_BASE_URL = (process.env.LLM_BASE_URL || 'https://api.bwengr.com').replace(/\/+$/, '');
-const LLM_API_KEY = process.env.LLM_API_KEY || process.env.MINIMAX_API_KEY;
-
 const CHECK_INTERVAL_MS = (() => {
   const val = parseInt(process.env.SCHEDULER_CHECK_INTERVAL_MS || '900000', 10);
   if (isNaN(val) || val < 60000 || val > 3600000) {
@@ -492,12 +488,9 @@ async function hasSummaryForDate(date: string): Promise<boolean> {
 
 /**
  * Backfill: regenerate summaries for recent dates that have yield data but no summary.
- * Covers days where the MiniMax call failed and never got retried.
+ * Covers days where the LLM call failed and never got retried.
  */
 async function backfillMissingSummaries(): Promise<void> {
-  if (!MINIMAX_API_KEY) {
-    return;
-  }
   try {
     const datesWithRates = await db
       .selectDistinct({ date: schema.yieldCurveRates.date })

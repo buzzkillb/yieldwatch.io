@@ -406,12 +406,11 @@ const app = new Elysia()
         .orderBy(asc(schema.yieldCurveRates.maturity));
 
       const rates = ratesData.map(r => ({ maturity: r.maturity, rate: parseFloat(r.rate) }));
-      const stripHtml = (str: string) => str.replace(/<[^>]*>/g, '');
       const formatBlogSummary = (text: string) => {
         return text
           .split(/\n\n+/)
           .filter((p: string) => p.trim())
-          .map((p: string) => `<p>${stripHtml(p.trim())}</p>`)
+          .map((p: string) => `<p>${escapeHtml(p.trim())}</p>`)
           .join('');
       };
 
