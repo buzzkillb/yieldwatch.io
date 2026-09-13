@@ -3,12 +3,63 @@ import {
   getPreviousBusinessDay,
   getDateMinusDays,
   getPreviousBusinessDayFromDate,
+  getOneYearAgoBusinessDay,
   getDayOfWeek,
   isValidSummary,
   buildShortSystemPrompt,
   buildLongSystemPrompt,
 } from '../services/summaryService';
 import { generateOgChart, MATURITY_ORDER, CHART_COLORS } from '../utils/ogChart';
+
+describe('getOneYearAgoBusinessDay', () => {
+  it('subtracts one year and lands on a business day', () => {
+    const result = getOneYearAgoBusinessDay('2026-09-10');
+    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const d = new Date(result + 'T00:00:00Z');
+    expect(d.getUTCDay()).not.toBe(0); // not Sunday
+    expect(d.getUTCDay()).not.toBe(6); // not Saturday
+    // exactly one year earlier (or slightly before if weekend walk-back)
+    expect(result <= '2025-09-10').toBe(true);
+    expect(result >= '2025-09-03').toBe(true);
+  });
+
+  it('handles leap-day input (Feb 29 -> Feb 28)', () => {
+    const result = getOneYearAgoBusinessDay('2028-02-29');
+    expect(result).toBe('2027-02-26'); // Feb 28 2027 is a Sunday -> walk back to Friday Feb 26
+  });
+
+  it('walks back off weekends', () => {
+    // 2025-09-13 is a Saturday -> 2025-09-12 Friday
+    expect(getOneYearAgoBusinessDay('2026-09-13')).toBe('2025-09-12');
+  });
+});
+
+describe('prompt year-over-year context', () => {
+  it('includes one-year-ago data in the prompt when provided', () => {
+    const rates = { todayRates: [], yesterdayRates: [], lastWeekRates: [], thirtyDaysRates: [] };
+    const withYear = buildShortSystemPrompt({
+      ...rates,
+      dates: { today: '2026-09-10', yesterday: '2026-09-09', lastWeek: '2026-09-03', thirtyDays: '2026-08-11' },
+      yearAgoRates: [{ maturity: '10YR', rate: 4.2 }],
+      yearAgoDate: '2025-09-10',
+    });
+    expect(withYear).toContain('One year ago');
+    expect(withYear).toContain('2025-09-10');
+    const withoutYear = buildShortSystemPrompt({
+      ...rates,
+      dates: { today: '2026-09-10', yesterday: '2026-09-09', lastWeek: '2026-09-03', thirtyDays: '2026-08-11' },
+    });
+    expect(withoutYear).not.toContain('One year ago');
+  });
+
+  it('long prompt mentions year-ago comparison instruction', () => {
+    const p = buildLongSystemPrompt({
+      todayRates: [], yesterdayRates: [], lastWeekRates: [], thirtyDaysRates: [],
+      dates: { today: '2026-09-10', yesterday: '2026-09-09', lastWeek: '2026-09-03', thirtyDays: '2026-08-11' },
+    });
+    expect(p).toContain('one year ago');
+  });
+});
 
 describe('business day helpers', () => {
   it('skips weekends going back one business day', () => {

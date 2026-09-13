@@ -282,6 +282,14 @@
       transform: translateY(-2px);
     }
 
+    .rate-sparkline {
+      width: 100%;
+      height: 22px;
+      margin-top: 0.3rem;
+      display: block;
+      opacity: 0.9;
+    }
+
     .rate-card:focus {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
@@ -995,6 +1003,74 @@
       announceToScreenReader('Yield rates loaded successfully');
     }
 
+    let sparklineData = {};   // maturity -> [[date, rate], ...] over 3 months
+    let sparklineHover = {};  // maturity -> hovered rate (persist across redraws)
+
+    function buildSparklines(rows) {
+      // rows: [{date, maturity, rate}] for ~3 months, all maturities
+      const byMaturity = {};
+      for (const r of rows) {
+        (byMaturity[r.maturity] = byMaturity[r.maturity] || []).push([r.date, parseFloat(r.rate)]);
+      }
+      for (const k of Object.keys(byMaturity)) {
+        byMaturity[k].sort((a, b) => a[0] < b[0] ? -1 : 1);
+      }
+      sparklineData = byMaturity;
+      renderSparklines();
+    }
+
+    function sparklinePath(points, w, h) {
+      if (!points || points.length < 2) return '';
+      const rates = points.map(p => p[1]);
+      const min = Math.min(...rates), max = Math.max(...rates);
+      const range = (max - min) || 1;
+      const step = w / (points.length - 1);
+      return points.map((p, i) => {
+        const x = (i * step).toFixed(1);
+        const y = (h - ((p[1] - min) / range) * (h - 4) - 2).toFixed(1);
+        return (i === 0 ? 'M' : 'L') + x + ' ' + y;
+      }).join(' ');
+    }
+
+    function renderSparklines() {
+      for (const maturity of Object.keys(latestRates)) {
+        const card = document.querySelector('.rate-card[data-maturity="' + maturity + '"]');
+        if (!card) continue;
+        const old = card.querySelector('.rate-sparkline');
+        if (old) old.remove();
+        const pts = sparklineData[maturity];
+        if (!pts || pts.length < 2) continue;
+        // end dot color: green if rate fell over the window, red if it rose
+        const first = pts[0][1], last = pts[pts.length - 1][1];
+        const color = last < first ? '#22c55e' : '#ef4444';
+        const w = 120, h = 22;
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'rate-sparkline');
+        svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.setAttribute('aria-hidden', 'true');
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', sparklinePath(pts, w, h));
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', color);
+        path.setAttribute('stroke-width', '1.5');
+        svg.appendChild(path);
+        const endY = h - 2 - ((last - Math.min(...pts.map(p => p[1]))) / ((Math.max(...pts.map(p => p[1])) - Math.min(...pts.map(p => p[1]))) || 1)) * (h - 4);
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('cx', String(w - 1));
+        dot.setAttribute('cy', endY.toFixed(1));
+        dot.setAttribute('r', '2');
+        dot.setAttribute('fill', color);
+        svg.appendChild(dot);
+        // title tooltip: change over window
+        const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+        const diff = last - first;
+        title.textContent = '3-month change: ' + (diff >= 0 ? '+' : '') + diff.toFixed(2) + '%';
+        svg.appendChild(title);
+        card.appendChild(svg);
+      }
+    }
+
     async function fetchHistoricalData() {
       const now = new Date();
       let fromDate;
@@ -1024,6 +1100,10 @@
         const data = await response.json();
         
         if (data.success && data.data) {
+          // Feed 3-month sparklines under each rate card (independent of chart range)
+          if (currentRange === '3m') {
+            buildSparklines(data.data);
+          }
           // Use Web Worker for heavy processing
           const result = await processInWorker(data.data);
           chartData.labels = result.labels;

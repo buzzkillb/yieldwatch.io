@@ -56,6 +56,24 @@ export function getPreviousBusinessDayFromDate(dateStr: string, daysBack: number
   return date.toISOString().split('T')[0];
 }
 
+// Most recent business day on or before (dateStr - 1 year), for year-over-year context.
+export function getOneYearAgoBusinessDay(dateStr: string): string {
+  const date = new Date(dateStr + 'T00:00:00Z');
+  const inputMonth = date.getUTCMonth();
+  const inputDay = date.getUTCDate();
+  date.setUTCFullYear(date.getUTCFullYear() - 1);
+  // JS rolls Feb 29 -> Mar 1 on non-leap years; clamp back to Feb 28
+  if (inputMonth === 1 && inputDay === 29 && date.getUTCMonth() === 2 && date.getUTCDate() === 1) {
+    date.setUTCDate(date.getUTCDate() - 1);
+  }
+  let steps = 0;
+  while (date.getUTCDay() === 0 || date.getUTCDay() === 6) {
+    date.setUTCDate(date.getUTCDate() - 1);
+    if (++steps > 7) break;
+  }
+  return date.toISOString().split('T')[0];
+}
+
 export function getDayOfWeek(dateStr: string): string {
   const date = new Date(dateStr + 'T00:00:00Z');
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -83,14 +101,21 @@ function buildDataPrompt(
   yesterdayRates: { maturity: string; rate: number }[],
   lastWeekRates: { maturity: string; rate: number }[],
   thirtyDaysRates: { maturity: string; rate: number }[],
-  dates: { today: string; yesterday: string; lastWeek: string; thirtyDays: string }
+  dates: { today: string; yesterday: string; lastWeek: string; thirtyDays: string },
+  yearAgoRates?: { maturity: string; rate: number }[],
+  yearAgoDate?: string
 ): string {
   const fmt = (d: string) => ({ date: d, day: getDayOfWeek(d) });
   const t = fmt(dates.today), y = fmt(dates.yesterday), w = fmt(dates.lastWeek), m = fmt(dates.thirtyDays);
-  return `- Today (${t.day}, ${t.date}): ${JSON.stringify(todayRates)}
+  let out = `- Today (${t.day}, ${t.date}): ${JSON.stringify(todayRates)}
 - Yesterday (${y.day}, ${y.date}): ${JSON.stringify(yesterdayRates)}
 - One week ago (${w.day}, ${w.date}): ${JSON.stringify(lastWeekRates)}
 - One month ago (${m.day}, ${m.date}): ${JSON.stringify(thirtyDaysRates)}`;
+  if (yearAgoRates && yearAgoRates.length > 0 && yearAgoDate) {
+    const ya = fmt(yearAgoDate);
+    out += `\n- One year ago (${ya.day}, ${ya.date}): ${JSON.stringify(yearAgoRates)}`;
+  }
+  return out;
 }
 
 export function buildShortSystemPrompt(ratesData: {
@@ -99,8 +124,10 @@ export function buildShortSystemPrompt(ratesData: {
   lastWeekRates: { maturity: string; rate: number }[];
   thirtyDaysRates: { maturity: string; rate: number }[];
   dates: { today: string; yesterday: string; lastWeek: string; thirtyDays: string };
+  yearAgoRates?: { maturity: string; rate: number }[];
+  yearAgoDate?: string;
 }): string {
-  const dataPrompt = buildDataPrompt(ratesData.todayRates, ratesData.yesterdayRates, ratesData.lastWeekRates, ratesData.thirtyDaysRates, ratesData.dates);
+  const dataPrompt = buildDataPrompt(ratesData.todayRates, ratesData.yesterdayRates, ratesData.lastWeekRates, ratesData.thirtyDaysRates, ratesData.dates, ratesData.yearAgoRates, ratesData.yearAgoDate);
   return `You are a plain-spoken writer describing U.S. Treasury yield curve data. Treasury publishes rates on business days only - weekends and holidays are skipped.
 
 Rules:
@@ -109,6 +136,7 @@ Rules:
 - Refer to rates by full searchable name at least once: "30-year Treasury yield", "10-year Treasury rate", "Treasury yield curve"
 - Always mention the 30-year rate prominently
 - You MUST include comparison to last week in every output
+- If one-year-ago data is provided, include one comparison to a year ago (e.g. the 30-year or 10-year rate versus one year ago)
 - When describing changes, use simple language like "up from last week" or "higher than yesterday"
 - Do NOT use phrases like "percentage points" or "basis points" - just say "higher" or "lower"
 - If the yield curve is inverted, state that fact only - do not explain what it means
@@ -128,8 +156,10 @@ export function buildLongSystemPrompt(ratesData: {
   lastWeekRates: { maturity: string; rate: number }[];
   thirtyDaysRates: { maturity: string; rate: number }[];
   dates: { today: string; yesterday: string; lastWeek: string; thirtyDays: string };
+  yearAgoRates?: { maturity: string; rate: number }[];
+  yearAgoDate?: string;
 }): string {
-  const dataPrompt = buildDataPrompt(ratesData.todayRates, ratesData.yesterdayRates, ratesData.lastWeekRates, ratesData.thirtyDaysRates, ratesData.dates);
+  const dataPrompt = buildDataPrompt(ratesData.todayRates, ratesData.yesterdayRates, ratesData.lastWeekRates, ratesData.thirtyDaysRates, ratesData.dates, ratesData.yearAgoRates, ratesData.yearAgoDate);
   return `You are a financial journalist writing a daily market brief about U.S. Treasury yields. Treasury publishes rates on business days only - weekends and holidays are skipped.
 
 Rules:
@@ -138,7 +168,7 @@ Rules:
 - Refer to rates by full searchable name at least once each: "30-year Treasury yield", "10-year Treasury rate", "2-year Treasury rate", "Treasury yield curve"
 - Paragraph 1: Open with the 30-year Treasury yield and key weekly movements (vs last week)
 - Paragraph 2: Cover the broader curve - rate changes across maturities compared to last week
-- Paragraph 3: Discuss how rates have changed over the past month (vs 30 days ago) - highlight notable moves at different parts of the curve
+- Paragraph 3: Discuss how rates have changed over the past month (vs 30 days ago) - highlight notable moves at different parts of the curve. If one-year-ago data is provided, also state how today's 10-year and 30-year rates compare to one year ago
 - Paragraph 4: Describe the Treasury yield curve shape and any inversions compared to both last week and 30 days ago - report them only as observed facts, make no interpretation of what they mean for investors, markets, or the economy
 - Use plain language - no jargon or educational explanations
 - Do NOT use "percentage points" or "basis points" - just say "higher" or "lower"
@@ -264,12 +294,14 @@ export async function generateAndSaveSummaries(date: string): Promise<{ short: s
   const yesterdayDate = getPreviousBusinessDay(date);
   const lastWeekDate = getDateMinusDays(date, 7);
   const thirtyDaysAgoDate = getPreviousBusinessDayFromDate(date, 30);
+  const yearAgoDate = getOneYearAgoBusinessDay(date);
 
-  const [todayRates, yesterdayRates, lastWeekRates, thirtyDaysRates] = await Promise.all([
+  const [todayRates, yesterdayRates, lastWeekRates, thirtyDaysRates, yearAgoRates] = await Promise.all([
     getRatesForDate(date),
     getRatesForDate(yesterdayDate),
     getRatesForDate(lastWeekDate),
-    getRatesForDate(thirtyDaysAgoDate)
+    getRatesForDate(thirtyDaysAgoDate),
+    getRatesForDate(yearAgoDate)
   ]);
 
   if (todayRates.length === 0) {
@@ -279,7 +311,9 @@ export async function generateAndSaveSummaries(date: string): Promise<{ short: s
 
   const ratesData = {
     todayRates, yesterdayRates, lastWeekRates, thirtyDaysRates,
-    dates: { today: date, yesterday: yesterdayDate, lastWeek: lastWeekDate, thirtyDays: thirtyDaysAgoDate }
+    dates: { today: date, yesterday: yesterdayDate, lastWeek: lastWeekDate, thirtyDays: thirtyDaysAgoDate },
+    yearAgoRates,
+    yearAgoDate: yearAgoRates.length > 0 ? yearAgoDate : undefined
   };
 
   const [shortResponse, longResponse] = await Promise.all([
