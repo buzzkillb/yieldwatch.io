@@ -6,7 +6,7 @@ import { ratesRoutes } from './routes/rates';
 import { blogRoutes } from './routes/blog';
 import { sitemapRoutes } from './routes/sitemap';
 import { db, schema } from './db';
-import { desc, sql, eq, asc } from 'drizzle-orm';
+import { desc, sql, eq, asc, lt, gt } from 'drizzle-orm';
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { readStaticFile, readStaticFileString } from './utils/staticFiles';
@@ -423,6 +423,45 @@ const app = new Elysia()
                   </div>
                 `).join('');
 
+      // Internal linking: nearest earlier/later posts plus recent summaries.
+      // Gives crawlers real hub/spoke structure instead of a flat paginated list.
+      const earlierPosts = await db
+        .select({ date: schema.dailySummaries.date })
+        .from(schema.dailySummaries)
+        .where(lt(schema.dailySummaries.date, date))
+        .orderBy(desc(schema.dailySummaries.date))
+        .limit(5);
+
+      const laterPosts = await db
+        .select({ date: schema.dailySummaries.date })
+        .from(schema.dailySummaries)
+        .where(gt(schema.dailySummaries.date, date))
+        .orderBy(asc(schema.dailySummaries.date))
+        .limit(5);
+
+      const linkLabel = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('en-US', {
+        timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric',
+      });
+
+      const prevDate = laterPosts[0]?.date;   // newer post = "next"
+      const nextDate = earlierPosts[0]?.date; // older post = "previous"
+
+      const prevNextHtml = (prevDate || nextDate)
+        ? `<nav class="post-nav" aria-label="Adjacent daily summaries">
+            ${prevDate ? `<a class="post-nav-link" rel="prev" href="/blog/${prevDate}">&larr; ${escapeHtml(linkLabel(prevDate))}</a>` : '<span class="post-nav-spacer"></span>'}
+            ${nextDate ? `<a class="post-nav-link" rel="next" href="/blog/${nextDate}">${escapeHtml(linkLabel(nextDate))} &rarr;</a>` : '<span class="post-nav-spacer"></span>'}
+          </nav>`
+        : '';
+
+      const recentHtml = earlierPosts.length > 0
+        ? `<section class="related-summaries" aria-label="Recent daily summaries">
+            <h2 class="related-title">Recent daily summaries</h2>
+            <ul class="related-list">
+              ${earlierPosts.map(p => `<li><a href="/blog/${p.date}">Treasury yield curve summary for ${escapeHtml(linkLabel(p.date))}</a></li>`).join('')}
+            </ul>
+          </section>`
+        : '';
+
       const articleContent = `
           <article>
             <header class="post-header">
@@ -434,6 +473,8 @@ const app = new Elysia()
               ${formatBlogSummary(blogSummary)}
             </div>
 
+            ${prevNextHtml}
+
             <section class="chart-section">
               <h2 class="chart-title">Yield Curve</h2>
               <div class="chart-wrapper">
@@ -443,6 +484,8 @@ const app = new Elysia()
                 ${ratesHtml}
               </div>
             </section>
+
+            ${recentHtml}
           </article>
         `;
 

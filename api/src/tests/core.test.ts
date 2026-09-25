@@ -4,6 +4,8 @@ import {
   getDateMinusDays,
   getPreviousBusinessDayFromDate,
   getOneYearAgoBusinessDay,
+  getEditorialAngle,
+  buildStyleDirective,
   getDayOfWeek,
   isValidSummary,
   buildShortSystemPrompt,
@@ -59,6 +61,40 @@ describe('prompt year-over-year context', () => {
       dates: { today: '2026-09-10', yesterday: '2026-09-09', lastWeek: '2026-09-03', thirtyDays: '2026-08-11' },
     });
     expect(p).toContain('one year ago');
+  });
+});
+
+describe('editorial variation', () => {
+  it('selects an angle deterministically for a given date', () => {
+    const a1 = getEditorialAngle('2026-09-15');
+    const a2 = getEditorialAngle('2026-09-15');
+    expect(a1.id).toBe(a2.id);
+    expect(typeof a1.lead).toBe('string');
+    expect(a1.lead.length).toBeGreaterThan(10);
+  });
+
+  it('rotates across dates rather than always picking one angle', () => {
+    const ids = new Set(
+      ['2026-09-14','2026-09-15','2026-09-16','2026-09-17','2026-09-18','2026-09-21','2026-09-22','2026-09-23']
+        .map(d => getEditorialAngle(d).id)
+    );
+    expect(ids.size).toBeGreaterThan(1);
+  });
+
+  it('style directive carries the angle and anti-repetition rules', () => {
+    const directive = buildStyleDirective('2026-09-15');
+    const angle = getEditorialAngle('2026-09-15');
+    expect(directive).toContain(angle.id);
+    expect(directive).toContain('Vary your sentence structure');
+  });
+
+  it('prompts include the style directive for the requested date', () => {
+    const p = buildShortSystemPrompt({
+      todayRates: [], yesterdayRates: [], lastWeekRates: [], thirtyDaysRates: [],
+      dates: { today: '2026-09-15', yesterday: '2026-09-14', lastWeek: '2026-09-08', thirtyDays: '2026-08-16' },
+    });
+    expect(p).toContain('Editorial angle for this brief');
+    expect(p).toContain(getEditorialAngle('2026-09-15').id);
   });
 });
 

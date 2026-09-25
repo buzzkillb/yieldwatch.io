@@ -118,6 +118,73 @@ function buildDataPrompt(
   return out;
 }
 
+
+// --- Editorial variation -------------------------------------------------
+// Daily pages historically read near-identically, which hurts indexing and
+// reader value. We rotate the editorial framing deterministically by date so
+// each day's brief leads from a different, data-supported angle while staying
+// strictly factual. Deterministic (not random) so --force reruns reproduce.
+
+const EDITORIAL_ANGLES = [
+  {
+    id: 'long-end',
+    lead: 'Lead paragraph 1 with the 30-year Treasury yield and the long end of the curve (20YR/30YR).',
+    focus: 'Build paragraphs 2-4 around how the long end moved versus last week, last month and one year ago.',
+  },
+  {
+    id: 'short-end',
+    lead: 'Lead paragraph 1 with the short end of the curve (4WK/6WK/2MO bills) and what bills did versus last week.',
+    focus: 'Build paragraphs 2-4 around the short end, then move out along the curve to the 10-year and 30-year.',
+  },
+  {
+    id: 'curve-shape',
+    lead: 'Lead paragraph 1 with the shape of the Treasury yield curve today - where it is steepest and where it is flattest or inverted.',
+    focus: 'Build paragraphs 2-4 around how the curve shape changed versus last week and last month.',
+  },
+  {
+    id: 'largest-move',
+    lead: 'Lead paragraph 1 with whichever maturity moved the most versus last week, naming that maturity and its rate.',
+    focus: 'Build paragraphs 2-4 around the spread of moves across the curve - the largest movers and the smallest.',
+  },
+  {
+    id: 'year-contrast',
+    lead: 'Lead paragraph 1 with the comparison to one year ago for the 10-year and 30-year Treasury yields.',
+    focus: 'Build paragraphs 2-4 around the year-over-year change first, then the week and month changes.',
+  },
+  {
+    id: 'month-drift',
+    lead: 'Lead paragraph 1 with how rates have drifted over the past month at the 2-year, 10-year and 30-year maturities.',
+    focus: 'Build paragraphs 2-4 around the one-month change across the curve, then add the weekly comparison.',
+  },
+  {
+    id: 'mid-curve',
+    lead: 'Lead paragraph 1 with the middle of the curve (2YR through 7YR) and the 10-year Treasury rate.',
+    focus: 'Build paragraphs 2-4 around the belly of the curve, then contrast with the short and long ends.',
+  },
+];
+
+// Deterministic index: same date always selects the same angle.
+export function getEditorialAngle(date: string): typeof EDITORIAL_ANGLES[number] {
+  let hash = 0;
+  for (let i = 0; i < date.length; i++) {
+    hash = (hash * 31 + date.charCodeAt(i)) % 100000;
+  }
+  return EDITORIAL_ANGLES[hash % EDITORIAL_ANGLES.length];
+}
+
+const ANTI_REPETITION_RULES = `- Vary your sentence structure: do not reuse the same opening clause pattern across paragraphs
+- Avoid repeating the identical transition phrase more than once (e.g. do not start three sentences with "Meanwhile")
+- Do not begin every paragraph with a date or day-of-week; vary how each paragraph opens
+- Never reuse the same sentence template you would write for another day - the facts should drive the wording`;
+
+export function buildStyleDirective(date: string): string {
+  const angle = getEditorialAngle(date);
+  return `Editorial angle for this brief (id: ${angle.id}):
+- ${angle.lead}
+- ${angle.focus}
+${ANTI_REPETITION_RULES}`;
+}
+
 export function buildShortSystemPrompt(ratesData: {
   todayRates: { maturity: string; rate: number }[];
   yesterdayRates: { maturity: string; rate: number }[];
@@ -147,6 +214,8 @@ Rules:
 - Never use foreign characters or non-ASCII symbols
 - Write in plain English only
 
+${buildStyleDirective(ratesData.dates.today)}
+
 ${dataPrompt}`;
 }
 
@@ -167,7 +236,7 @@ Rules:
 - State today's full date (e.g. September 10, 2026) in the first sentence of paragraph 1
 - Refer to rates by full searchable name at least once each: "30-year Treasury yield", "10-year Treasury rate", "2-year Treasury rate", "Treasury yield curve"
 - Paragraph 1: Open with the 30-year Treasury yield and key weekly movements (vs last week)
-- Paragraph 2: Cover the broader curve - rate changes across maturities compared to last week
+- Paragraph 2: Cover the broader curve - rate changes across maturities compared to last week, but vary how you present the moves (not every maturity needs a number)
 - Paragraph 3: Discuss how rates have changed over the past month (vs 30 days ago) - highlight notable moves at different parts of the curve. If one-year-ago data is provided, also state how today's 10-year and 30-year rates compare to one year ago
 - Paragraph 4: Describe the Treasury yield curve shape and any inversions compared to both last week and 30 days ago - report them only as observed facts, make no interpretation of what they mean for investors, markets, or the economy
 - Use plain language - no jargon or educational explanations
@@ -181,15 +250,21 @@ Rules:
 - Write in plain English only
 - Separate paragraphs with a blank line
 
+${buildStyleDirective(ratesData.dates.today)}
+
 ${dataPrompt}`;
 }
 
-export function shortUserMessage(): string {
-  return `Write a brief paragraph about today's Treasury yield curve rates. Keep it to 2-4 sentences. Focus on the 30-year rate and how it compares to last week.`;
+export function shortUserMessage(date?: string): string {
+  const angle = date ? getEditorialAngle(date) : null;
+  const focus = angle ? ` ${angle.lead}` : ' Focus on the 30-year rate and how it compares to last week.';
+  return `Write a brief paragraph about today's Treasury yield curve rates. Keep it to 2-4 sentences.${focus}`;
 }
 
-export function longUserMessage(): string {
-  return `Write a detailed daily market brief about today's Treasury yield curve following the paragraph structure described.`;
+export function longUserMessage(date?: string): string {
+  const angle = date ? getEditorialAngle(date) : null;
+  const focus = angle ? ` Use this editorial angle: ${angle.lead}` : '';
+  return `Write a detailed daily market brief about today's Treasury yield curve following the paragraph structure described.${focus}`;
 }
 
 // --- Gateway access (model discovery + retry), shared by everything ---
@@ -320,7 +395,7 @@ export async function generateAndSaveSummaries(date: string): Promise<{ short: s
     fetchLLMWithRetry({
       messages: [
         { role: 'system', content: buildShortSystemPrompt(ratesData) },
-        { role: 'user', content: shortUserMessage() }
+        { role: 'user', content: shortUserMessage(date) }
       ],
       max_tokens: 1000,
       temperature: 0.4
@@ -328,7 +403,7 @@ export async function generateAndSaveSummaries(date: string): Promise<{ short: s
     fetchLLMWithRetry({
       messages: [
         { role: 'system', content: buildLongSystemPrompt(ratesData) },
-        { role: 'user', content: longUserMessage() }
+        { role: 'user', content: longUserMessage(date) }
       ],
       max_tokens: 3000,
       temperature: 0.4
