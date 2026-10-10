@@ -1,0 +1,45 @@
+name: Daily data update
+
+# Treasury publishes the daily yield-curve XML ~3:30pm ET. Three staggered
+# attempts cover late publishes; the script exits early when there is no new
+# data. A push triggers the Cloudflare Pages build automatically.
+on:
+  schedule:
+    - cron: '30 21 * * 1-5' # 4:30pm ET
+    - cron: '30 22 * * 1-5' # 5:30pm ET
+    - cron: '30 23 * * 1-5' # 6:30pm ET
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install API deps (prompt + retry helpers live in api/src)
+        working-directory: api
+        run: bun install --frozen-lockfile
+
+      - name: Generate daily summaries
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+        run: bun site/scripts/daily-update.ts
+
+      - name: Commit and push
+        run: |
+          git config user.name "yieldwatch-bot"
+          git config user.email "bot@yieldwatch.io"
+          git add site/src/data
+          if git diff --cached --quiet; then
+            echo "No data changes to commit."
+          else
+            git commit -m "Daily data update $(date -u +%F)"
+            git push
+          fi

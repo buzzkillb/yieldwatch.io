@@ -1,0 +1,152 @@
+---
+// Blog post pages: full static replica of the old SSR path in api/src/index.ts
+// (head meta, JSON-LD, article, prev/next, recent-5 hub, chart) generated per
+// date from src/data/summaries.json. The template's client loader is disabled;
+// its own renderChart is reused with embedded data.
+import {
+  readTemplate, escapeHtml, dateFormatted, linkLabel, formatBlogSummary,
+  SUMMARIES, CHART_COLORS, SITE_URL,
+} from '../../lib/site';
+
+export function getStaticPaths() {
+  return SUMMARIES.map(s => ({ params: { date: s.date } }));
+}
+
+const { date } = Astro.params;
+const entry = SUMMARIES.find(s => s.date === date)!;
+const blogSummary = entry.blogSummary || entry.summary;
+const dateStr = dateFormatted(date);
+const blogUrl = `${SITE_URL}/blog/${date}`;
+const ogImageUrl = `${SITE_URL}/og-image/${date}`;
+const pageTitle = `${dateStr} | Treasury Yield Daily`;
+const articleH1 = `Treasury Yield Curve Analysis — ${dateStr}`;
+const metaDescription = escapeHtml(blogSummary.substring(0, 160));
+
+// Adjacent posts + recent-5 hub (same semantics as the SSR version).
+const desc = [...SUMMARIES].map(s => s.date).sort((a, b) => b.localeCompare(a));
+const earlierPosts = desc.filter(d => d < date).slice(0, 5);
+const laterPosts = desc.filter(d => d > date).sort((a, b) => a.localeCompare(b)).slice(0, 5);
+
+const prevDate = laterPosts[0];   // newer post
+const nextDate = earlierPosts[0]; // older post
+
+const prevNextHtml = (prevDate || nextDate)
+  ? `<nav class="post-nav" aria-label="Adjacent daily summaries">
+            ${prevDate ? `<a class="post-nav-link" rel="prev" href="/blog/${prevDate}">&larr; ${escapeHtml(linkLabel(prevDate))}</a>` : '<span class="post-nav-spacer"></span>'}
+            ${nextDate ? `<a class="post-nav-link" rel="next" href="/blog/${nextDate}">${escapeHtml(linkLabel(nextDate))} &rarr;</a>` : '<span class="post-nav-spacer"></span>'}
+          </nav>`
+  : '';
+
+const recentHtml = earlierPosts.length > 0
+  ? `<section class="related-summaries" aria-label="Recent daily summaries">
+            <h2 class="related-title">Recent daily summaries</h2>
+            <ul class="related-list">
+              ${earlierPosts.map(d => `<li><a href="/blog/${d}">Treasury yield curve summary for ${escapeHtml(linkLabel(d))}</a></li>`).join('')}
+            </ul>
+          </section>`
+  : '';
+
+const rates = entry.rates;
+const ratesHtml = rates.map((r, i) => `
+                  <div class="rate-item" style="border-top: 3px solid ${CHART_COLORS[i % CHART_COLORS.length]}">
+                    <div class="rate-maturity">${r.maturity}</div>
+                    <div class="rate-value">${r.rate.toFixed(2)}%</div>
+                  </div>
+                `).join('');
+
+const articleContent = `
+          <article>
+            <header class="post-header">
+              <p class="post-date">${dateStr}</p>
+              <h1 class="post-title">${escapeHtml(articleH1)}</h1>
+            </header>
+
+            <div class="blog-content blog-summary">
+              ${formatBlogSummary(blogSummary)}
+            </div>
+
+            ${prevNextHtml}
+
+            <section class="chart-section">
+              <h2 class="chart-title">Yield Curve</h2>
+              <div class="chart-wrapper">
+                <canvas id="yieldChart"></canvas>
+              </div>
+              <div class="rates-grid">
+                ${ratesHtml}
+              </div>
+            </section>
+
+            ${recentHtml}
+          </article>
+        `;
+
+const articleSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: `${dateStr} Treasury Yield Curve Analysis`,
+  description: blogSummary.substring(0, 300),
+  datePublished: `${date}T00:00:00Z`,
+  dateModified: `${date}T00:00:00Z`,
+  mainEntityOfPage: { '@type': 'WebPage', '@id': blogUrl },
+  image: ogImageUrl,
+  author: { '@type': 'Organization', name: 'YieldWatch', url: SITE_URL },
+  publisher: {
+    '@type': 'Organization',
+    name: 'YieldWatch',
+    url: SITE_URL,
+    logo: { '@type': 'ImageObject', url: `${SITE_URL}/og/og.png` }
+  }
+};
+
+let html = readTemplate('blog-post.html');
+
+// Head meta (same replacements as the SSR version).
+html = html.replace(/<title[^>]*>.*<\/title>/, `<title id="page-title">${escapeHtml(pageTitle)}</title>`);
+html = html.replace(`content="Treasury yield curve daily analysis" id="meta-desc"`, `content="${metaDescription}" id="meta-desc"`);
+html = html.replace(`id="og-url" content="https://yieldwatch.io/blog"`, `id="og-url" content="${blogUrl}"`);
+html = html.replace(`id="og-title" content="Treasury Yield Daily Summary"`, `id="og-title" content="${escapeHtml(dateStr)} Treasury Yield"`);
+html = html.replace(`id="og-description" content="Treasury yield curve daily analysis"`, `id="og-description" content="${metaDescription}"`);
+html = html.replace(`id="og-image" content="https://yieldwatch.io/og.png"`, `id="og-image" content="${ogImageUrl}"`);
+html = html.replace(`id="article-date" content=""`, `id="article-date" content="${date}T00:00:00Z"`);
+html = html.replace(`id="article-modified" content=""`, `id="article-modified" content="${date}T00:00:00Z"`);
+html = html.replace(`id="twitter-url" content="https://yieldwatch.io/blog"`, `id="twitter-url" content="${blogUrl}"`);
+html = html.replace(`id="twitter-title" content="Treasury Yield Daily Summary"`, `id="twitter-title" content="${escapeHtml(dateStr)} Treasury Yield"`);
+html = html.replace(`id="twitter-description" content="Treasury yield curve daily analysis"`, `id="twitter-description" content="${metaDescription}"`);
+html = html.replace(`id="twitter-image" content="https://yieldwatch.io/og.png"`, `id="twitter-image" content="${ogImageUrl}"`);
+html = html.replace(`id="canonical-url" href="https://yieldwatch.io/blog/"`, `id="canonical-url" href="${blogUrl}"`);
+
+// Breadcrumb schema: name + item update.
+const breadcrumbSchemaMatch = html.match(/id="breadcrumb-schema">([\s\S]*?)<\/script>/);
+if (breadcrumbSchemaMatch) {
+  const updatedSchema = breadcrumbSchemaMatch[1]
+    .replace(/"name": "Daily Summary"/, `"name": "${dateStr} Summary"`)
+    .replace(/item": "https:\/\/yieldwatch\.io\/blog"(?=[^"]*\}])/g, `item": "${blogUrl}"`);
+  html = html.replace(breadcrumbSchemaMatch[0], `id="breadcrumb-schema">\n  ${updatedSchema}\n  </script>`);
+}
+
+// Article JSON-LD.
+html = html.replace(
+  '</head>',
+  `<script type="application/ld+json">\n  ${JSON.stringify(articleSchema, null, 2)}\n  </script>\n</head>`
+);
+
+// Swap the loading placeholder for the pre-rendered article.
+html = html.replace(
+  '<div id="content">\n      <div class="loading">Loading summary...</div>\n    </div>',
+  `<div id="content">${articleContent}</div>`
+);
+
+// Disable the client loader; drive the template's own renderChart with embedded data.
+html = html.replace(
+  '</header>\n\n  <main class="container">',
+  `</header>\n\n  <main class="container">`
+);
+html = html.replace(
+  '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>',
+  `<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>const POST_RATES = ${JSON.stringify(rates)};</script>`
+);
+html = html.replace(/\n    loadPost\(\);\n/, `\n    renderChart(POST_RATES, POST_RATES.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]));\n`);
+---
+<Fragment set:html={html} />

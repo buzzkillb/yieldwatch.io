@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>U.S. Treasury Yield Curve | Real-Time Interest Rates Dashboard</title>
+  
+  <link rel="alternate" type="application/rss+xml" title="YieldWatch Daily Summaries" href="/feed.xml">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%236366f1' rx='15' width='100' height='100'/%3E%3Cpath d='M20 70 L35 55 L50 65 L65 40 L80 45' stroke='white' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='80' cy='45' r='6' fill='white'/%3E%3C/svg%3E">
+  
+  <!-- Open Graph / Facebook / LinkedIn -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="YieldWatch">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:url" content="https://yieldwatch.io">
+  <meta property="og:title" content="U.S. Treasury Yield Curve | Free Real-Time Dashboard">
+  <meta property="og:description" content="Track U.S. Treasury yield curve with 35+ years of historical data. Monitor interest rates from 4-week bills to 30-year bonds updated daily.">
+  <meta property="og:image" content="https://yieldwatch.io/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="U.S. Treasury Yield Curve Dashboard showing current and historical interest rates">
+  <meta property="og:image:type" content="image/png">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://yieldwatch.io">
+  <meta name="twitter:title" content="U.S. Treasury Yield Curve | Free Real-Time Dashboard">
+  <meta name="twitter:description" content="Track U.S. Treasury yield curve with 35+ years of historical data. Monitor interest rates from 4-week bills to 30-year bonds updated daily.">
+  <meta name="twitter:image" content="https://yieldwatch.io/og.png">
+  <meta name="twitter:image:alt" content="U.S. Treasury Yield Curve Dashboard">
+  <meta name="twitter:image:width" content="1200">
+  <meta name="twitter:image:height" content="630">
+  
+  <!-- Additional SEO -->
+  <meta name="description" content="Track U.S. Treasury yield curve with 35+ years of historical data. Monitor interest rates from 4-week bills to 30-year bonds updated daily.">
+  <meta name="keywords" content="treasury, yield curve, interest rates, bonds, 10 year, 2 year, 30 year, historical data, federal reserve">
+  <meta name="author" content="YieldWatch">
+  <link rel="canonical" href="https://yieldwatch.io/">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="theme-color" content="#6366f1">
+  
+  <!-- Schema.org Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FinancialProduct",
+    "name": "U.S. Treasury Yield Curve",
+    "description": "Daily U.S. Treasury Par Yield Curve Rates showing interest rates across all maturities from 4-week bills to 30-year bonds",
+    "provider": {
+      "@type": "Organization",
+      "name": "YieldWatch",
+      "url": "https://yieldwatch.io"
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "U.S. Treasury Yield Curve Historical Data",
+    "description": "Historical U.S. Treasury yield curve data spanning 35+ years from 1990 to present",
+    "url": "https://yieldwatch.io",
+    "keywords": ["treasury", "yield curve", "interest rates", "bonds"],
+    "publisher": {
+      "@type": "Organization",
+      "name": "YieldWatch",
+      "url": "https://yieldwatch.io"
+    },
+    "license": "https://home.treasury.gov"
+  }
+  </script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@nicktomlin/chartjs-chart-gl@1.3.2/dist/chartjs-chart-gl.min.js"></script>
+  <script>
+    // Register GL controllers for automatic fallback to WebGL when available
+    if (typeof ChartGL !== 'undefined') {
+      ChartGL.register();
+    }
+  </script>
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-tertiary: #1a1a25;
+      --bg-card: #16161f;
+      --border-color: #2a2a3a;
+      --text-primary: #f0f0f5;
+      --text-secondary: #9090a0;
+      --text-muted: #787890;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --gradient-start: #0a0a0f;
+      --gradient-end: #12121a;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+      min-height: 100vh;
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .header {
+      background: linear-gradient(145deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1.5rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .header-content {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+
+    .logo svg {
+      width: 36px;
+      height: 36px;
+    }
+
+    .logo-text {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .main-nav {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .nav-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    .nav-link:hover {
+      color: var(--accent);
+    }
+
+    .nav-link.active {
+      color: var(--accent);
+    }
+
+    .footer {
+      background: linear-gradient(145deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      border-top: 1px solid var(--border-color);
+      padding: 1.5rem 2rem;
+      margin-top: 2rem;
+    }
+
+    .footer-content {
+      max-width: 1100px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+
+    .footer-links .divider {
+      color: var(--text-muted);
+    }
+
+    .footer-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.error {
+      background: var(--danger);
+      animation: none;
+    }
+
+    .status-dot.loading {
+      background: var(--warning);
+      animation: blink 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .rates-section {
+      position: relative;
+      margin-bottom: 2rem;
+    }
+
+    .rates-scroll-hint {
+      display: none;
+    }
+
+    .rates-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.5rem;
+    }
+
+    .rate-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 0.6rem 0.4rem;
+      text-align: center;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .rate-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .rate-sparkline {
+      width: 100%;
+      height: 22px;
+      margin-top: 0.3rem;
+      display: block;
+      opacity: 0.9;
+    }
+
+    .rate-card:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .rate-card.inactive {
+      opacity: 0.4;
+    }
+
+    .rate-card.inactive::after {
+      content: '';
+      display: block;
+      width: 60%;
+      height: 1px;
+      background: var(--text-muted);
+      margin: 0.25rem auto 0;
+    }
+
+    .rate-card .maturity {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.15rem;
+    }
+
+    .rate-card .rate {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .daily-summary-container {
+      margin-bottom: 1.5rem;
+      background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-tertiary) 100%);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .daily-summary-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), #a855f7, var(--accent));
+      background-size: 200% 100%;
+      animation: shimmer 3s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .daily-summary-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+
+    .daily-summary-icon {
+      display: flex;
+      align-items: center;
+      opacity: 0.8;
+    }
+
+    .daily-summary {
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      line-height: 1.7;
+      padding: 0;
+      margin: 0;
+    }
+
+    @media (max-width: 768px) {
+      .daily-summary-container {
+        margin-bottom: 1rem;
+        padding: 0.875rem 1rem;
+        border-radius: 10px;
+      }
+
+      .daily-summary-container::before {
+        height: 2px;
+      }
+
+      .daily-summary {
+        font-size: 0.85rem;
+        line-height: 1.6;
+      }
+
+      .daily-summary-header {
+        font-size: 0.7rem;
+        margin-bottom: 0.5rem;
+      }
+    }
+
+    .chart-container {
+      background: linear-gradient(145deg, #141420 0%, #181828 100%);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+      box-shadow: 0 2px 12px rgba(99, 102, 241, 0.05);
+    }
+
+    .chart-container::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      height: 2px;
+      background: transparent;
+      border-radius: 1px;
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .chart-title {
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+
+    .chart-controls {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .chart-controls button {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .chart-controls button:hover {
+      border-color: var(--accent);
+      color: var(--text-primary);
+    }
+
+    .chart-controls button:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .chart-controls button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .chart-controls button:disabled:hover {
+      border-color: var(--border-color);
+      color: var(--text-secondary);
+    }
+    
+    .chart-controls button.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 400px;
+    }
+
+    .chart-loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-card);
+      border-radius: 8px;
+      z-index: 10;
+    }
+
+    .chart-loading.hidden {
+      display: none;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .legend-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      justify-content: center;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 0.4rem 0.6rem;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      user-select: none;
+      border: 1px solid transparent;
+    }
+
+    .legend-item:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .legend-item:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .legend-item.active {
+      color: var(--text-primary);
+      background: var(--bg-tertiary);
+      border-color: var(--border-color);
+    }
+
+    .legend-item.inactive {
+      opacity: 0.4;
+    }
+
+    .legend-item.inactive .legend-color {
+      background: var(--text-muted) !important;
+    }
+
+    .legend-color {
+      width: 16px;
+      height: 4px;
+      border-radius: 2px;
+    }
+
+    footer {
+      padding: 0;
+      margin: 0;
+      text-align: left;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.85rem;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+
+    .footer-links .divider {
+      color: var(--text-muted);
+    }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      color: var(--text-secondary);
+    }
+
+    .loading[role="status"] {
+      gap: 0.75rem;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--danger);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      color: var(--danger);
+    }
+
+    .error-message button {
+      margin-top: 1rem;
+      background: var(--danger);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .error-message button:hover {
+      opacity: 0.9;
+    }
+
+    .api-info {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .api-info span {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+      
+      .main-nav {
+        gap: 1rem;
+      }
+      
+      .nav-link {
+        font-size: 0.85rem;
+      }
+      
+      .rates-section {
+        position: relative;
+      }
+      
+      .logo div {
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+        line-height: 1.2;
+      }
+      
+      #dataSubtitle {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        font-weight: 400;
+      }
+      
+      .mobile-break {
+        display: none;
+      }
+      
+      .rates-scroll-hint {
+        display: block;
+      }
+      
+      .rates-grid {
+        grid-template-columns: repeat(3, 1fr);
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+      }
+      
+      .rate-card {
+        scroll-snap-align: start;
+        min-width: 70px;
+      }
+      
+      .chart-wrapper {
+        height: 350px;
+      }
+      
+      .api-info {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      
+      .chart-title {
+        font-size: 0.95rem;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .logo h1 {
+        font-size: 1.1rem;
+      }
+      
+      .logo span {
+        font-size: 0.75rem;
+      }
+      
+      .mobile-break {
+        display: block;
+      }
+      
+      .rates-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .rate-card .maturity {
+        font-size: 0.75rem;
+      }
+      
+      .rate-card .rate {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <a href="/" class="logo">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect fill="#6366f1" rx="15" width="100" height="100"/>
+          <path d="M20 70 L35 55 L50 65 L65 40 L80 45" stroke="white" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="80" cy="45" r="6" fill="white"/>
+        </svg>
+        <span class="logo-text">Treasury Yield</span>
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="/" class="nav-link active">Dashboard</a>
+        <a href="/blog" class="nav-link">Daily Summaries</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <main>
+      <div id="ratesContainer" role="region" aria-label="Current yield rates">
+        <div class="loading" role="status" aria-label="Loading rates">
+          <div class="loading-spinner" aria-hidden="true"></div>
+          <span>Loading yield curve data...</span>
+        </div>
+      </div>
+
+      <div class="daily-summary-container">
+        <div class="daily-summary-header">
+          <svg class="daily-summary-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          <span>Daily Summary</span>
+        </div>
+        <div id="dailySummary" class="daily-summary"></div>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-header">
+          <h2 class="chart-title">Yield Curve Over Time</h2>
+          <div class="chart-controls" role="group" aria-label="Time range selector">
+            <button id="btn3m" class="active" aria-pressed="true" aria-label="Show 3 month history">3M</button>
+            <button id="btn6m" aria-pressed="false" aria-label="Show 6 month history">6M</button>
+            <button id="btn1y" aria-pressed="false" aria-label="Show 1 year history">1Y</button>
+            <button id="btn2y" aria-pressed="false" aria-label="Show 2 year history">2Y</button>
+            <button id="btn5y" aria-pressed="false" aria-label="Show 5 year history">5Y</button>
+            <button id="btnAll" aria-pressed="false" aria-label="Show all available history">ALL</button>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <div id="chartLoading" class="chart-loading hidden" role="status" aria-label="Loading chart data">
+            <div class="spinner" aria-hidden="true"></div>
+          </div>
+          <canvas id="yieldChart" aria-label="Yield curve chart showing rates over time"></canvas>
+        </div>
+        <div class="legend-container" id="legendContainer" role="group" aria-label="Chart legend - click to toggle series"></div>
+      </div>
+    </main>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-links">
+        <a href="/faq">FAQ</a>
+        <span class="divider">|</span>
+        <a href="/api-docs">API Documentation</a>
+        <span class="divider">|</span>
+        <a href="https://home.treasury.gov" target="_blank" rel="noopener noreferrer">U.S. Treasury</a>
+      </div>
+      <div class="footer-meta">Updated daily at 3:30 PM ET</div>
+      <div class="footer-meta">Data: <span id="lastUpdated">Loading...</span></div>
+    </div>
+  </footer>
+
+  <script>
+    const MATURITY_ORDER = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
+    const CHART_COLORS = [
+      '#6366f1', '#a855f7', '#ec4899', '#f43f5e', '#f97316', '#eab308',
+      '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#10b981',
+      '#f59e0b', '#ef4444'
+    ];
+
+    let chart = null;
+    let latestRates = {};
+    let chartData = { labels: [], datasets: [] };
+    let activeMaturities = new Set(MATURITY_ORDER);
+    let currentRange = '3m';
+    let availableRanges = { '3m': true, '6m': true, '1y': true, '2y': true, '5y': true, 'all': true };
+    let latestDataDate = null;
+
+    function announceToScreenReader(message) {
+      const announcement = document.createElement('div');
+      announcement.setAttribute('aria-live', 'polite');
+      announcement.setAttribute('aria-atomic', 'true');
+      announcement.className = 'sr-only';
+      announcement.textContent = message;
+      document.body.appendChild(announcement);
+      setTimeout(() => announcement.remove(), 1000);
+    }
+
+    function setLoading(isLoading) {
+      const chartLoading = document.getElementById('chartLoading');
+      if (isLoading) {
+        chartLoading.classList.remove('hidden');
+      } else {
+        chartLoading.classList.add('hidden');
+      }
+    }
+
+    function updateAvailableRanges() {
+      if (!latestDataDate) return;
+      
+      const now = new Date();
+      const threeMonthsAgo = new Date(now.setMonth(now.getMonth() - 3));
+      const sixMonthsAgo = new Date(now.setMonth(now.getMonth() - 6));
+      const oneYearAgo = new Date(now.setFullYear(now.getFullYear() - 1));
+      const twoYearsAgo = new Date(now.setFullYear(now.getFullYear() - 2));
+      const fiveYearsAgo = new Date(now.setFullYear(now.getFullYear() - 5));
+      
+      availableRanges['3m'] = latestDataDate >= threeMonthsAgo;
+      availableRanges['6m'] = latestDataDate >= sixMonthsAgo;
+      availableRanges['1y'] = latestDataDate >= oneYearAgo;
+      availableRanges['2y'] = latestDataDate >= twoYearsAgo;
+      availableRanges['5y'] = latestDataDate >= fiveYearsAgo;
+      availableRanges['all'] = true;
+      
+      const btn3m = document.getElementById('btn3m');
+      const btn6m = document.getElementById('btn6m');
+      const btn1y = document.getElementById('btn1y');
+      const btn2y = document.getElementById('btn2y');
+      const btn5y = document.getElementById('btn5y');
+      const btnAll = document.getElementById('btnAll');
+      
+      btn3m.disabled = !availableRanges['3m'];
+      btn6m.disabled = !availableRanges['6m'];
+      btn1y.disabled = !availableRanges['1y'];
+      btn2y.disabled = !availableRanges['2y'];
+      btn5y.disabled = !availableRanges['5y'];
+      btnAll.disabled = !availableRanges['all'];
+      
+      btn3m.title = availableRanges['3m'] ? 'Show 3 month history' : '3 month data not available';
+      btn6m.title = availableRanges['6m'] ? 'Show 6 month history' : '6 month data not available';
+      btn1y.title = availableRanges['1y'] ? 'Show 1 year history' : '1 year data not available';
+      btn2y.title = availableRanges['2y'] ? 'Show 2 year history' : '2 year data not available';
+      btn5y.title = availableRanges['5y'] ? 'Show 5 year history' : '5 year data not available';
+      btnAll.title = availableRanges['all'] ? 'Show all available history' : 'All data not available';
+      
+      if (!availableRanges[currentRange]) {
+        if (availableRanges['3m']) {
+          currentRange = '3m';
+        } else if (availableRanges['6m']) {
+          currentRange = '6m';
+        } else if (availableRanges['1y']) {
+          currentRange = '1y';
+        } else if (availableRanges['2y']) {
+          currentRange = '2y';
+        } else if (availableRanges['5y']) {
+          currentRange = '5y';
+        } else if (availableRanges['all']) {
+          currentRange = 'all';
+        }
+        setActiveButton('btn' + currentRange, true);
+      }
+    }
+
+    async function fetchLatestRates() {
+      try {
+        const response = await fetch('/api/rates/latest');
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+          displayLatestRates(data.data);
+          latestDataDate = new Date(data.data.date + 'T00:00:00Z');
+          updateAvailableRanges();
+          fetchHistoricalData();
+          fetchDailySummary();
+        } else {
+          showError('Unable to load latest rates');
+        }
+      } catch (error) {
+        showError('Connection failed. Check your internet connection or try again later.');
+        setTimeout(fetchLatestRates, 10000);
+      }
+    }
+
+    async function fetchDailySummary() {
+      try {
+        const response = await fetch('/api/daily-summary');
+        if (response.ok) {
+          const text = await response.text();
+          const summaryEl = document.getElementById('dailySummary');
+          if (text && summaryEl) {
+            summaryEl.textContent = text;
+          }
+        }
+      } catch (error) {
+        console.log('Daily summary not available');
+      }
+    }
+
+    function displayLatestRates(data) {
+      latestRates = {};
+      data.rates.forEach(r => {
+        latestRates[r.maturity] = r.rate;
+      });
+
+      const lastUpdated = document.getElementById('lastUpdated');
+      if (lastUpdated) {
+        lastUpdated.textContent = data.dateFormatted;
+      }
+
+      const ratesContainer = document.getElementById('ratesContainer');
+      ratesContainer.innerHTML = `
+        <div class="rates-section">
+          <div class="rates-grid" id="ratesGrid" role="group" aria-label="Treasury yield rates by maturity"></div>
+        </div>
+      `;
+      const grid = document.getElementById('ratesGrid');
+
+      MATURITY_ORDER.forEach((maturity) => {
+        const rate = latestRates[maturity];
+        if (rate !== undefined) {
+          const card = document.createElement('div');
+          card.className = 'rate-card';
+          card.dataset.maturity = maturity;
+          card.tabIndex = 0;
+          card.setAttribute('role', 'button');
+          card.setAttribute('aria-pressed', activeMaturities.has(maturity) ? 'true' : 'false');
+          card.setAttribute('aria-label', `Toggle ${maturity} rate ${rate.toFixed(2)}%`);
+          card.innerHTML = `
+            <div class="maturity" aria-hidden="true">${maturity}</div>
+            <div class="rate">${rate.toFixed(2)}%</div>
+          `;
+          card.onclick = () => toggleMaturity(maturity);
+          card.onkeydown = (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggleMaturity(maturity);
+            }
+          };
+          grid.appendChild(card);
+        }
+      });
+      
+      announceToScreenReader('Yield rates loaded successfully');
+    }
+
+    let sparklineData = {};   // maturity -> [[date, rate], ...] over 3 months
+    let sparklineHover = {};  // maturity -> hovered rate (persist across redraws)
+
+    function buildSparklines(data) {
+      // API returns rows grouped by date: [{date, rates: [{maturity, rate}]}]
+      const byMaturity = {};
+      for (const day of data) {
+        const rates = day.rates || [];
+        for (const r of rates) {
+          (byMaturity[r.maturity] = byMaturity[r.maturity] || []).push([day.date, parseFloat(r.rate)]);
+        }
+      }
+      for (const k of Object.keys(byMaturity)) {
+        byMaturity[k].sort((a, b) => a[0] < b[0] ? -1 : 1);
+      }
+      sparklineData = byMaturity;
+      renderSparklines();
+    }
+
+    function sparklinePath(points, w, h) {
+      if (!points || points.length < 2) return '';
+      const rates = points.map(p => p[1]);
+      const min = Math.min(...rates), max = Math.max(...rates);
+      const range = (max - min) || 1;
+      const step = w / (points.length - 1);
+      return points.map((p, i) => {
+        const x = (i * step).toFixed(1);
+        const y = (h - ((p[1] - min) / range) * (h - 4) - 2).toFixed(1);
+        return (i === 0 ? 'M' : 'L') + x + ' ' + y;
+      }).join(' ');
+    }
+
+    function renderSparklines() {
+      for (const maturity of Object.keys(latestRates)) {
+        const card = document.querySelector('.rate-card[data-maturity="' + maturity + '"]');
+        if (!card) continue;
+        const old = card.querySelector('.rate-sparkline');
+        if (old) old.remove();
+        const pts = sparklineData[maturity];
+        if (!pts || pts.length < 2) continue;
+        // end dot color: green if rate fell over the window, red if it rose
+        const first = pts[0][1], last = pts[pts.length - 1][1];
+        const color = last < first ? '#22c55e' : '#ef4444';
+        const w = 120, h = 22;
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'rate-sparkline');
+        svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.setAttribute('aria-hidden', 'true');
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', sparklinePath(pts, w, h));
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', color);
+        path.setAttribute('stroke-width', '1.5');
+        svg.appendChild(path);
+        const endY = h - 2 - ((last - Math.min(...pts.map(p => p[1]))) / ((Math.max(...pts.map(p => p[1])) - Math.min(...pts.map(p => p[1]))) || 1)) * (h - 4);
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('cx', String(w - 1));
+        dot.setAttribute('cy', endY.toFixed(1));
+        dot.setAttribute('r', '2');
+        dot.setAttribute('fill', color);
+        svg.appendChild(dot);
+        // title tooltip: change over window
+        const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+        const diff = last - first;
+        title.textContent = '3-month change: ' + (diff >= 0 ? '+' : '') + diff.toFixed(2) + '%';
+        svg.appendChild(title);
+        card.appendChild(svg);
+      }
+    }
+
+    async function fetchHistoricalData() {
+      const now = new Date();
+      let fromDate;
+      
+      if (currentRange === '3m') {
+        fromDate = new Date(now.setMonth(now.getMonth() - 3));
+      } else if (currentRange === '6m') {
+        fromDate = new Date(now.setMonth(now.getMonth() - 6));
+      } else if (currentRange === '1y') {
+        fromDate = new Date(now.setFullYear(now.getFullYear() - 1));
+      } else if (currentRange === '2y') {
+        fromDate = new Date(now.setFullYear(now.getFullYear() - 2));
+      } else if (currentRange === '5y') {
+        fromDate = new Date(now.setFullYear(now.getFullYear() - 5));
+      } else {
+        fromDate = null;
+      }
+
+      const from = fromDate ? fromDate.toISOString().split('T')[0] : '1990-01-01';
+      const to = new Date().toISOString().split('T')[0];
+      const reqLimit = currentRange === 'all' ? '150000' : '10000';
+
+      setLoading(true);
+      
+      try {
+        const response = await fetch(`/api/rates?from=${from}&to=${to}&limit=${reqLimit}`);
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+          // Feed 3-month sparklines under each rate card (independent of chart range)
+          if (currentRange === '3m') {
+            buildSparklines(data.data);
+          }
+          // Use Web Worker for heavy processing
+          const result = await processInWorker(data.data);
+          chartData.labels = result.labels;
+          chartData.datasets = result.datasets;
+          renderChart();
+          renderLegend();
+        } else {
+          console.error('Failed to fetch historical data');
+        }
+      } catch (error) {
+        console.error('Failed to fetch historical data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // Web Worker for heavy data processing
+    let chartWorker = null;
+    
+    function processInWorker(rawData) {
+      return new Promise((resolve, reject) => {
+        if (!chartWorker) {
+          chartWorker = new Worker('/chartWorker.js');
+        }
+        
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Worker timeout - falling back to main thread'));
+        }, 30000);
+        
+        chartWorker.onmessage = function(e) {
+          clearTimeout(timeoutId);
+          if (e.data.success) {
+            resolve(e.data.data);
+          } else {
+            reject(new Error(e.data.error));
+          }
+        };
+        
+        chartWorker.onerror = function(e) {
+          clearTimeout(timeoutId);
+          reject(e);
+        };
+        
+        chartWorker.postMessage(rawData);
+      });
+    }
+
+    function processChartData(rawData) {
+      const sortedDates = [...new Set(rawData.map(d => d.date))].sort();
+      
+      chartData.labels = sortedDates.map(date => {
+        const [year, month, day] = date.split('-');
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      });
+
+      chartData.datasets = MATURITY_ORDER.map((maturity, index) => {
+        const colorIndex = index % CHART_COLORS.length;
+        return {
+          label: maturity,
+          data: sortedDates.map(date => {
+            const dayData = rawData.find(d => d.date === date);
+            const rateData = dayData?.rates.find(r => r.maturity === maturity);
+            return rateData ? rateData.rate : null;
+          }),
+          borderColor: CHART_COLORS[colorIndex],
+          backgroundColor: CHART_COLORS[colorIndex] + '20',
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          tension: 0.1,
+          fill: false,
+          hidden: !activeMaturities.has(maturity),
+        };
+      });
+    }
+
+    function renderChart() {
+      const ctx = document.getElementById('yieldChart').getContext('2d');
+      
+      if (chart) {
+        chart.destroy();
+      }
+
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: chartData,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false,
+          },
+          plugins: {
+            legend: {
+              display: false,
+            },
+            tooltip: {
+              backgroundColor: '#1a1a25',
+              titleColor: '#f0f0f5',
+              bodyColor: '#9090a0',
+              borderColor: '#2a2a3a',
+              borderWidth: 1,
+              padding: 12,
+              titleFont: {
+                family: "'SF Mono', monospace",
+                size: 12,
+                weight: '600'
+              },
+              bodyFont: {
+                family: "'SF Mono', monospace",
+                size: 11
+              },
+              filter: function(tooltipItem) {
+                return tooltipItem.raw !== null;
+              },
+              callbacks: {
+                label: function(context) {
+                  return `${context.dataset.label}: ${context.raw.toFixed(2)}%`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                unit: (currentRange === '3m' || currentRange === '6m') ? 'week' : 'month',
+                displayFormats: {
+                  week: 'MMM d',
+                  month: 'MMM yyyy'
+                }
+              },
+              grid: {
+                color: '#252535',
+                drawBorder: false,
+              },
+              ticks: {
+                color: '#787890',
+                font: {
+                  family: "'SF Mono', monospace",
+                  size: 10
+                }
+              },
+              title: {
+                display: true,
+                text: 'Date',
+                color: '#787890',
+                font: {
+                  family: "'SF Mono', monospace",
+                  size: 11
+                }
+              }
+            },
+            y: {
+              grid: {
+                color: '#252535',
+                drawBorder: false,
+              },
+              ticks: {
+                color: '#787890',
+                font: {
+                  family: "'SF Mono', monospace",
+                  size: 10
+                },
+                callback: function(value) {
+                  return value.toFixed(1) + '%';
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderLegend() {
+      const container = document.getElementById('legendContainer');
+      container.innerHTML = '';
+
+      MATURITY_ORDER.forEach((maturity, index) => {
+        if (latestRates[maturity] === undefined) return;
+        
+        const colorIndex = index % CHART_COLORS.length;
+        const item = document.createElement('div');
+        item.className = 'legend-item' + (activeMaturities.has(maturity) ? ' active' : ' inactive');
+        item.dataset.maturity = maturity;
+        item.tabIndex = 0;
+        item.setAttribute('role', 'button');
+        item.setAttribute('aria-pressed', activeMaturities.has(maturity) ? 'true' : 'false');
+        item.setAttribute('aria-label', `Toggle ${maturity} visibility`);
+        item.innerHTML = `
+          <span class="legend-color" style="background: ${CHART_COLORS[colorIndex]}" aria-hidden="true"></span>
+          <span>${maturity}</span>
+        `;
+        item.onclick = () => toggleMaturity(maturity);
+        item.onkeydown = (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleMaturity(maturity);
+          }
+        };
+        container.appendChild(item);
+      });
+    }
+
+    function toggleMaturity(maturity) {
+      const wasActive = activeMaturities.has(maturity);
+      
+      if (wasActive) {
+        activeMaturities.delete(maturity);
+      } else {
+        activeMaturities.add(maturity);
+      }
+
+      const dataset = chartData.datasets.find(d => d.label === maturity);
+      if (dataset) {
+        dataset.hidden = wasActive;
+      }
+
+      document.querySelectorAll(`.rate-card[data-maturity="${maturity}"]`).forEach(card => {
+        card.classList.toggle('inactive', wasActive);
+        card.setAttribute('aria-pressed', wasActive ? 'false' : 'true');
+      });
+
+      document.querySelectorAll(`.legend-item[data-maturity="${maturity}"]`).forEach(item => {
+        item.classList.toggle('inactive', wasActive);
+        item.setAttribute('aria-pressed', wasActive ? 'false' : 'true');
+      });
+
+      if (chart) {
+        chart.update();
+      }
+      
+      announceToScreenReader(`${maturity} ${wasActive ? 'hidden' : 'shown'}`);
+    }
+
+    function showError(message) {
+      document.getElementById('ratesContainer').innerHTML = `
+        <div class="error-message" role="alert">
+          <p>${message}</p>
+          <button onclick="location.reload()" aria-label="Retry loading data">Retry</button>
+        </div>
+      `;
+    }
+
+    function setActiveButton(btnId, isActive) {
+      document.querySelectorAll('.chart-controls button').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      const btn = document.getElementById(btnId);
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+    }
+
+    document.getElementById('btn3m').onclick = () => {
+      if (currentRange !== '3m') {
+        if (!availableRanges['3m']) {
+          announceToScreenReader('3 month data not available');
+          return;
+        }
+        currentRange = '3m';
+        setActiveButton('btn3m', true);
+        fetchHistoricalData();
+        announceToScreenReader('Showing 3 month history');
+      }
+    };
+
+    document.getElementById('btn6m').onclick = () => {
+      if (currentRange !== '6m') {
+        if (!availableRanges['6m']) {
+          announceToScreenReader('6 month data not available. Approximately 2 weeks of data available.');
+          return;
+        }
+        currentRange = '6m';
+        setActiveButton('btn6m', true);
+        fetchHistoricalData();
+        announceToScreenReader('Showing 6 month history');
+      }
+    };
+
+    document.getElementById('btn1y').onclick = () => {
+      if (currentRange !== '1y') {
+        if (!availableRanges['1y']) {
+          announceToScreenReader('1 year data not available. Approximately 2 weeks of data available.');
+          return;
+        }
+        currentRange = '1y';
+        setActiveButton('btn1y', true);
+        fetchHistoricalData();
+        announceToScreenReader('Showing 1 year history');
+      }
+    };
+
+    document.getElementById('btn2y').onclick = () => {
+      if (currentRange !== '2y') {
+        if (!availableRanges['2y']) {
+          announceToScreenReader('2 year data not available.');
+          return;
+        }
+        currentRange = '2y';
+        setActiveButton('btn2y', true);
+        fetchHistoricalData();
+        announceToScreenReader('Showing 2 year history');
+      }
+    };
+
+    document.getElementById('btn5y').onclick = () => {
+      if (currentRange !== '5y') {
+        if (!availableRanges['5y']) {
+          announceToScreenReader('5 year data not available.');
+          return;
+        }
+        currentRange = '5y';
+        setActiveButton('btn5y', true);
+        fetchHistoricalData();
+        announceToScreenReader('Showing 5 year history');
+      }
+    };
+
+    document.getElementById('btnAll').onclick = () => {
+      if (currentRange !== 'all') {
+        currentRange = 'all';
+        setActiveButton('btnAll', true);
+        fetchHistoricalData();
+        announceToScreenReader('Showing all available history');
+      }
+    };
+
+    fetchLatestRates();
+
+    if (navigator.modelContext && navigator.modelContext.registerTool) {
+      const controller = new AbortController();
+
+      const tools = [
+        {
+          name: 'get_latest_yield_rates',
+          description: 'Get the latest U.S. Treasury yield curve rates for all maturities (4WK to 30YR)',
+          inputSchema: { type: 'object', properties: {} },
+          execute: async () => {
+            const response = await fetch('/api/rates/latest');
+            const data = await response.json();
+            return { success: true, data };
+          },
+        },
+        {
+          name: 'get_historical_yield_rates',
+          description: 'Get historical Treasury yield rates for a date range and optional maturity',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              from: { type: 'string', description: 'Start date (YYYY-MM-DD)' },
+              to: { type: 'string', description: 'End date (YYYY-MM-DD)' },
+              maturity: { type: 'string', description: 'Optional maturity (e.g., 10YR)' },
+            },
+          },
+          execute: async ({ from, to, maturity }) => {
+            const params = new URLSearchParams();
+            if (from) params.set('from', from);
+            if (to) params.set('to', to);
+            if (maturity) params.set('maturity', maturity);
+            const response = await fetch(`/api/rates?${params}`);
+            const data = await response.json();
+            return { success: true, data };
+          },
+        },
+        {
+          name: 'get_available_maturities',
+          description: 'Get list of available Treasury maturity tenors',
+          inputSchema: { type: 'object', properties: {} },
+          execute: async () => {
+            const response = await fetch('/api/rates/maturities');
+            const data = await response.json();
+            return { success: true, data };
+          },
+        },
+        {
+          name: 'get_yield_statistics',
+          description: 'Get historical high/low statistics for Treasury yields',
+          inputSchema: { type: 'object', properties: {} },
+          execute: async () => {
+            const response = await fetch('/api/rates/stats');
+            const data = await response.json();
+            return { success: true, data };
+          },
+        },
+        {
+          name: 'get_blog_posts',
+          description: 'Get Treasury yield analysis blog posts with AI summaries',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              page: { type: 'number', description: 'Page number (default: 1)' },
+            },
+          },
+          execute: async ({ page = 1 }) => {
+            const response = await fetch(`/blog?page=${page}`);
+            return { success: true, message: 'Blog page retrieved' };
+          },
+        },
+      ];
+
+      tools.forEach(tool => {
+        navigator.modelContext.registerTool(tool, { signal: controller.signal });
+      });
+
+      window.addEventListener('unload', () => controller.abort());
+    }
+  </script>
+</body>
+</html>

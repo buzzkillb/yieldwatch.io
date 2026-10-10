@@ -1,0 +1,29 @@
+---
+// Homepage: verbatim port of api/public/index.html with the same server-side
+// SEO block the old Bun server injected, plus a patched chart loader that
+// reads pre-generated static range files instead of queryable API endpoints.
+import { readTemplate, buildSeoBlock, latestDay } from '../lib/site';
+
+let html = readTemplate('index.html');
+
+// 1. Server-side SEO block (crawlable plain-text rates for non-JS crawlers).
+const latest = latestDay();
+if (latest) {
+  html = html.replace('<div class="container">', `<div class="container">\n    ${buildSeoBlock(latest)}`);
+}
+
+// 2. Chart data now comes from static range snapshots (regenerated daily).
+html = html.replace(
+  "const response = await fetch(`/api/rates?from=${from}&to=${to}&limit=${reqLimit}`);",
+  `const RANGE_FILES = { '3m': '/api/rates/3m.json', '6m': '/api/rates/6m.json', '1y': '/api/rates/1y.json', '2y': '/api/rates/2y.json', '5y': '/api/rates/5y.json', 'all': '/api/rates/all.json' };
+        const response = await fetch(RANGE_FILES[currentRange] || '/api/rates/all.json');`
+);
+
+// 3. Point the site's own fetches at the static snapshots directly so no
+// server-side rewrite is required (the _redirects rules remain for external
+// API consumers using the documented extensionless paths).
+html = html.replaceAll("fetch('/api/rates/latest')", "fetch('/api/rates/latest.json')")
+           .replaceAll("fetch('/api/rates/maturities')", "fetch('/api/rates/maturities.json')")
+           .replaceAll("fetch('/api/rates/stats')", "fetch('/api/rates/stats.json')");
+---
+<Fragment set:html={html} />

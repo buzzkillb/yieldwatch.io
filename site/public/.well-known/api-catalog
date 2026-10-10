@@ -1,0 +1,25 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://yieldwatch.io/api/rates",
+      "link": [
+        {
+          "rel": "service-desc",
+          "href": "https://yieldwatch.io/api-docs"
+        },
+        {
+          "rel": "service-doc",
+          "href": "https://yieldwatch.io/faq"
+        },
+        {
+          "rel": "status",
+          "href": "https://yieldwatch.io/health"
+        },
+        {
+          "rel": "describedby",
+          "href": "https://yieldwatch.io/og"
+        }
+      ]
+    }
+  ]
+}

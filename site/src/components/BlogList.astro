@@ -1,0 +1,140 @@
+---
+// Server-rendered blog list — an upgrade over the old client-only rendering
+// (crawlers now see every card), using the verbatim blog.html template,
+// styles, and card markup. Year/month filters work client-side over an
+// embedded index; pagination is static.
+import {
+  readTemplate, escapeHtml, SUMMARIES, POSTS_PER_PAGE,
+} from '../lib/site';
+
+interface Props { page: number }
+const { page } = Astro.props;
+
+const sorted = [...SUMMARIES].sort((a, b) => b.date.localeCompare(a.date));
+const totalPages = Math.max(1, Math.ceil(sorted.length / POSTS_PER_PAGE));
+const current = Math.min(Math.max(1, page), totalPages);
+const items = sorted.slice((current - 1) * POSTS_PER_PAGE, current * POSTS_PER_PAGE);
+
+const blogIndex = sorted.map(s => ({
+  date: s.date,
+  hasFullPost: Boolean(s.blogSummary && s.blogSummary.length > 0),
+  excerpt: (s.summary || s.blogSummary || '').trim().replace(/\s+/g, ' ').slice(0, 200) + '…',
+}));
+
+const hrefFor = (p: number) => (p <= 1 ? '/blog' : `/blog/${p}`);
+
+let html = readTemplate('blog.html');
+
+// rel prev/next for crawlers.
+const seoMetaTags: string[] = [];
+if (current > 1) seoMetaTags.push(`<link rel="prev" href="${hrefFor(current - 1)}">`);
+if (current < totalPages) seoMetaTags.push(`<link rel="next" href="${hrefFor(current + 1)}">`);
+if (seoMetaTags.length > 0) {
+  html = html.replace('</head>', `\n    ${seoMetaTags.join('\n    ')}\n  </head>`);
+}
+
+// Server-render the cards.
+const cardsHtml = items.map(item => {
+  const dateStr = new Date(item.date + 'T00:00:00').toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
+  return `
+          <a href="/blog/${item.date}" class="summary-card-link">
+            <article class="summary-card">
+              <div class="summary-date">${dateStr}</div>
+              <div class="analysis-tag">${item.blogSummary && item.blogSummary.length > 0 ? 'Full analysis available' : 'Quick summary'}</div>
+              <p class="summary-excerpt">${escapeHtml(item.summary)}</p>
+            </article>
+          </a>`;
+}).join('');
+
+html = html.replace(
+  `<div id="content">
+        <div class="loading">Loading summaries...</div>
+      </div>`,
+  `<div id="content"><div class="summaries-list">${cardsHtml}
+          </div></div>`
+);
+
+// Static pagination.
+const paginationHtml = totalPages <= 1 ? '' : `<div class="pagination-controls">
+        ${current > 1 ? `<a class="page-link" href="${hrefFor(current - 1)}">&larr; Previous</a>` : ''}
+        <span class="page-info">Page ${current} of ${totalPages}</span>
+        ${current < totalPages ? `<a class="page-link" href="${hrefFor(current + 1)}">Next &rarr;</a>` : ''}
+      </div>`;
+html = html.replace('<div id="pagination" class="pagination"></div>', `<div id="pagination" class="pagination">${paginationHtml}</div>`);
+
+// Embed the index for client-side year/month filtering.
+html = html.replace(
+  '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>',
+  `<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>const BLOG_INDEX = ${JSON.stringify(blogIndex)};</script>`
+);
+
+// Replace the fetch-based init with embedded-index filtering.
+html = html.replace(
+  `    loadAvailableYears();
+    initFilters();
+    loadSummaries();`,
+  `    (function initStaticFilters() {
+      const yearSelect = document.getElementById('yearFilter');
+      const monthSelect = document.getElementById('monthFilter');
+
+      function populateMonths(year) {
+        monthSelect.innerHTML = '<option value="">All Months</option>';
+        monthSelect.disabled = !year;
+        if (year) {
+          MONTHS.forEach((name, idx) => {
+            const opt = document.createElement('option');
+            opt.value = String(idx + 1).padStart(2, '0');
+            opt.textContent = name;
+            monthSelect.appendChild(opt);
+          });
+        }
+      }
+
+      function applyFilter(push) {
+        const y = yearSelect.value;
+        const m = monthSelect.value;
+        if (!y && !m) { window.location.href = '/blog'; return; }
+        const filtered = BLOG_INDEX.filter(i =>
+          (!y || i.date.startsWith(y)) && (!m || i.date.slice(5, 7) === m)
+        );
+        if (!filtered.length) {
+          document.getElementById('content').innerHTML = '<div class="error">No summaries found.</div>';
+          document.getElementById('pagination').innerHTML = '';
+          return;
+        }
+        renderSummaries(filtered);
+        document.getElementById('pagination').innerHTML = '';
+        if (push) {
+          const url = new URL(window.location);
+          url.searchParams.set('page', '1');
+          if (y) url.searchParams.set('year', y); else url.searchParams.delete('year');
+          if (m) url.searchParams.set('month', m); else url.searchParams.delete('month');
+          window.history.pushState({}, '', url);
+        }
+      }
+
+      const years = [...new Set(BLOG_INDEX.map(i => i.date.slice(0, 4)))].sort().reverse();
+      years.forEach(y => {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y;
+        yearSelect.appendChild(opt);
+      });
+
+      yearSelect.addEventListener('change', () => { populateMonths(yearSelect.value); applyFilter(true); });
+      monthSelect.addEventListener('change', () => applyFilter(true));
+
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('year')) {
+        yearSelect.value = params.get('year');
+        populateMonths(yearSelect.value);
+        if (params.get('month')) {
+          monthSelect.value = params.get('month');
+          applyFilter(false);
+        }
+      }
+    })();`
+);
+---
+<Fragment set:html={html} />

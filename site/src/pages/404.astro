@@ -1,0 +1,30 @@
+---
+import { RATES, SUMMARIES } from '../lib/site';
+const lastRate = RATES.length ? RATES[RATES.length - 1].date : null;
+const lastSummary = SUMMARIES.length ? SUMMARIES[0].date : null;
+const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page Not Found | YieldWatch</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%236366f1' rx='15' width='100' height='100'/%3E%3Cpath d='M20 70 L35 55 L50 65 L65 40 L80 45' stroke='white' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='80' cy='45' r='6' fill='white'/%3E%3C/svg%3E">
+  <style>
+    body { background: #0a0a0f; color: #f0f0f5; font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; text-align: center; }
+    a { color: #818cf8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    h1 { font-size: 4rem; margin: 0; color: #6366f1; }
+    p { color: #a0a0b0; }
+  </style>
+</head>
+<body>
+  <div>
+    <h1>404</h1>
+    <p>That page doesn't exist. Latest data: ${lastRate ?? 'n/a'} &middot; Latest summary: ${lastSummary ?? 'n/a'}</p>
+    <p><a href="/">&larr; Back to the dashboard</a> &nbsp;|&nbsp; <a href="/blog">Daily summaries</a></p>
+  </div>
+</body>
+</html>`;
+---
+<Fragment set:html={html} />

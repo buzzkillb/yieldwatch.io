@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Documentation | U.S. Treasury Yield Curve</title>
+  <meta name="description" content="Complete API reference for the YieldWatch Treasury yield curve dashboard">
+
+  <!-- Open Graph / Facebook / LinkedIn -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="YieldWatch">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:url" content="https://yieldwatch.io/api-docs">
+  <meta property="og:title" content="API Documentation | U.S. Treasury Yield Curve">
+  <meta property="og:description" content="Complete API reference for the YieldWatch Treasury yield curve dashboard">
+  <meta property="og:image" content="https://yieldwatch.io/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="U.S. Treasury Yield Curve Dashboard">
+  <meta property="og:image:type" content="image/png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://yieldwatch.io/api-docs">
+  <meta name="twitter:title" content="API Documentation | U.S. Treasury Yield Curve">
+  <meta name="twitter:description" content="Complete API reference for the YieldWatch Treasury yield curve dashboard">
+  <meta name="twitter:image" content="https://yieldwatch.io/og.png">
+  <meta name="twitter:image:alt" content="U.S. Treasury Yield Curve Dashboard">
+  <meta name="twitter:image:width" content="1200">
+  <meta name="twitter:image:height" content="630">
+
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://yieldwatch.io/api-docs">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%236366f1' rx='15' width='100' height='100'/%3E%3Cpath d='M20 70 L35 55 L50 65 L65 40 L80 45' stroke='white' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='80' cy='45' r='6' fill='white'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #0f0f18;
+      --bg-card: #16161f;
+      --bg-tertiary: #1a1a25;
+      --border-color: #2a2a3a;
+      --text-primary: #f0f0f5;
+      --text-secondary: #a0a0b0;
+      --text-muted: #606070;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .header {
+      background: linear-gradient(145deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1.5rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .header-content {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+
+    .logo svg {
+      width: 36px;
+      height: 36px;
+    }
+
+    .logo-text {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .nav {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    .nav a:hover, .nav a.active {
+      color: var(--accent);
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .page-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    .page-subtitle {
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+
+    .section {
+      margin-bottom: 2.5rem;
+    }
+
+    h2 {
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    h2 .method {
+      font-size: 0.7rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+
+    h3 {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      margin: 1.5rem 0 0.75rem;
+    }
+
+    p {
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+
+    .endpoint {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .endpoint-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .endpoint-url {
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+      background: var(--bg-tertiary);
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      color: var(--accent-hover);
+      font-size: 0.85rem;
+      flex: 1;
+      overflow-x: auto;
+    }
+
+    .badge {
+      font-size: 0.65rem;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-get { background: var(--success); color: #000; }
+    .badge-rate { background: var(--warning); color: #000; }
+
+    .description {
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .code-block {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      overflow-x: auto;
+      font-size: 0.85rem;
+    }
+
+    .code-block pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+    }
+
+    .code-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .params {
+      display: grid;
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+
+    .param {
+      display: grid;
+      grid-template-columns: 120px 80px 1fr;
+      gap: 0.75rem;
+      align-items: start;
+      font-size: 0.85rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .param:last-child {
+      border-bottom: none;
+    }
+
+    .param-name {
+      color: var(--accent-hover);
+      font-weight: 500;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+    }
+
+    .param-type {
+      color: var(--warning);
+      font-size: 0.75rem;
+    }
+
+    .param-desc {
+      color: var(--text-secondary);
+    }
+
+    .param-required {
+      color: var(--danger);
+      font-size: 0.7rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.85rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      color: var(--text-secondary);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      color: var(--text-primary);
+    }
+
+    code {
+      background: var(--bg-tertiary);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: var(--accent-hover);
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+    }
+
+    .rate-limit-note {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--warning);
+      border-radius: 0 8px 8px 0;
+      padding: 1rem 1.5rem;
+      margin: 2rem 0;
+    }
+
+    .rate-limit-note h4 {
+      color: var(--warning);
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+    }
+
+    .rate-limit-note p {
+      margin: 0;
+      font-size: 0.85rem;
+    }
+
+    .footer {
+      background: linear-gradient(145deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      border-top: 1px solid var(--border-color);
+      padding: 1.5rem 2rem;
+      margin-top: 2rem;
+    }
+
+    .footer-content {
+      max-width: 1100px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+
+    .footer-links .divider {
+      color: var(--text-muted);
+    }
+
+    .footer-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        padding: 1rem;
+      }
+
+      .nav {
+        gap: 1rem;
+      }
+
+      .container {
+        padding: 1rem;
+      }
+
+      .param {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+      }
+
+      .endpoint-url {
+        font-size: 0.75rem;
+        flex-wrap: wrap;
+      }
+
+      .page-title {
+        font-size: 1.5rem;
+      }
+
+      .footer-content {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .footer-links {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <a href="/" class="logo">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect fill="#6366f1" rx="15" width="100" height="100"/>
+          <path d="M20 70 L35 55 L50 65 L65 40 L80 45" stroke="white" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="80" cy="45" r="6" fill="white"/>
+        </svg>
+        <span class="logo-text">Treasury Yield</span>
+      </a>
+      <nav class="nav" aria-label="Main navigation">
+        <a href="/">Dashboard</a>
+        <a href="/blog">Daily Summaries</a>
+        <a href="/api-docs" class="active">API Docs</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="page-header">
+      <h1 class="page-title">API Documentation</h1>
+      <p class="page-subtitle">Complete reference for the YieldWatch REST API</p>
+    </div>
+
+    <div class="rate-limit-note">
+      <h4>Rate Limiting</h4>
+      <p>All endpoints are limited to <strong>100 requests per minute</strong> per IP address. Responses include <code>X-RateLimit-Remaining</code> and <code>X-RateLimit-Limit</code> headers.</p>
+    </div>
+
+    <div class="section">
+      <h2><span class="method">GET</span> Latest Rates</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-url">/api/rates/latest</span>
+          <span class="badge badge-get">GET</span>
+          <span class="badge badge-rate">100/min</span>
+        </div>
+        <p class="description">Returns the most recent yield curve data available. This is the primary endpoint for displaying current treasury rates.</p>
+
+        <h3>Response</h3>
+        <div class="code-block">
+          <div class="code-label">Example Response</div>
+          <pre>{
+  "success": true,
+  "data": {
+    "date": "2026-03-20",
+    "dateFormatted": "March 20, 2026",
+    "rates": [
+      { "maturity": "4WK", "rate": 3.73 },
+      { "maturity": "6WK", "rate": 3.71 },
+      { "maturity": "2MO", "rate": 3.72 },
+      { "maturity": "3MO", "rate": 3.74 },
+      { "maturity": "4MO", "rate": 3.73 },
+      { "maturity": "6MO", "rate": 3.79 },
+      { "maturity": "1YR", "rate": 3.8 },
+      { "maturity": "2YR", "rate": 3.88 },
+      { "maturity": "3YR", "rate": 3.9 },
+      { "maturity": "5YR", "rate": 4.01 },
+      { "maturity": "7YR", "rate": 4.24 },
+      { "maturity": "10YR", "rate": 4.39 },
+      { "maturity": "20YR", "rate": 4.97 },
+      { "maturity": "30YR", "rate": 4.96 }
+    ]
+  }
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="method">GET</span> Historical Rates</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-url">/api/rates?from=&to=&maturity=</span>
+          <span class="badge badge-get">GET</span>
+          <span class="badge badge-rate">100/min</span>
+        </div>
+        <p class="description">Returns historical yield curve data filtered by date range and optional maturity. Dates are in ISO 8601 format (YYYY-MM-DD).</p>
+
+        <h3>Query Parameters</h3>
+        <div class="params">
+          <div class="param">
+            <span class="param-name">from</span>
+            <span class="param-type">string</span>
+            <span class="param-desc">Start date (YYYY-MM-DD). Defaults to earliest available date if not specified.</span>
+          </div>
+          <div class="param">
+            <span class="param-name">to</span>
+            <span class="param-type">string</span>
+            <span class="param-desc">End date (YYYY-MM-DD). Defaults to latest available date if not specified.</span>
+          </div>
+          <div class="param">
+            <span class="param-name">maturity</span>
+            <span class="param-type">string</span>
+            <span class="param-desc">Filter by specific maturity (e.g., "10YR", "2YR"). Defaults to all maturities.</span>
+          </div>
+        </div>
+
+        <h3>Example Requests</h3>
+        <div class="code-block">
+          <div class="code-label">Last 3 months</div>
+          <pre>/api/rates?from=2025-12-20&to=2026-03-20</pre>
+        </div>
+        <div class="code-block">
+          <div class="code-label">Specific maturity over time</div>
+          <pre>/api/rates?from=2025-01-01&to=2026-03-20&maturity=10YR</pre>
+        </div>
+        <div class="code-block">
+          <div class="code-label">All available data</div>
+          <pre>/api/rates</pre>
+        </div>
+
+        <h3>Response</h3>
+        <div class="code-block">
+          <div class="code-label">Example Response</div>
+          <pre>{
+  "success": true,
+  "data": [
+    {
+      "date": "2026-03-20",
+      "rates": [
+        { "maturity": "10YR", "rate": 4.39 },
+        { "maturity": "2YR", "rate": 3.88 }
+      ]
+    },
+    {
+      "date": "2026-03-19",
+      "rates": [
+        { "maturity": "10YR", "rate": 4.41 },
+        { "maturity": "2YR", "rate": 3.9 }
+      ]
+    }
+  ],
+  "meta": {
+    "from": "2026-03-19",
+    "to": "2026-03-20",
+    "maturity": "all",
+    "count": 2
+  }
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="method">GET</span> Available Maturities</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-url">/api/rates/maturities</span>
+          <span class="badge badge-get">GET</span>
+          <span class="badge badge-rate">100/min</span>
+        </div>
+        <p class="description">Returns a list of all available maturity periods and their labels.</p>
+
+        <h3>Response</h3>
+        <div class="code-block">
+          <div class="code-label">Example Response</div>
+          <pre>{
+  "success": true,
+  "data": [
+    { "value": "4WK", "label": "4 Week", "type": "short" },
+    { "value": "6WK", "label": "6 Week", "type": "short" },
+    { "value": "2MO", "label": "2 Month", "type": "short" },
+    { "value": "3MO", "label": "3 Month", "type": "short" },
+    { "value": "4MO", "label": "4 Month", "type": "short" },
+    { "value": "6MO", "label": "6 Month", "type": "short" },
+    { "value": "1YR", "label": "1 Year", "type": "medium" },
+    { "value": "2YR", "label": "2 Year", "type": "medium" },
+    { "value": "3YR", "label": "3 Year", "type": "medium" },
+    { "value": "5YR", "label": "5 Year", "type": "medium" },
+    { "value": "7YR", "label": "7 Year", "type": "long" },
+    { "value": "10YR", "label": "10 Year", "type": "long" },
+    { "value": "20YR", "label": "20 Year", "type": "long" },
+    { "value": "30YR", "label": "30 Year", "type": "long" }
+  ]
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="method">GET</span> Rate Statistics</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-url">/api/rates/stats</span>
+          <span class="badge badge-get">GET</span>
+          <span class="badge badge-rate">100/min</span>
+        </div>
+        <p class="description">Returns year-to-date and all-time high/low rates for each maturity, with the dates when those records occurred. All-time stats are populated after the scheduler runs for sufficient time.</p>
+
+        <h3>Response</h3>
+        <div class="code-block">
+          <div class="code-label">Example Response</div>
+          <pre>{
+  "success": true,
+  "data": [
+    {
+      "maturity": "10YR",
+      "yearHigh": 4.39,
+      "yearHighDate": "2026-03-20",
+      "yearLow": 3.97,
+      "yearLowDate": "2026-02-27",
+      "allTimeHigh": null,
+      "allTimeHighDate": null,
+      "allTimeLow": null,
+      "allTimeLowDate": null
+    }
+  ]
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="method">GET</span> Health Check</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-url">/health</span>
+          <span class="badge badge-get">GET</span>
+        </div>
+        <p class="description">Simple health check endpoint. Returns server status and current timestamp. Not rate limited.</p>
+
+        <h3>Response</h3>
+        <div class="code-block">
+          <div class="code-label">Example Response</div>
+          <pre>{
+  "status": "ok",
+  "timestamp": "2026-03-23T19:00:00.000Z"
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Response Codes</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>200</code></td>
+            <td>Success</td>
+          </tr>
+          <tr>
+            <td><code>400</code></td>
+            <td>Bad Request - Invalid parameters</td>
+          </tr>
+          <tr>
+            <td><code>404</code></td>
+            <td>Not Found - Resource doesn't exist</td>
+          </tr>
+          <tr>
+            <td><code>429</code></td>
+            <td>Too Many Requests - Rate limit exceeded</td>
+          </tr>
+          <tr>
+            <td><code>500</code></td>
+            <td>Internal Server Error</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>Rate Limit Headers</h2>
+      <p>All API responses include rate limit information in the headers:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Header</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>X-RateLimit-Limit</code></td>
+            <td>Maximum requests allowed per window (100)</td>
+          </tr>
+          <tr>
+            <td><code>X-RateLimit-Remaining</code></td>
+            <td>Requests remaining in current window</td>
+          </tr>
+          <tr>
+            <td><code>Retry-After</code></td>
+            <td>Seconds to wait before retrying (only on 429)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-links">
+        <a href="/faq">FAQ</a>
+        <span class="divider">|</span>
+        <a href="/api-docs">API Documentation</a>
+        <span class="divider">|</span>
+        <a href="https://home.treasury.gov" target="_blank" rel="noopener noreferrer">U.S. Treasury</a>
+      </div>
+      <div class="footer-meta">Updated daily at 3:30 PM ET</div>
+    </div>
+  </footer>
+</body>
+</html>

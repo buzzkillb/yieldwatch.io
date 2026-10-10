@@ -1,0 +1,17 @@
+{
+  "name": "yieldwatch-site",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "prebuild": "node scripts/gen-derived.mjs",
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "export-data": "node scripts/export-data.mjs",
+    "daily-update": "bun scripts/daily-update.ts"
+  },
+  "dependencies": {
+    "astro": "^5.14.0"
+  }
+}
