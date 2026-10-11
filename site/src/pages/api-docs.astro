@@ -1,17 +1,5 @@
 ---
 import { readTemplate } from '../lib/site';
-let html = readTemplate('api-docs.html');
-
-// Notice: the API is now a static snapshot on Cloudflare Pages.
-html = html.replace(
-  '<main class="container">',
-  `<main class="container">
-    <div style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.4);border-radius:8px;padding:1rem 1.25rem;margin:0 0 1.5rem;font-size:.9rem;color:#c7c9e0;">
-      <strong>Static snapshot API:</strong> endpoints are served as static JSON files regenerated every business day.
-      Query-parameter filtering (<code>?from=&amp;to=&amp;maturity=</code>) is no longer supported server-side &mdash;
-      fetch <code>/api/rates.json</code> for the complete history and filter client-side.
-      All documented paths still respond at their URLs.
-    </div>`
-);
+const html = readTemplate('api-docs.html');
 ---
 <Fragment set:html={html} />

@@ -434,12 +434,12 @@
   <main class="container">
     <div class="page-header">
       <h1 class="page-title">API Documentation</h1>
-      <p class="page-subtitle">Complete reference for the YieldWatch REST API</p>
+      <p class="page-subtitle">Complete reference for the YieldWatch public API</p>
     </div>
 
     <div class="rate-limit-note">
-      <h4>Rate Limiting</h4>
-      <p>All endpoints are limited to <strong>100 requests per minute</strong> per IP address. Responses include <code>X-RateLimit-Remaining</code> and <code>X-RateLimit-Limit</code> headers.</p>
+      <h4>Static snapshot API</h4>
+      <p>All endpoints are served as <strong>static JSON files</strong> from Cloudflare's global CDN &mdash; no rate limits, no query-parameter filtering. Fetch a snapshot covering your range (e.g. <code>/api/rates/6m.json</code>) and filter client-side. Files are regenerated every business day at 4:30&ndash;6:30 PM ET via GitHub Actions.</p>
     </div>
 
     <div class="section">
@@ -448,9 +448,8 @@
         <div class="endpoint-header">
           <span class="endpoint-url">/api/rates/latest</span>
           <span class="badge badge-get">GET</span>
-          <span class="badge badge-rate">100/min</span>
         </div>
-        <p class="description">Returns the most recent yield curve data available. This is the primary endpoint for displaying current treasury rates.</p>
+        <p class="description">Returns the most recent yield curve data available. This is the primary endpoint for displaying current treasury rates. Served from <code>/api/rates/latest.json</code>.</p>
 
         <h3>Response</h3>
         <div class="code-block">
@@ -458,23 +457,23 @@
           <pre>{
   "success": true,
   "data": {
-    "date": "2026-03-20",
-    "dateFormatted": "March 20, 2026",
+    "date": "2026-10-09",
+    "dateFormatted": "October 9, 2026",
     "rates": [
-      { "maturity": "4WK", "rate": 3.73 },
-      { "maturity": "6WK", "rate": 3.71 },
-      { "maturity": "2MO", "rate": 3.72 },
-      { "maturity": "3MO", "rate": 3.74 },
-      { "maturity": "4MO", "rate": 3.73 },
-      { "maturity": "6MO", "rate": 3.79 },
-      { "maturity": "1YR", "rate": 3.8 },
-      { "maturity": "2YR", "rate": 3.88 },
-      { "maturity": "3YR", "rate": 3.9 },
-      { "maturity": "5YR", "rate": 4.01 },
-      { "maturity": "7YR", "rate": 4.24 },
-      { "maturity": "10YR", "rate": 4.39 },
-      { "maturity": "20YR", "rate": 4.97 },
-      { "maturity": "30YR", "rate": 4.96 }
+      { "maturity": "4WK", "rate": 4.13 },
+      { "maturity": "6WK", "rate": 4.13 },
+      { "maturity": "2MO", "rate": 4.13 },
+      { "maturity": "3MO", "rate": 4.25 },
+      { "maturity": "4MO", "rate": 4.29 },
+      { "maturity": "6MO", "rate": 4.32 },
+      { "maturity": "1YR", "rate": 4.47 },
+      { "maturity": "2YR", "rate": 4.8 },
+      { "maturity": "3YR", "rate": 4.89 },
+      { "maturity": "5YR", "rate": 5.02 },
+      { "maturity": "7YR", "rate": 5.13 },
+      { "maturity": "10YR", "rate": 5.24 },
+      { "maturity": "20YR", "rate": 5.65 },
+      { "maturity": "30YR", "rate": 5.6 }
     ]
   }
 }</pre>
@@ -483,77 +482,77 @@
     </div>
 
     <div class="section">
-      <h2><span class="method">GET</span> Historical Rates</h2>
+      <h2><span class="method">GET</span> Rate History Snapshots</h2>
       <div class="endpoint">
         <div class="endpoint-header">
-          <span class="endpoint-url">/api/rates?from=&to=&maturity=</span>
+          <span class="endpoint-url">/api/rates.json</span>
           <span class="badge badge-get">GET</span>
-          <span class="badge badge-rate">100/min</span>
         </div>
-        <p class="description">Returns historical yield curve data filtered by date range and optional maturity. Dates are in ISO 8601 format (YYYY-MM-DD).</p>
-
-        <h3>Query Parameters</h3>
-        <div class="params">
-          <div class="param">
-            <span class="param-name">from</span>
-            <span class="param-type">string</span>
-            <span class="param-desc">Start date (YYYY-MM-DD). Defaults to earliest available date if not specified.</span>
-          </div>
-          <div class="param">
-            <span class="param-name">to</span>
-            <span class="param-type">string</span>
-            <span class="param-desc">End date (YYYY-MM-DD). Defaults to latest available date if not specified.</span>
-          </div>
-          <div class="param">
-            <span class="param-name">maturity</span>
-            <span class="param-type">string</span>
-            <span class="param-desc">Filter by specific maturity (e.g., "10YR", "2YR"). Defaults to all maturities.</span>
-          </div>
-        </div>
-
-        <h3>Example Requests</h3>
-        <div class="code-block">
-          <div class="code-label">Last 3 months</div>
-          <pre>/api/rates?from=2025-12-20&to=2026-03-20</pre>
-        </div>
-        <div class="code-block">
-          <div class="code-label">Specific maturity over time</div>
-          <pre>/api/rates?from=2025-01-01&to=2026-03-20&maturity=10YR</pre>
-        </div>
-        <div class="code-block">
-          <div class="code-label">All available data</div>
-          <pre>/api/rates</pre>
-        </div>
+        <p class="description">Returns the complete yield-curve history as a single static file: 9,200 business days back to 1990 (~3.5&nbsp;MB). There is no server-side filtering &mdash; fetch a pre-trimmed snapshot (see table) or filter client-side. The extensionless form <code>/api/rates</code> is rewritten (HTTP 200) to <code>/api/rates.json</code>, so both work.</p>
 
         <h3>Response</h3>
         <div class="code-block">
-          <div class="code-label">Example Response</div>
+          <div class="code-label">Example Response (truncated)</div>
           <pre>{
   "success": true,
   "data": [
     {
-      "date": "2026-03-20",
+      "date": "2026-10-09",
       "rates": [
-        { "maturity": "10YR", "rate": 4.39 },
-        { "maturity": "2YR", "rate": 3.88 }
-      ]
-    },
-    {
-      "date": "2026-03-19",
-      "rates": [
-        { "maturity": "10YR", "rate": 4.41 },
-        { "maturity": "2YR", "rate": 3.9 }
+        { "maturity": "4WK", "rate": 4.13 },
+        { "maturity": "2YR", "rate": 4.8 },
+        { "maturity": "10YR", "rate": 5.24 }
       ]
     }
   ],
   "meta": {
-    "from": "2026-03-19",
-    "to": "2026-03-20",
+    "from": "earliest",
+    "to": "latest",
     "maturity": "all",
-    "count": 2
+    "count": 9200,
+    "limit": 9200,
+    "offset": 0,
+    "hasMore": false
   }
 }</pre>
         </div>
+
+        <h3>Snapshot Files</h3>
+        <p class="description">Each snapshot returns the same shape with a concrete <code>meta</code> range (<code>from</code>, <code>to</code>, <code>count</code>, <code>hasMore</code>):</p>
+        <table>
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Coverage</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/api/rates.json</code> (alias <code>/api/rates</code>)</td>
+              <td>Complete history &mdash; 9,200 business days back to 1990-01-02</td>
+            </tr>
+            <tr>
+              <td><code>/api/rates/3m.json</code></td>
+              <td>Trailing 3 months</td>
+            </tr>
+            <tr>
+              <td><code>/api/rates/6m.json</code></td>
+              <td>Trailing 6 months</td>
+            </tr>
+            <tr>
+              <td><code>/api/rates/1y.json</code></td>
+              <td>Trailing 1 year</td>
+            </tr>
+            <tr>
+              <td><code>/api/rates/2y.json</code></td>
+              <td>Trailing 2 years</td>
+            </tr>
+            <tr>
+              <td><code>/api/rates/5y.json</code></td>
+              <td>Trailing 5 years</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -563,9 +562,8 @@
         <div class="endpoint-header">
           <span class="endpoint-url">/api/rates/maturities</span>
           <span class="badge badge-get">GET</span>
-          <span class="badge badge-rate">100/min</span>
         </div>
-        <p class="description">Returns a list of all available maturity periods and their labels.</p>
+        <p class="description">Returns all available maturity periods with their position in years (used for plotting the curve on a time axis). Served from <code>/api/rates/maturities.json</code>.</p>
 
         <h3>Response</h3>
         <div class="code-block">
@@ -573,20 +571,20 @@
           <pre>{
   "success": true,
   "data": [
-    { "value": "4WK", "label": "4 Week", "type": "short" },
-    { "value": "6WK", "label": "6 Week", "type": "short" },
-    { "value": "2MO", "label": "2 Month", "type": "short" },
-    { "value": "3MO", "label": "3 Month", "type": "short" },
-    { "value": "4MO", "label": "4 Month", "type": "short" },
-    { "value": "6MO", "label": "6 Month", "type": "short" },
-    { "value": "1YR", "label": "1 Year", "type": "medium" },
-    { "value": "2YR", "label": "2 Year", "type": "medium" },
-    { "value": "3YR", "label": "3 Year", "type": "medium" },
-    { "value": "5YR", "label": "5 Year", "type": "medium" },
-    { "value": "7YR", "label": "7 Year", "type": "long" },
-    { "value": "10YR", "label": "10 Year", "type": "long" },
-    { "value": "20YR", "label": "20 Year", "type": "long" },
-    { "value": "30YR", "label": "30 Year", "type": "long" }
+    { "maturity": "4WK", "years": 0.08333333333333333 },
+    { "maturity": "6WK", "years": 0.125 },
+    { "maturity": "2MO", "years": 0.16666666666666666 },
+    { "maturity": "3MO", "years": 0.25 },
+    { "maturity": "4MO", "years": 0.3333333333333333 },
+    { "maturity": "6MO", "years": 0.5 },
+    { "maturity": "1YR", "years": 1 },
+    { "maturity": "2YR", "years": 2 },
+    { "maturity": "3YR", "years": 3 },
+    { "maturity": "5YR", "years": 5 },
+    { "maturity": "7YR", "years": 7 },
+    { "maturity": "10YR", "years": 10 },
+    { "maturity": "20YR", "years": 20 },
+    { "maturity": "30YR", "years": 30 }
   ]
 }</pre>
         </div>
@@ -599,9 +597,8 @@
         <div class="endpoint-header">
           <span class="endpoint-url">/api/rates/stats</span>
           <span class="badge badge-get">GET</span>
-          <span class="badge badge-rate">100/min</span>
         </div>
-        <p class="description">Returns year-to-date and all-time high/low rates for each maturity, with the dates when those records occurred. All-time stats are populated after the scheduler runs for sufficient time.</p>
+        <p class="description">Returns the current-year high and low rate for each maturity, with the dates those records occurred. The <code>allTime*</code> fields are reserved for future use and currently return <code>null</code>. Served from <code>/api/rates/stats.json</code>.</p>
 
         <h3>Response</h3>
         <div class="code-block">
@@ -611,8 +608,8 @@
   "data": [
     {
       "maturity": "10YR",
-      "yearHigh": 4.39,
-      "yearHighDate": "2026-03-20",
+      "yearHigh": 5.31,
+      "yearHighDate": "2026-10-05",
       "yearLow": 3.97,
       "yearLowDate": "2026-02-27",
       "allTimeHigh": null,
@@ -633,14 +630,62 @@
           <span class="endpoint-url">/health</span>
           <span class="badge badge-get">GET</span>
         </div>
-        <p class="description">Simple health check endpoint. Returns server status and current timestamp. Not rate limited.</p>
+        <p class="description">Simple health check. Returns service status plus the dates of the latest data files. Served from <code>/health.json</code> (a 200 rewrite from <code>/health</code>).</p>
 
         <h3>Response</h3>
         <div class="code-block">
           <div class="code-label">Example Response</div>
           <pre>{
   "status": "ok",
-  "timestamp": "2026-03-23T19:00:00.000Z"
+  "latestRateDate": "2026-10-09",
+  "latestSummaryDate": "2026-10-09"
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="method">GET</span> Daily Summary</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-url">/api/daily-summary</span>
+          <span class="badge badge-get">GET</span>
+        </div>
+        <p class="description">Plain-text summary of the latest business day's Treasury market, written by the automated daily writer. This is what powers the homepage summary block.</p>
+
+        <h3>Response</h3>
+        <div class="code-block">
+          <div class="code-label">Example Response (text/plain)</div>
+          <pre>Short-term Treasury bills moved higher over the past week, with the 4-week and
+6-week rates at 4.13 percent on Friday, October 9, 2026, ...</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="method">GET</span> Blog Post Data</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-url">/api/blog/2026-10-09.json</span>
+          <span class="badge badge-get">GET</span>
+        </div>
+        <p class="description">Structured data for one business day's post: <code>date</code>, <code>dateFormatted</code>, long-form <code>summary</code>, shorter <code>blogSummary</code>, and that day's <code>rates</code>. One file per business day (e.g. <code>/api/blog/2026-10-08.json</code>). Available years are listed at <code>/api/blog/years.json</code>, which returns <code>{"success": true, "data": ["2026"]}</code>.</p>
+
+        <h3>Response</h3>
+        <div class="code-block">
+          <div class="code-label">Example Response (truncated)</div>
+          <pre>{
+  "success": true,
+  "data": {
+    "date": "2026-10-09",
+    "dateFormatted": "October 9, 2026",
+    "summary": "Short-term Treasury bills moved higher over the past week, ...",
+    "blogSummary": "The short end of the Treasury market opened Friday, ...",
+    "rates": [
+      { "maturity": "4WK", "rate": 4.13 },
+      { "maturity": "10YR", "rate": 5.24 }
+    ]
+  }
 }</pre>
         </div>
       </div>
@@ -661,51 +706,17 @@
             <td>Success</td>
           </tr>
           <tr>
-            <td><code>400</code></td>
-            <td>Bad Request - Invalid parameters</td>
+            <td><code>301</code></td>
+            <td>Permanent redirect (legacy URLs like <code>/blog?page=2</code> redirect to <code>/blog/2/</code>)</td>
           </tr>
           <tr>
             <td><code>404</code></td>
-            <td>Not Found - Resource doesn't exist</td>
-          </tr>
-          <tr>
-            <td><code>429</code></td>
-            <td>Too Many Requests - Rate limit exceeded</td>
-          </tr>
-          <tr>
-            <td><code>500</code></td>
-            <td>Internal Server Error</td>
+            <td>Not Found - File doesn't exist (e.g. a blog date with no published post)</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div class="section">
-      <h2>Rate Limit Headers</h2>
-      <p>All API responses include rate limit information in the headers:</p>
-      <table>
-        <thead>
-          <tr>
-            <th>Header</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>X-RateLimit-Limit</code></td>
-            <td>Maximum requests allowed per window (100)</td>
-          </tr>
-          <tr>
-            <td><code>X-RateLimit-Remaining</code></td>
-            <td>Requests remaining in current window</td>
-          </tr>
-          <tr>
-            <td><code>Retry-After</code></td>
-            <td>Seconds to wait before retrying (only on 429)</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
   </main>
 
   <footer class="footer">
@@ -717,7 +728,7 @@
         <span class="divider">|</span>
         <a href="https://home.treasury.gov" target="_blank" rel="noopener noreferrer">U.S. Treasury</a>
       </div>
-      <div class="footer-meta">Updated daily at 3:30 PM ET</div>
+      <div class="footer-meta">Data regenerated every business day (4:30&ndash;6:30 PM ET) via GitHub Actions</div>
     </div>
   </footer>
 </body>
