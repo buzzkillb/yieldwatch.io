@@ -4,7 +4,7 @@
 // styles, and card markup. Year/month filters work client-side over an
 // embedded index; pagination is static.
 import {
-  readTemplate, escapeHtml, SUMMARIES, POSTS_PER_PAGE,
+  readTemplate, escapeHtml, SUMMARIES, POSTS_PER_PAGE, postHeadline, blogTotalPages,
 } from '../lib/site';
 
 interface Props { page: number }
@@ -40,6 +40,7 @@ const cardsHtml = items.map(item => {
           <a href="/blog/${item.date}" class="summary-card-link">
             <article class="summary-card">
               <div class="summary-date">${dateStr}</div>
+              <h3 class="summary-card-title">${escapeHtml(postHeadline(item.date))}</h3>
               <div class="analysis-tag">${item.blogSummary && item.blogSummary.length > 0 ? 'Full analysis available' : 'Quick summary'}</div>
               <p class="summary-excerpt">${escapeHtml(item.summary)}</p>
             </article>
@@ -54,13 +55,28 @@ html = html.replace(
           </div></div>`
 );
 
-// Static pagination.
+// Static pagination + archive hub CTA (crawlable path to every post).
 const paginationHtml = totalPages <= 1 ? '' : `<div class="pagination-controls">
         ${current > 1 ? `<a class="page-link" href="${hrefFor(current - 1)}">&larr; Previous</a>` : ''}
         <span class="page-info">Page ${current} of ${totalPages}</span>
         ${current < totalPages ? `<a class="page-link" href="${hrefFor(current + 1)}">Next &rarr;</a>` : ''}
       </div>`;
-html = html.replace('<div id="pagination" class="pagination"></div>', `<div id="pagination" class="pagination">${paginationHtml}</div>`);
+html = html.replace(
+  '<div id="pagination" class="pagination"></div>',
+  `<div class="archive-cta"><a href="/blog/archive">Browse the complete archive &mdash; every daily summary on one page</a> <span class="archive-count">(${blogTotalPages()} pages of summaries, ${SUMMARIES.length} posts)</span></div>
+        <div id="pagination" class="pagination">${paginationHtml}</div>`
+);
+
+// Nav link + card/archive styling.
+html = html.replace('      </nav>', '        <a href="/blog/archive">Archive</a>\n      </nav>');
+html = html.replace(
+  '  </style>',
+  `  .summary-card-title { font-size: 1.02rem; font-weight: 600; color: var(--text-primary); margin: 0.2rem 0 0; }
+  .archive-cta { margin: 1.5rem auto 0.5rem; text-align: center; }
+  .archive-cta a { color: var(--accent); font-weight: 600; }
+  .archive-count { color: var(--text-muted); font-size: 0.85rem; }
+  </style>`
+);
 
 // Embed the index for client-side year/month filtering.
 html = html.replace(

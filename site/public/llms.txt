@@ -8,6 +8,7 @@ YieldWatch tracks U.S. Treasury par yield curve rates from 4-week bills to 30-ye
 
 - [Dashboard](https://yieldwatch.io/): Current Treasury yield curve rates for all maturities, updated daily
 - [Daily Summaries](https://yieldwatch.io/blog): Plain-English analysis of each business day's Treasury yield data
+- [Daily Summary Archive](https://yieldwatch.io/blog/archive): Every daily summary on one page, grouped by month
 - [FAQ](https://yieldwatch.io/faq): What the yield curve means, inversions, and Treasury basics
 - [API Docs](https://yieldwatch.io/api-docs): Free public JSON API for all rates data
 

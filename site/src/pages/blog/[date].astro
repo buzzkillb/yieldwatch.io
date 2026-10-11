@@ -5,7 +5,7 @@
 // its own renderChart is reused with embedded data.
 import {
   readTemplate, escapeHtml, dateFormatted, linkLabel, formatBlogSummary,
-  SUMMARIES, CHART_COLORS, SITE_URL,
+  SUMMARIES, CHART_COLORS, SITE_URL, postHeadline, relatedPosts,
 } from '../../lib/site';
 
 export function getStaticPaths() {
@@ -18,8 +18,12 @@ const blogSummary = entry.blogSummary || entry.summary;
 const dateStr = dateFormatted(date);
 const blogUrl = `${SITE_URL}/blog/${date}`;
 const ogImageUrl = `${SITE_URL}/og-image/${date}.png`;
-const pageTitle = `${dateStr} | Treasury Yield Daily`;
-const articleH1 = `Treasury Yield Curve Analysis — ${dateStr}`;
+// Unique, data-driven headline (largest day-over-day move) — replaces the
+// templated "{date} | Treasury Yield Daily" title shared by every post.
+const headline = postHeadline(date);
+const ogTitle = headline; // headline already includes the date label
+const pageTitle = `${headline} | Treasury Yield Daily`;
+const articleH1 = headline;
 const metaDescription = escapeHtml(blogSummary.substring(0, 160));
 
 // Adjacent posts + recent-5 hub (same semantics as the SSR version).
@@ -30,6 +34,8 @@ const laterPosts = desc.filter(d => d > date).sort((a, b) => a.localeCompare(b))
 const prevDate = laterPosts[0];   // newer post
 const nextDate = earlierPosts[0]; // older post
 
+const related = relatedPosts(date, 8);
+
 const prevNextHtml = (prevDate || nextDate)
   ? `<nav class="post-nav" aria-label="Adjacent daily summaries">
             ${prevDate ? `<a class="post-nav-link" rel="prev" href="/blog/${prevDate}">&larr; ${escapeHtml(linkLabel(prevDate))}</a>` : '<span class="post-nav-spacer"></span>'}
@@ -37,12 +43,13 @@ const prevNextHtml = (prevDate || nextDate)
           </nav>`
   : '';
 
-const recentHtml = earlierPosts.length > 0
-  ? `<section class="related-summaries" aria-label="Recent daily summaries">
-            <h2 class="related-title">Recent daily summaries</h2>
+const recentHtml = related.length > 0
+  ? `<section class="related-summaries" aria-label="Related daily summaries">
+            <h2 class="related-title">More Treasury yield daily summaries</h2>
             <ul class="related-list">
-              ${earlierPosts.map(d => `<li><a href="/blog/${d}">Treasury yield curve summary for ${escapeHtml(linkLabel(d))}</a></li>`).join('')}
+              ${related.map(p => `<li><a href="/blog/${p.date}">${escapeHtml(p.headline)}</a></li>`).join('')}
             </ul>
+            <p class="related-archive"><a href="/blog/archive">Browse the complete archive of every daily summary</a></p>
           </section>`
   : '';
 
@@ -84,7 +91,7 @@ const articleContent = `
 const articleSchema = {
   '@context': 'https://schema.org',
   '@type': 'Article',
-  headline: `${dateStr} Treasury Yield Curve Analysis`,
+  headline: headline,
   description: blogSummary.substring(0, 300),
   datePublished: `${date}T00:00:00Z`,
   dateModified: `${date}T00:00:00Z`,
@@ -101,17 +108,21 @@ const articleSchema = {
 
 let html = readTemplate('blog-post.html');
 
+// Nav: expose the archive hub from every post page + style for its CTA.
+html = html.replace('      </nav>', '        <a href="/blog/archive">Archive</a>\n      </nav>');
+html = html.replace('  </style>', '  .related-archive { margin-top: 1rem; }\n  .related-archive a { color: var(--accent); }\n  </style>');
+
 // Head meta (same replacements as the SSR version).
 html = html.replace(/<title[^>]*>.*<\/title>/, `<title id="page-title">${escapeHtml(pageTitle)}</title>`);
 html = html.replace(`content="Treasury yield curve daily analysis" id="meta-desc"`, `content="${metaDescription}" id="meta-desc"`);
 html = html.replace(`id="og-url" content="https://yieldwatch.io/blog"`, `id="og-url" content="${blogUrl}"`);
-html = html.replace(`id="og-title" content="Treasury Yield Daily Summary"`, `id="og-title" content="${escapeHtml(dateStr)} Treasury Yield"`);
+html = html.replace(`id="og-title" content="Treasury Yield Daily Summary"`, `id="og-title" content="${escapeHtml(ogTitle)}"`);
 html = html.replace(`id="og-description" content="Treasury yield curve daily analysis"`, `id="og-description" content="${metaDescription}"`);
 html = html.replace(`id="og-image" content="https://yieldwatch.io/og/og.png"`, `id="og-image" content="${ogImageUrl}"`);
 html = html.replace(`id="article-date" content=""`, `id="article-date" content="${date}T00:00:00Z"`);
 html = html.replace(`id="article-modified" content=""`, `id="article-modified" content="${date}T00:00:00Z"`);
 html = html.replace(`id="twitter-url" content="https://yieldwatch.io/blog"`, `id="twitter-url" content="${blogUrl}"`);
-html = html.replace(`id="twitter-title" content="Treasury Yield Daily Summary"`, `id="twitter-title" content="${escapeHtml(dateStr)} Treasury Yield"`);
+html = html.replace(`id="twitter-title" content="Treasury Yield Daily Summary"`, `id="twitter-title" content="${escapeHtml(ogTitle)}"`);
 html = html.replace(`id="twitter-description" content="Treasury yield curve daily analysis"`, `id="twitter-description" content="${metaDescription}"`);
 html = html.replace(`id="twitter-image" content="https://yieldwatch.io/og/og.png"`, `id="twitter-image" content="${ogImageUrl}"`);
 html = html.replace(`id="canonical-url" href="https://yieldwatch.io/blog/"`, `id="canonical-url" href="${blogUrl}"`);

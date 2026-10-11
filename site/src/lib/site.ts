@@ -141,12 +141,13 @@ export function generateOgSvg(data: { maturity: string; rate: number }[] | strin
 }
 
 // Ported from api/src/routes/sitemap.ts (pure function).
-export function buildRssFeed(posts: { date: string; excerpt: string }[]): string {
+export function buildRssFeed(posts: { date: string; excerpt: string; title?: string }[]): string {
   const items = posts.map(post => {
     const url = `${SITE_URL}/blog/${post.date}`;
     const pubDate = new Date(`${post.date}T20:00:00Z`).toUTCString();
+    const title = post.title || `Treasury Yield Curve Summary for ${post.date}`;
     return `    <item>
-      <title>Treasury Yield Curve Summary for ${escapeXml(post.date)}</title>
+      <title>${escapeXml(title)}</title>
       <link>${escapeXml(url)}</link>
       <guid isPermaLink="true">${escapeXml(url)}</guid>
       <pubDate>${pubDate}</pubDate>
@@ -182,9 +183,13 @@ export function buildSitemap(): string {
   const urls: { loc: string; lastmod: string; changefreq: string; priority: string }[] = [
     { loc: `${SITE_URL}/`, lastmod: today, changefreq: 'daily', priority: '1.0' },
     { loc: `${SITE_URL}/blog`, lastmod: today, changefreq: 'daily', priority: '0.9' },
+    { loc: `${SITE_URL}/blog/archive`, lastmod: today, changefreq: 'daily', priority: '0.8' },
     { loc: `${SITE_URL}/api-docs`, lastmod: today, changefreq: 'weekly', priority: '0.7' },
     { loc: `${SITE_URL}/faq`, lastmod: today, changefreq: 'weekly', priority: '0.7' },
   ];
+  for (let p = 2; p <= blogTotalPages(); p++) {
+    urls.push({ loc: `${SITE_URL}/blog/${p}`, lastmod: today, changefreq: 'daily', priority: '0.5' });
+  }
   for (const s of SUMMARIES) {
     urls.push({ loc: `${SITE_URL}/blog/${s.date}`, lastmod: s.date, changefreq: 'weekly', priority: '0.8' });
   }
@@ -207,4 +212,83 @@ ${entries}
 import { join } from 'node:path';
 export function readTemplate(name: string): string {
   return readFileSync(join(process.cwd(), 'src', 'templates', name), 'utf8');
+}
+
+// ---------------------------------------------------------------------------
+// Anti-duplication + internal-linking helpers.
+// ---------------------------------------------------------------------------
+
+const summariesByDate = new Map(SUMMARIES.map(s => [s.date, s]));
+
+export function blogTotalPages(): number {
+  return Math.max(1, Math.ceil(SUMMARIES.length / POSTS_PER_PAGE));
+}
+
+function maturitySubject(m: string): string {
+  if (m.endsWith('WK')) return `${m.slice(0, -2)}-Week Bill Rate`;
+  if (m.endsWith('MO')) return `${m.slice(0, -2)}-Month Bill Rate`;
+  return `${m.slice(0, -2)}-Year Yield`;
+}
+
+// Data-driven, unique-per-day headline derived from the largest day-over-day
+// move. Replaces the templated "October 9, 2026 | Treasury Yield Daily" title
+// pattern that made every post look identical to crawlers. Deterministic.
+export function postHeadline(date: string): string {
+  const dayLabel = linkLabel(date);
+  const entry = summariesByDate.get(date);
+  const idx = RATES.findIndex(d => d.date === date);
+  const prev = idx > 0 ? RATES[idx - 1] : null;
+  if (!entry || !prev) return `Treasury Yield Curve Summary (${dayLabel})`;
+  const changes = entry.rates
+    .map(r => {
+      const p = prev.rates.find(x => x.maturity === r.maturity);
+      return p ? { maturity: r.maturity, rate: r.rate, delta: r.rate - p.rate } : null;
+    })
+    .filter((c): c is { maturity: string; rate: number; delta: number } => c !== null);
+  if (changes.length === 0) return `Treasury Yield Curve Summary (${dayLabel})`;
+  const max = changes.reduce((a, b) => (Math.abs(b.delta) > Math.abs(a.delta) ? b : a));
+  const subject = maturitySubject(max.maturity);
+  const rateStr = max.rate.toFixed(2);
+  const bps = Math.round(Math.abs(max.delta) * 100);
+  if (bps === 0) return `Treasury Yields Unchanged, ${subject} Holds at ${rateStr}% (${dayLabel})`;
+  if (bps < 5) return `Treasury Yields Little Changed, ${subject} at ${rateStr}% (${dayLabel})`;
+  return `${subject} ${max.delta > 0 ? 'Rises' : 'Falls'} ${bps} bps to ${rateStr}% (${dayLabel})`;
+}
+
+export interface PostLink { date: string; headline: string }
+
+// Deterministic related-post selection: adjacent days, calendar week/year
+// lookbacks, same-month posts, then hash-rotated picks from other months.
+// Gives every post ~8 varied internal links regardless of its age.
+export function relatedPosts(date: string, cap = 8): PostLink[] {
+  const all = SUMMARIES.map(s => s.date).sort();
+  const seen = new Set<string>([date]);
+  const out: PostLink[] = [];
+  const push = (d?: string) => {
+    if (!d || out.length >= cap || seen.has(d) || !summariesByDate.has(d)) return;
+    seen.add(d);
+    out.push({ date: d, headline: postHeadline(d) });
+  };
+  const i = all.indexOf(date);
+  push(all[i - 1]);
+  push(all[i + 1]);
+  const shift = (days: number) => {
+    const dt = new Date(date + 'T00:00:00Z');
+    dt.setUTCDate(dt.getUTCDate() - days);
+    return dt.toISOString().slice(0, 10);
+  };
+  push(shift(7));
+  push(shift(365));
+  for (const d of [...all].reverse()) {
+    if (out.length >= cap) break;
+    if (d.startsWith(date.slice(0, 7))) push(d);
+  }
+  let h = 7;
+  for (let k = 0; k < date.length; k++) h = (h * 31 + date.charCodeAt(k)) >>> 0;
+  const pool = all.filter(d => !d.startsWith(date.slice(0, 7)));
+  for (const k of [0, 1, 2]) {
+    if (out.length >= cap) break;
+    push(pool[(h + k * 97) % pool.length]);
+  }
+  return out;
 }

@@ -173,6 +173,7 @@ export function getEditorialAngle(date: string): typeof EDITORIAL_ANGLES[number]
 }
 
 const ANTI_REPETITION_RULES = `- Vary your sentence structure: do not reuse the same opening clause pattern across paragraphs
+- Rearrange paragraph order when the editorial angle calls for it (short end first, curve shape first, 30-day comparison first); the 4 paragraphs above are content requirements, not a fixed sequence
 - Avoid repeating the identical transition phrase more than once (e.g. do not start three sentences with "Meanwhile")
 - Do not begin every paragraph with a date or day-of-week; vary how each paragraph opens
 - Never reuse the same sentence template you would write for another day - the facts should drive the wording`;
@@ -235,7 +236,7 @@ Rules:
 - Write exactly 4 paragraphs of 3-5 sentences each
 - State today's full date (e.g. September 10, 2026) in the first sentence of paragraph 1
 - Refer to rates by full searchable name at least once each: "30-year Treasury yield", "10-year Treasury rate", "2-year Treasury rate", "Treasury yield curve"
-- Paragraph 1: Open with the 30-year Treasury yield and key weekly movements (vs last week)
+- Paragraph 1: Open with the rate or weekly movement most relevant to the editorial angle - the 30-year Treasury yield must appear in paragraph 1, but it does not have to be the opening subject
 - Paragraph 2: Cover the broader curve - rate changes across maturities compared to last week, but vary how you present the moves (not every maturity needs a number)
 - Paragraph 3: Discuss how rates have changed over the past month (vs 30 days ago) - highlight notable moves at different parts of the curve. If one-year-ago data is provided, also state how today's 10-year and 30-year rates compare to one year ago
 - Paragraph 4: Describe the Treasury yield curve shape and any inversions compared to both last week and 30 days ago - report them only as observed facts, make no interpretation of what they mean for investors, markets, or the economy

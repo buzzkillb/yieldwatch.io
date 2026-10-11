@@ -1,0 +1,135 @@
+---
+// Complete archive hub: every daily summary on one crawlable page.
+// Grouped by year and month; anchor text is each post's unique data-driven
+// headline. This gives every post a strong internal link exactly 1-2 clicks
+// from anywhere on the site (nav or related blocks), independent of the
+// sitemap or pagination depth.
+import { escapeHtml, linkLabel, postHeadline, SUMMARIES, SITE_URL } from '../../lib/site';
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+const sorted = [...SUMMARIES].sort((a, b) => b.date.localeCompare(a.date));
+const byYear = new Map<string, Map<string, { date: string; headline: string }[]>>();
+for (const s of sorted) {
+  const y = s.date.slice(0, 4);
+  const m = s.date.slice(5, 7);
+  if (!byYear.has(y)) byYear.set(y, new Map());
+  const months = byYear.get(y)!;
+  if (!months.has(m)) months.set(m, []);
+  months.get(m)!.push({ date: s.date, headline: postHeadline(s.date) });
+}
+
+let listHtml = '';
+for (const [year, months] of [...byYear.entries()].sort((a, b) => b[0].localeCompare(a[0]))) {
+  listHtml += `      <section class="archive-year-block" aria-label="Daily summaries from ${year}">
+        <h2 class="archive-year">${year}</h2>\n`;
+  for (const [month, posts] of [...months.entries()].sort((a, b) => b[0].localeCompare(a[0]))) {
+    listHtml += `        <h3 class="archive-month">${MONTHS[Number(month) - 1]} ${year}</h3>
+        <ul class="archive-list">
+${posts.map(p => `          <li><a href="/blog/${p.date}">${escapeHtml(p.headline)}</a></li>`).join('\n')}
+        </ul>\n`;
+  }
+  listHtml += `      </section>\n`;
+}
+
+const pageTitle = 'Complete Daily Treasury Yield Summary Archive | YieldWatch';
+const pageDescription = `Every daily Treasury yield summary published on YieldWatch, all ${SUMMARIES.length} posts on one page. Plain-English analysis of U.S. Treasury par yield curve rates, 4-week bills through 30-year bonds.`;
+
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Dashboard', item: SITE_URL },
+    { '@type': 'ListItem', position: 2, name: 'Daily Summaries', item: `${SITE_URL}/blog` },
+    { '@type': 'ListItem', position: 3, name: 'Archive', item: `${SITE_URL}/blog/archive` },
+  ],
+};
+---
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDescription}>
+    <link rel="canonical" href={`${SITE_URL}/blog/archive`}>
+    <meta name="robots" content="index, follow">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content={pageTitle}>
+    <meta property="og:description" content={pageDescription}>
+    <meta property="og:url" content={`${SITE_URL}/blog/archive`}>
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content={pageTitle}>
+    <meta name="twitter:description" content={pageDescription}>
+    <link rel="alternate" type="application/rss+xml" title="Daily Treasury Yield Summaries RSS" href="/feed.xml">
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)}></script>
+    <style>
+      :root {
+        --bg-primary: #0a0a0f;
+        --bg-secondary: #0f0f18;
+        --bg-card: #16161f;
+        --border-color: #2a2a3a;
+        --text-primary: #f0f0f5;
+        --text-secondary: #a0a0b0;
+        --text-muted: #606070;
+        --accent: #6366f1;
+        --accent-hover: #818cf8;
+      }
+      * { margin: 0; box-sizing: border-box; }
+      body {
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.6;
+      }
+      header { background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); padding: 1rem 1.5rem; }
+      .header-content { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+      .logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; color: var(--text-primary); font-weight: 700; }
+      .nav { display: flex; gap: 1.25rem; }
+      .nav a { color: var(--text-secondary); text-decoration: none; font-size: 0.95rem; }
+      .nav a:hover { color: var(--text-primary); }
+      main { max-width: 1100px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+      .archive-intro { max-width: 760px; color: var(--text-secondary); margin-bottom: 2.5rem; }
+      h1 { font-size: 1.9rem; line-height: 1.25; margin-bottom: 0.75rem; }
+      .archive-count { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem; }
+      .archive-year { font-size: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.4rem; margin: 2.5rem 0 1rem; }
+      .archive-month { font-size: 1.1rem; color: var(--accent-hover); margin: 1.5rem 0 0.5rem; }
+      .archive-list { list-style: none; padding: 0; margin: 0 0 0.5rem; }
+      .archive-list li { border-bottom: 1px solid var(--border-color); }
+      .archive-list a { display: block; padding: 0.55rem 0.25rem; color: var(--text-primary); text-decoration: none; }
+      .archive-list a:hover { color: var(--accent-hover); background: var(--bg-card); }
+      footer { border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1.5rem; }
+      footer a { color: var(--text-secondary); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-content">
+        <a href="/" class="logo">
+          <span class="logo-text">Treasury Yield &mdash; Archive</span>
+        </a>
+        <nav class="nav" aria-label="Main navigation">
+          <a href="/">Dashboard</a>
+          <a href="/blog">Daily Summaries</a>
+          <a href="/blog/archive" aria-current="page">Archive</a>
+          <a href="/faq">FAQ</a>
+          <a href="/api-docs">API</a>
+        </nav>
+      </div>
+    </header>
+    <main>
+      <h1>Daily Treasury Yield Summary Archive</h1>
+      <p class="archive-intro">
+        Every daily summary published on YieldWatch, on one page. Each post covers that business day's
+        U.S. Treasury par yield curve rates &mdash; 4-week bills through 30-year bonds &mdash; with
+        day-over-day, week-over-week, and year-ago context. Anchor text for each link reflects the
+        largest move that day.
+      </p>
+      <p class="archive-count">{SUMMARIES.length} daily summaries &middot; updated every business day</p>
+      <Fragment set:html={listHtml} />
+    </main>
+    <footer>
+      <p>Data from the U.S. Department of the Treasury &middot; <a href="/api-docs">Free JSON API</a> &middot; <a href="/feed.xml">RSS</a></p>
+    </footer>
+  </body>
+</html>
