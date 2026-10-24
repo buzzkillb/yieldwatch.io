@@ -81,7 +81,7 @@ export function buildSeoBlock(day: RateDay): string {
     .map(r => `${r.maturity === '4WK' ? '4-week' : r.maturity.replace('YR', '-year')} Treasury ${(r.maturity === '4WK' ? 'bill rate' : 'yield')} at ${r.rate.toFixed(2)} percent`);
   const formatted = dateFormatted(day.date);
   return `<section id="seo-static-rates" aria-label="Current Treasury rates summary">
-  <h2 style="position:absolute;left:-9999px;">Current U.S. Treasury Yield Curve Rates</h2>
+  <h1 style="position:absolute;left:-9999px;">Current U.S. Treasury Yield Curve Rates</h1>
   <p style="position:absolute;left:-9999px;">U.S. Treasury yield curve rates for ${formatted}: ${keyRates.join(', ')}. The full Treasury yield curve with 35+ years of historical data is available on this dashboard and in our daily summaries.</p>
 </section>`;
 }

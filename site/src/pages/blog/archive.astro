@@ -63,6 +63,7 @@ const breadcrumbSchema = {
     <meta name="twitter:description" content={pageDescription}>
     <link rel="alternate" type="application/rss+xml" title="Daily Treasury Yield Summaries RSS" href="/feed.xml">
     <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)}></script>
+    <script type="application/ld+json" id="schema-org-site" set:html={JSON.stringify({"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://yieldwatch.io/#org","name":"YieldWatch","url":"https://yieldwatch.io","logo":{"@type":"ImageObject","url":"https://yieldwatch.io/og/og.png"}},{"@type":"WebSite","@id":"https://yieldwatch.io/#site","url":"https://yieldwatch.io","name":"YieldWatch","publisher":{"@id":"https://yieldwatch.io/#org"}}]})}></script>
     <style>
       :root {
         --bg-primary: #0a0a0f;
