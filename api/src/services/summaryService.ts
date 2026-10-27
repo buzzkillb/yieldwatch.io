@@ -339,7 +339,49 @@ export async function fetchLLMWithRetry(body: Record<string, unknown>, label: st
 type LLMChoice = {
   finish_reason?: string;
   message?: { content?: string; reasoning_content?: string; reasoning?: string };
+  delta?: { content?: string; reasoning_content?: string; reasoning?: string };
 };
+
+type ParsedCompletion = { content: string; reasoning: string; finishReason: string };
+
+// Streaming keeps bytes flowing through Cloudflare's 100s origin timeout while
+// slow models generate. The gateway emits OpenAI-style SSE chunks.
+function parseCompletionBody(bodyText: string): ParsedCompletion {
+  let content = '';
+  let reasoning = '';
+  let finishReason = 'none';
+
+  const consume = (chunk: unknown) => {
+    const choice = (chunk as { choices?: LLMChoice[] })?.choices?.[0];
+    if (!choice) return;
+    const delta = choice.delta ?? choice.message;
+    content += delta?.content ?? '';
+    reasoning += delta?.reasoning_content ?? delta?.reasoning ?? '';
+    if (choice.finish_reason) finishReason = choice.finish_reason;
+  };
+
+  if (bodyText.trimStart().startsWith('data:')) {
+    for (const line of bodyText.split(/\r?\n/)) {
+      if (!line.startsWith('data:')) continue;
+      const payload = line.slice(5).trim();
+      if (!payload || payload === '[DONE]') continue;
+      try {
+        consume(JSON.parse(payload));
+      } catch {
+        // Ignore keepalive/comment frames.
+      }
+    }
+    return { content: content.trim(), reasoning: reasoning.trim(), finishReason };
+  }
+
+  try {
+    const data = JSON.parse(bodyText) as { choices?: LLMChoice[] };
+    consume(data);
+    return { content: content.trim(), reasoning: reasoning.trim(), finishReason };
+  } catch {
+    return { content: '', reasoning: '', finishReason: 'unparseable' };
+  }
+}
 
 export function parseLLMResponse(response: Response, label: string): Promise<string> {
   return response.text().then(async (bodyText) => {
@@ -347,18 +389,9 @@ export function parseLLMResponse(response: Response, label: string): Promise<str
       console.log(`[LLM] ${label} API error: ${response.status} - ${bodyText.slice(0, 300)}`);
       return '';
     }
-    let data: { choices?: LLMChoice[] };
-    try {
-      data = JSON.parse(bodyText);
-    } catch {
-      console.log(`[LLM] ${label}: invalid JSON response - ${bodyText.slice(0, 300)}`);
-      return '';
-    }
-    const choice = data.choices?.[0];
-    const content = choice?.message?.content?.trim() ?? '';
-    const reasoning = (choice?.message?.reasoning_content ?? choice?.message?.reasoning ?? '').trim();
+    const { content, reasoning, finishReason } = parseCompletionBody(bodyText);
     console.log(
-      `[LLM] ${label}: finish_reason=${choice?.finish_reason ?? 'none'} content_chars=${content.length} reasoning_chars=${reasoning.length}`
+      `[LLM] ${label}: finish_reason=${finishReason} content_chars=${content.length} reasoning_chars=${reasoning.length}`
     );
 
     // Some gateway models put the whole answer in a reasoning field or emit an
@@ -422,15 +455,17 @@ export async function generateAndSaveSummaries(date: string): Promise<{ short: s
         { role: 'user', content: shortUserMessage(date) }
       ],
       max_tokens: 1000,
-      temperature: 0.4
+      temperature: 0.4,
+      stream: true
     }, 'short-summary'),
     fetchLLMWithRetry({
       messages: [
         { role: 'system', content: buildLongSystemPrompt(ratesData) },
         { role: 'user', content: longUserMessage(date) }
       ],
-      max_tokens: 3000,
-      temperature: 0.4
+      max_tokens: 2500,
+      temperature: 0.4,
+      stream: true
     }, 'long-summary')
   ]);
 

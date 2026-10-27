@@ -97,6 +97,7 @@ for (const row of newRows) {
         ],
         max_tokens: 1000,
         temperature: 0.4,
+        stream: true,
       }, `short ${today}`);
       const short = await parseLLMResponse(shortRes, `short ${today}`);
       if (!isValidSummary(short)) throw new Error('invalid short summary');
@@ -107,8 +108,9 @@ for (const row of newRows) {
           { role: 'system', content: buildLongSystemPrompt(ratesData) },
           { role: 'user', content: longUserMessage(today) },
         ],
-        max_tokens: 6000,
+        max_tokens: 2500,
         temperature: 0.4,
+        stream: true,
       }, `long ${today}`);
       const long = await parseLLMResponse(longRes, `long ${today}`);
       if (!isValidSummary(long)) throw new Error('invalid long summary');
