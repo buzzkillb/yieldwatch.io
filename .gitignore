@@ -7,3 +7,6 @@ dist/
 acme.json
 postgres_data/
 api/public/og/
+
+# wrangler local state
+.wrangler/
