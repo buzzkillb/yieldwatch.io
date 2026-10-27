@@ -336,22 +336,45 @@ export async function fetchLLMWithRetry(body: Record<string, unknown>, label: st
   return new Response(JSON.stringify({ error: { message: `${label} failed after ${MAX_ATTEMPTS} attempts` } }), { status: 503 });
 }
 
+type LLMChoice = {
+  finish_reason?: string;
+  message?: { content?: string; reasoning_content?: string; reasoning?: string };
+};
+
 export function parseLLMResponse(response: Response, label: string): Promise<string> {
   return response.text().then(async (bodyText) => {
     if (!response.ok) {
-      console.log(`[LLM] ${label} API error: ${response.status} - ${bodyText.slice(0, 200)}`);
+      console.log(`[LLM] ${label} API error: ${response.status} - ${bodyText.slice(0, 300)}`);
       return '';
     }
-    let data: { choices?: { message?: { content?: string } }[] };
+    let data: { choices?: LLMChoice[] };
     try {
       data = JSON.parse(bodyText);
     } catch {
-      console.log(`[LLM] ${label}: invalid JSON response`);
+      console.log(`[LLM] ${label}: invalid JSON response - ${bodyText.slice(0, 300)}`);
       return '';
     }
-    const text = data.choices?.[0]?.message?.content?.trim();
-    if (text && isValidSummary(text)) {
-      return text;
+    const choice = data.choices?.[0];
+    const content = choice?.message?.content?.trim() ?? '';
+    const reasoning = (choice?.message?.reasoning_content ?? choice?.message?.reasoning ?? '').trim();
+    console.log(
+      `[LLM] ${label}: finish_reason=${choice?.finish_reason ?? 'none'} content_chars=${content.length} reasoning_chars=${reasoning.length}`
+    );
+
+    // Some gateway models put the whole answer in a reasoning field or emit an
+    // empty content block when the thinking budget is exhausted. Fall back to
+    // the reasoning text only when it is itself a usable summary.
+    const candidates = [content, reasoning];
+    for (const text of candidates) {
+      if (text && isValidSummary(text)) return text;
+    }
+
+    if (content) {
+      console.log(`[LLM] ${label}: rejected content (${content.length} chars): ${content.slice(0, 240).replace(/\s+/g, ' ')}`);
+    } else if (reasoning) {
+      console.log(`[LLM] ${label}: rejected reasoning (${reasoning.length} chars): ${reasoning.slice(0, 240).replace(/\s+/g, ' ')}`);
+    } else {
+      console.log(`[LLM] ${label}: empty response body: ${bodyText.slice(0, 300)}`);
     }
     return '';
   });

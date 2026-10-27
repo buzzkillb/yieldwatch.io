@@ -107,7 +107,7 @@ for (const row of newRows) {
           { role: 'system', content: buildLongSystemPrompt(ratesData) },
           { role: 'user', content: longUserMessage(today) },
         ],
-        max_tokens: 3000,
+        max_tokens: 6000,
         temperature: 0.4,
       }, `long ${today}`);
       const long = await parseLLMResponse(longRes, `long ${today}`);
