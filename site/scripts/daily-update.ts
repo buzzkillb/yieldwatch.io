@@ -98,6 +98,7 @@ for (const row of newRows) {
         max_tokens: 1000,
         temperature: 0.4,
         stream: true,
+        chat_template_kwargs: { enable_thinking: false },
       }, `short ${today}`);
       const short = await parseLLMResponse(shortRes, `short ${today}`);
       if (!isValidSummary(short)) throw new Error('invalid short summary');
@@ -111,6 +112,7 @@ for (const row of newRows) {
         max_tokens: 2500,
         temperature: 0.4,
         stream: true,
+        chat_template_kwargs: { enable_thinking: false },
       }, `long ${today}`);
       const long = await parseLLMResponse(longRes, `long ${today}`);
       if (!isValidSummary(long)) throw new Error('invalid long summary');

@@ -456,7 +456,8 @@ export async function generateAndSaveSummaries(date: string): Promise<{ short: s
       ],
       max_tokens: 1000,
       temperature: 0.4,
-      stream: true
+      stream: true,
+      chat_template_kwargs: { enable_thinking: false }
     }, 'short-summary'),
     fetchLLMWithRetry({
       messages: [
@@ -465,7 +466,8 @@ export async function generateAndSaveSummaries(date: string): Promise<{ short: s
       ],
       max_tokens: 2500,
       temperature: 0.4,
-      stream: true
+      stream: true,
+      chat_template_kwargs: { enable_thinking: false }
     }, 'long-summary')
   ]);
 
