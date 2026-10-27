@@ -23,7 +23,7 @@ const blogIndex = sorted.map(s => ({
 
 const hrefFor = (p: number) => (p <= 1 ? '/blog' : `/blog/${p}`);
 
-let html = readTemplate('blog.html');
+let html = readTemplate('blog.html', 'blog');
 
 // rel prev/next for crawlers.
 const seoMetaTags: string[] = [];
@@ -67,8 +67,7 @@ html = html.replace(
         <div id="pagination" class="pagination">${paginationHtml}</div>`
 );
 
-// Nav link + card/archive styling.
-html = html.replace('      </nav>', '        <a href="/blog/archive">Archive</a>\n      </nav>');
+// Card/archive styling.
 html = html.replace(
   '  </style>',
   `  .summary-card-title { font-size: 1.02rem; font-weight: 600; color: var(--text-primary); margin: 0.2rem 0 0; }

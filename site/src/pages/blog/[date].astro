@@ -106,10 +106,9 @@ const articleSchema = {
   }
 };
 
-let html = readTemplate('blog-post.html');
+let html = readTemplate('blog-post.html', 'blog');
 
 // Nav: expose the archive hub from every post page + style for its CTA.
-html = html.replace('      </nav>', '        <a href="/blog/archive">Archive</a>\n      </nav>');
 html = html.replace('  </style>', '  .related-archive { margin-top: 1rem; }\n  .related-archive a { color: var(--accent); }\n  </style>');
 
 // Head meta (same replacements as the SSR version).

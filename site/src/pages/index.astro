@@ -4,10 +4,7 @@
 // reads pre-generated static range files instead of queryable API endpoints.
 import { readTemplate, buildSeoBlock, latestDay } from '../lib/site';
 
-let html = readTemplate('index.html');
-
-// Nav: archive hub link.
-html = html.replace('      </nav>', '        <a href="/blog/archive" class="nav-link">Archive</a>\n      </nav>');
+let html = readTemplate('index.html', 'dashboard');
 
 // 1. Server-side SEO block (crawlable plain-text rates for non-JS crawlers).
 const latest = latestDay();

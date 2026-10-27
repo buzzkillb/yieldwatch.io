@@ -1,6 +1,7 @@
 // Shared site data + helpers for the static build.
 // Single source of truth: src/data/*.json (updated daily by scripts/daily-update.mjs).
 import { readFileSync } from 'node:fs';
+import { applyChrome, type ChromeActive } from './chrome';
 import ratesJson from '../data/rates.json';
 import summariesJson from '../data/summaries.json';
 import statsJson from '../data/stats.json';
@@ -210,8 +211,9 @@ ${entries}
 // Anchored to the project root (cwd) because import.meta.url moves when Astro
 // compiles this module into dist/.
 import { join } from 'node:path';
-export function readTemplate(name: string): string {
-  return readFileSync(join(process.cwd(), 'src', 'templates', name), 'utf8');
+export function readTemplate(name: string, active: ChromeActive = null): string {
+  const raw = readFileSync(join(process.cwd(), 'src', 'templates', name), 'utf8');
+  return applyChrome(raw, active);
 }
 
 // ---------------------------------------------------------------------------
