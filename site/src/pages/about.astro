@@ -1,5 +1,5 @@
 ---
-import { SITE_URL, latestDay, dateFormatted } from '../lib/site';
+import { SITE_URL, latestDay, dateFormatted, inlineJson } from '../lib/site';
 import { buildFooter, buildHeader, CHROME_STYLE } from '../lib/chrome';
 import { socialMetaTags, siteSchemaGraph } from '../lib/meta';
 
@@ -48,7 +48,7 @@ ${socialMetaTags({
   })}
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%236366f1' rx='15' width='100' height='100'/%3E%3Cpath d='M20 70 L35 55 L50 65 L65 40 L80 45' stroke='white' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='80' cy='45' r='6' fill='white'/%3E%3C/svg%3E">
   <link rel="alternate" type="application/rss+xml" title="Daily Treasury Yield Summaries RSS" href="/feed.xml">
-  <script type="application/ld+json">${JSON.stringify(schema)}</script>
+  <script type="application/ld+json">${inlineJson(schema)}</script>
   ${siteSchemaGraph()}
   ${CHROME_STYLE}
   <style>

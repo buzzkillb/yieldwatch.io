@@ -1,7 +1,7 @@
 // Shared head metadata builders. Every page must emit the same social/schema
 // surface so crawlers and social cards behave consistently; keeping the tags
 // here prevents per-page drift (and the omissions that drift caused).
-import { SITE_URL, escapeHtml } from './site';
+import { SITE_URL, escapeHtml, inlineJson } from './site';
 
 export const BRAND_OG_IMAGE = `${SITE_URL}/og/og.png`;
 export const BRAND_OG_ALT = 'YieldWatch U.S. Treasury yield curve dashboard';
@@ -69,5 +69,5 @@ export function siteSchemaGraph(): string {
       },
     ],
   };
-  return `<script type="application/ld+json" id="schema-org-site">${JSON.stringify(graph)}</script>`;
+  return `<script type="application/ld+json" id="schema-org-site">${inlineJson(graph)}</script>`;
 }

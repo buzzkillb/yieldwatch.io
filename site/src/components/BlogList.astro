@@ -4,7 +4,7 @@
 // styles, and card markup. Year/month filters work client-side over an
 // embedded index; pagination is static.
 import {
-  readTemplate, escapeHtml, SUMMARIES, POSTS_PER_PAGE, postHeadline, blogTotalPages, SITE_URL,
+  readTemplate, escapeHtml, inlineJson, SUMMARIES, POSTS_PER_PAGE, postHeadline, blogTotalPages, SITE_URL,
 } from '../lib/site';
 
 interface Props { page: number }
@@ -18,7 +18,7 @@ const items = sorted.slice((current - 1) * POSTS_PER_PAGE, current * POSTS_PER_P
 const blogIndex = sorted.map(s => ({
   date: s.date,
   hasFullPost: Boolean(s.blogSummary && s.blogSummary.length > 0),
-  excerpt: (s.summary || s.blogSummary || '').trim().replace(/\s+/g, ' ').slice(0, 200) + '…',
+  excerpt: escapeHtml((s.summary || s.blogSummary || '').trim().replace(/\s+/g, ' ').slice(0, 200)) + '…',
 }));
 
 const hrefFor = (p: number) => (p <= 1 ? '/blog/' : `/blog/${p}/`);
@@ -60,7 +60,7 @@ if (seoMetaTags.length > 0) {
 
 // Server-render the cards.
 const cardsHtml = items.map(item => {
-  const dateStr = new Date(item.date + 'T00:00:00').toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
+  const dateStr = new Date(item.date + 'T00:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
   return `
           <a href="/blog/${item.date}/" class="summary-card-link">
             <article class="summary-card">
@@ -106,7 +106,7 @@ html = html.replace(
 // not render a chart, so no Chart.js bundle is injected here.
 html = html.replace(
   '<body>',
-  `<body>\n<script>const BLOG_INDEX = ${JSON.stringify(blogIndex)};</script>`
+  `<body>\n<script>const BLOG_INDEX = ${inlineJson(blogIndex)};</script>`
 );
 
 // Replace the fetch-based init with embedded-index filtering.
@@ -134,7 +134,7 @@ html = html.replace(
       function applyFilter(push) {
         const y = yearSelect.value;
         const m = monthSelect.value;
-        if (!y && !m) { window.location.href = '/blog'; return; }
+        if (!y && !m) { window.location.href = '/blog/'; return; }
         const filtered = BLOG_INDEX.filter(i =>
           (!y || i.date.startsWith(y)) && (!m || i.date.slice(5, 7) === m)
         );
@@ -169,10 +169,11 @@ html = html.replace(
       if (params.get('year')) {
         yearSelect.value = params.get('year');
         populateMonths(yearSelect.value);
-        if (params.get('month')) {
-          monthSelect.value = params.get('month');
-          applyFilter(false);
-        }
+        if (params.get('month')) monthSelect.value = params.get('month');
+        applyFilter(false);
+      } else if (params.get('month')) {
+        monthSelect.value = params.get('month');
+        applyFilter(false);
       }
     })();`
 );

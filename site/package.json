@@ -9,6 +9,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "audit": "node scripts/audit-site.mjs",
+    "validate:data": "node scripts/validate-data.mjs",
     "export-data": "node scripts/export-data.mjs",
     "daily-update": "bun scripts/daily-update.ts"
   },

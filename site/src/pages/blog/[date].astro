@@ -5,7 +5,7 @@
 // its own renderChart is reused with embedded data.
 import {
   readTemplate, escapeHtml, dateFormatted, linkLabel, formatBlogSummary,
-  SUMMARIES, CHART_COLORS, SITE_URL, postHeadline, relatedPosts,
+  SUMMARIES, CHART_COLORS, SITE_URL, postHeadline, relatedPosts, inlineJson,
 } from '../../lib/site';
 
 export function getStaticPaths() {
@@ -168,7 +168,7 @@ if (breadcrumbSchemaMatch) {
 // Article JSON-LD.
 html = html.replace(
   '</head>',
-  `<script type="application/ld+json">\n  ${JSON.stringify(articleSchema, null, 2)}\n  </script>\n</head>`
+  `<script type="application/ld+json">\n  ${inlineJson(articleSchema)}\n  </script>\n</head>`
 );
 
 // Swap the loading placeholder for the pre-rendered article.
@@ -185,7 +185,7 @@ html = html.replace(
 html = html.replace(
   '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>',
   `<script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>
-  <script>const POST_RATES = ${JSON.stringify(rates)};</script>`
+  <script>const POST_RATES = ${inlineJson(rates)};</script>`
 );
 html = html.replace(/\n    loadPost\(\);\n/, `\n    renderChart(POST_RATES, POST_RATES.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]));\n`);
 ---

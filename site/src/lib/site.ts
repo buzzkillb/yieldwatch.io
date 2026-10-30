@@ -4,8 +4,6 @@ import { readFileSync } from 'node:fs';
 import { applyChrome, type ChromeActive } from './chrome';
 import ratesJson from '../data/rates.json';
 import summariesJson from '../data/summaries.json';
-import statsJson from '../data/stats.json';
-import maturitiesJson from '../data/maturities.json';
 
 export interface RatePoint { maturity: string; rate: number }
 export interface RateDay { date: string; rates: RatePoint[] }
@@ -19,13 +17,6 @@ export interface SummaryEntry {
 
 export const RATES = ratesJson as RateDay[];
 export const SUMMARIES = summariesJson as SummaryEntry[];
-export const STATS = statsJson as unknown as {
-  maturity: string; yearHigh: number | null; yearHighDate: string | null;
-  yearLow: number | null; yearLowDate: string | null;
-  allTimeHigh: number | null; allTimeHighDate: string | null;
-  allTimeLow: number | null; allTimeLowDate: string | null;
-}[];
-export const MATURITIES = maturitiesJson as { maturity: string; years: number }[];
 
 export const SITE_URL = 'https://yieldwatch.io';
 export const POSTS_PER_PAGE = 5;
@@ -53,9 +44,15 @@ export function dateFormatted(date: string): string {
 }
 
 export function linkLabel(date: string): string {
-  return new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
+  return new Date(date + 'T00:00:00Z').toLocaleDateString('en-US', {
     timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric',
   });
+}
+
+// JSON for inline <script> blocks: escape '<' so a summary containing
+// "</script>" cannot terminate the tag early.
+export function inlineJson(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, '\\u003c');
 }
 
 export function formatBlogSummary(text: string): string {

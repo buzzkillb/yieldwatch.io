@@ -4,7 +4,7 @@
 // headline. This gives every post a strong internal link exactly 1-2 clicks
 // from anywhere on the site (nav or related blocks), independent of the
 // sitemap or pagination depth.
-import { escapeHtml, linkLabel, postHeadline, SUMMARIES, SITE_URL } from '../../lib/site';
+import { escapeHtml, inlineJson, linkLabel, postHeadline, SUMMARIES, SITE_URL } from '../../lib/site';
 import { buildFooter, buildHeader, CHROME_STYLE } from '../../lib/chrome';
 import { socialMetaTags, siteSchemaGraph } from '../../lib/meta';
 
@@ -90,7 +90,7 @@ const collectionSchema = {
       imageAlt: `Complete archive of ${SUMMARIES.length} daily U.S. Treasury yield summaries`,
     })} />
     <link rel="alternate" type="application/rss+xml" title="Daily Treasury Yield Summaries RSS" href="/feed.xml">
-    <script type="application/ld+json" set:html={JSON.stringify(collectionSchema)}></script>
+    <script type="application/ld+json" set:html={inlineJson(collectionSchema)}></script>
     <Fragment set:html={siteSchemaGraph()} />
     <style>
       :root {

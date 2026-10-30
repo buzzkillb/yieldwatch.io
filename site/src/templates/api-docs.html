@@ -21,7 +21,7 @@
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:url" content="https://yieldwatch.io/api-docs">
+  <meta name="twitter:url" content="https://yieldwatch.io/api-docs/">
   <meta name="twitter:title" content="API Documentation | U.S. Treasury Yield Curve">
   <meta name="twitter:description" content="Free JSON API for U.S. Treasury yield curve rates, historical data, stats, and daily summaries. No API key required. Endpoints, examples, and CORS details.">
   <meta name="twitter:image" content="https://yieldwatch.io/og/og.png">
@@ -605,7 +605,7 @@
           <span class="endpoint-url">/api/rates/stats</span>
           <span class="badge badge-get">GET</span>
         </div>
-        <p class="description">Returns the current-year high and low rate for each maturity, with the dates those records occurred. The <code>allTime*</code> fields are reserved for future use and currently return <code>null</code>. Served from <code>/api/rates/stats.json</code>.</p>
+        <p class="description">Returns the current-year high and low rate for each maturity, with the dates those records occurred, plus all-time highs and lows computed from the full 1990-present history. Served from <code>/api/rates/stats.json</code>.</p>
 
         <h3>Response</h3>
         <div class="code-block">
@@ -619,10 +619,10 @@
       "yearHighDate": "2026-10-05",
       "yearLow": 3.97,
       "yearLowDate": "2026-02-27",
-      "allTimeHigh": null,
-      "allTimeHighDate": null,
-      "allTimeLow": null,
-      "allTimeLowDate": null
+      "allTimeHigh": 9.09,
+      "allTimeHighDate": "1990-05-02",
+      "allTimeLow": 0.52,
+      "allTimeLowDate": "2020-08-04"
     }
   ]
 }</pre>

@@ -1,14 +1,16 @@
 # yieldwatch.io — static Astro site
 
 The whole site is pre-rendered at build time from `src/data/*.json` and
-deployed to **Cloudflare Pages** — no VPS, no Postgres, no scheduler needed.
-All 193+ daily summaries, the dashboard, and the API snapshot endpoints are
+deployed to **Cloudflare Workers** (static assets) — no VPS, no Postgres, no scheduler needed.
+All 206+ daily summaries, the dashboard, and the API snapshot endpoints are
 static files.
 
 ## Structure
 
 - `src/data/` — the "database": `rates.json` (full yield-curve history),
-  `summaries.json` (all daily summaries + rates), `stats.json`, `maturities.json`
+  `summaries.json` (all daily summaries + rates). `stats.json` and
+  `maturities.json` are no longer stored; they are derived from `rates.json`
+  on every build so the public API snapshots cannot go stale.
 - `src/templates/` — verbatim copies of the original page shells
   (index, blog, blog-post, faq, api-docs). Astro pages process them at build
   time the same way the old Bun server did SSR.
@@ -19,13 +21,17 @@ static files.
   per-post JSON, per-date OG SVGs) + `_redirects` + `_headers`
 - `scripts/daily-update.ts` — daily job: fetch Treasury XML → parse new rows →
   generate summaries via the LLM gateway (reuses `api/src/services/summaryService.ts`
-  prompt/retry code) → append to `src/data/*.json`
+  prompt/retry code) → append to `src/data/*.json`. Official rates are written
+  before LLM work, so a gateway outage cannot lose a trading day; the next run
+  backfills summaries that are missing inside the published-summary window.
+- `scripts/validate-data.mjs` — integrity gate for rate/summary JSON (ordering,
+  duplicates, required tenors, plausible values). Run before any commit.
 
 ## Daily pipeline
 
 GitHub Actions (`.github/workflows/daily-update.yml`) runs `daily-update.ts`
 three times on business days (4:30/5:30/6:30pm ET) and commits new data; the
-push triggers a Cloudflare Pages build. Requires repo secrets:
+push triggers a Cloudflare Workers Build. Requires repo secrets:
 
 - `LLM_API_KEY` — gateway key
 - `LLM_BASE_URL` — e.g. https://api.bwengr.com
@@ -37,14 +43,18 @@ npm install            # deps
 npm run dev            # local dev server
 npm run build          # gen-derived + astro build → dist/
 npm run preview        # serve dist/
+npm run audit          # post-build SEO/a11y/schema/link/sitemap audit (non-zero on failure)
+npm run validate:data  # validate src/data/*.json integrity
 npm run daily-update   # bun scripts/daily-update.ts (needs api deps installed)
 ```
 
-## Cloudflare Pages config
+## Cloudflare Workers config
 
 - Root directory: `site`
 - Build command: `npm run build`
-- Output directory: `dist`
+- Deploy command: `npx wrangler deploy`
+- Output: `dist/` served as static assets by `wrangler.jsonc` (no Worker script
+  on the request path, so page traffic does not consume the free request quota)
 - Env var: `NODE_VERSION` = `20`
 
 The `_headers` file carries the security headers (CSP, X-Frame-Options, …) and

@@ -1,9 +1,9 @@
 User-agent: *
 Allow: /
 Allow: /blog/
+Allow: /og-image/
+Allow: /og.png
 Disallow: /api/
-Disallow: /og-image/
-Disallow: /og.png
 Disallow: /health
 Content-Signal: ai-train=no, search=yes, ai-input=yes
 
