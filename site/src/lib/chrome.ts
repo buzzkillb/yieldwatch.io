@@ -40,6 +40,7 @@ export function buildHeader(active: ChromeActive = null): string {
   }).join('\n');
 
   return `<header class="yw-header">
+    <a class="yw-skip-link" href="#main-content">Skip to content</a>
     <div class="yw-header-content">
       <a href="/" class="yw-logo" aria-label="YieldWatch home">
         ${LOGO_SVG}
@@ -73,6 +74,21 @@ export function buildFooter(): string {
 }
 
 export const CHROME_STYLE = `<style id="yw-chrome">
+  .yw-skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 1000;
+    background: var(--accent);
+    color: #fff;
+    padding: 0.6rem 1rem;
+    border-radius: 0 0 6px 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .yw-skip-link:focus { left: 0; outline: 2px solid var(--accent-hover); outline-offset: 2px; }
+  main:focus { outline: none; }
   header.yw-header {
     background: linear-gradient(145deg, var(--bg-secondary, #0f0f18) 0%, var(--bg-primary, #0a0a0f) 100%);
     border-bottom: 1px solid var(--border-color, #2a2a3a);

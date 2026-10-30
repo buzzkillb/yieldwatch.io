@@ -6,6 +6,7 @@
 // sitemap or pagination depth.
 import { escapeHtml, linkLabel, postHeadline, SUMMARIES, SITE_URL } from '../../lib/site';
 import { buildFooter, buildHeader, CHROME_STYLE } from '../../lib/chrome';
+import { socialMetaTags, siteSchemaGraph } from '../../lib/meta';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -45,6 +46,33 @@ const breadcrumbSchema = {
     { '@type': 'ListItem', position: 3, name: 'Archive', item: `${SITE_URL}/blog/archive/` },
   ],
 };
+
+const collectionSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    breadcrumbSchema,
+    {
+      '@type': 'CollectionPage',
+      '@id': `${SITE_URL}/blog/archive/#page`,
+      url: `${SITE_URL}/blog/archive/`,
+      name: pageTitle,
+      description: pageDescription,
+      isPartOf: { '@id': `${SITE_URL}/#site` },
+      about: { '@id': `${SITE_URL}/#org` },
+      numberOfItems: SUMMARIES.length,
+      mainEntity: {
+        '@type': 'ItemList',
+        numberOfItems: SUMMARIES.length,
+        itemListElement: sorted.slice(0, 10).map((s, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: postHeadline(s.date),
+          url: `${SITE_URL}/blog/${s.date}/`,
+        })),
+      },
+    },
+  ],
+};
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -55,16 +83,15 @@ const breadcrumbSchema = {
     <meta name="description" content={pageDescription}>
     <link rel="canonical" href={`${SITE_URL}/blog/archive/`}>
     <meta name="robots" content="index, follow">
-    <meta property="og:type" content="website">
-    <meta property="og:title" content={pageTitle}>
-    <meta property="og:description" content={pageDescription}>
-    <meta property="og:url" content={`${SITE_URL}/blog/archive/`}>
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content={pageTitle}>
-    <meta name="twitter:description" content={pageDescription}>
+    <Fragment set:html={socialMetaTags({
+      url: `${SITE_URL}/blog/archive/`,
+      title: pageTitle,
+      description: pageDescription,
+      imageAlt: `Complete archive of ${SUMMARIES.length} daily U.S. Treasury yield summaries`,
+    })} />
     <link rel="alternate" type="application/rss+xml" title="Daily Treasury Yield Summaries RSS" href="/feed.xml">
-    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)}></script>
-    <script type="application/ld+json" id="schema-org-site" set:html={JSON.stringify({"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://yieldwatch.io/#org","name":"YieldWatch","url":"https://yieldwatch.io","logo":{"@type":"ImageObject","url":"https://yieldwatch.io/og/og.png"}},{"@type":"WebSite","@id":"https://yieldwatch.io/#site","url":"https://yieldwatch.io","name":"YieldWatch","publisher":{"@id":"https://yieldwatch.io/#org"}}]})}></script>
+    <script type="application/ld+json" set:html={JSON.stringify(collectionSchema)}></script>
+    <Fragment set:html={siteSchemaGraph()} />
     <style>
       :root {
         --bg-primary: #0a0a0f;
@@ -107,7 +134,7 @@ const breadcrumbSchema = {
   </head>
   <body>
     <Fragment set:html={buildHeader('archive')} />
-    <main>
+    <main id="main-content" tabindex="-1">
       <h1>Daily Treasury Yield Summary Archive</h1>
       <p class="archive-intro">
         Every daily summary published on YieldWatch, on one page. Each post covers that business day's

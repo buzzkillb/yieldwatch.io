@@ -1,6 +1,7 @@
 ---
 import { SITE_URL, latestDay, dateFormatted, RATES } from '../lib/site';
 import { buildFooter, buildHeader, CHROME_STYLE } from '../lib/chrome';
+import { socialMetaTags, siteSchemaGraph } from '../lib/meta';
 
 const pageTitle = 'Data Methodology | U.S. Treasury Yield Rates';
 const pageDescription = 'How YieldWatch sources, validates, and publishes U.S. Treasury yield curve data, including update timing, maturity coverage, and known limitations.';
@@ -40,17 +41,16 @@ const html = `<!DOCTYPE html>
   <meta name="description" content="${pageDescription}">
   <link rel="canonical" href="${pageUrl}">
   <meta name="robots" content="index, follow">
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="${pageTitle}">
-  <meta property="og:description" content="${pageDescription}">
-  <meta property="og:url" content="${pageUrl}">
-  <meta property="og:site_name" content="YieldWatch">
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="${pageTitle}">
-  <meta name="twitter:description" content="${pageDescription}">
+${socialMetaTags({
+    url: pageUrl,
+    title: pageTitle,
+    description: pageDescription,
+    imageAlt: 'YieldWatch data methodology: sourcing, validation, and update timing',
+  })}
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%236366f1' rx='15' width='100' height='100'/%3E%3Cpath d='M20 70 L35 55 L50 65 L65 40 L80 45' stroke='white' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='80' cy='45' r='6' fill='white'/%3E%3C/svg%3E">
   <link rel="alternate" type="application/rss+xml" title="Daily Treasury Yield Summaries RSS" href="/feed.xml">
   <script type="application/ld+json">${JSON.stringify(schema)}</script>
+  ${siteSchemaGraph()}
   ${CHROME_STYLE}
   <style>
     :root { --bg-primary: #0a0a0f; --bg-secondary: #0f0f18; --bg-card: #16161f; --border-color: #2a2a3a; --text-primary: #f0f0f5; --text-secondary: #a0a0b0; --text-muted: #606070; --accent: #6366f1; --accent-hover: #818cf8; }
@@ -75,7 +75,7 @@ const html = `<!DOCTYPE html>
 </head>
 <body>
   ${buildHeader(null)}
-  <main>
+  <main id="main-content" tabindex="-1">
     <h1>Data Methodology</h1>
     <p class="lede">This page documents exactly where YieldWatch data comes from, when it updates, how it is validated, and what it does not cover. The goal is that any number on the site can be traced back to a public official source.</p>
 

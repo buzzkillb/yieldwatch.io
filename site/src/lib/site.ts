@@ -209,7 +209,7 @@ export function buildSitemap(): string {
   // Pages whose content is edited by hand. Bump this when their copy changes so
   // lastmod stays honest instead of resetting on every daily data rebuild.
   const STATIC_CONTENT_UPDATED = '2026-10-30';
-  const urls: { loc: string; lastmod: string; changefreq: string; priority: string }[] = [
+  const urls: { loc: string; lastmod: string; changefreq: string; priority: string; image?: string }[] = [
     { loc: `${SITE_URL}/`, lastmod: today, changefreq: 'daily', priority: '1.0' },
     { loc: `${SITE_URL}/blog/`, lastmod: today, changefreq: 'daily', priority: '0.9' },
     { loc: `${SITE_URL}/blog/archive/`, lastmod: today, changefreq: 'daily', priority: '0.8' },
@@ -222,14 +222,20 @@ export function buildSitemap(): string {
   // "Alternate page with proper canonical tag". Keep them out of the sitemap so
   // it only lists final, self-canonical URLs; every post is still listed below.
   for (const s of SUMMARIES) {
-    urls.push({ loc: `${SITE_URL}/blog/${s.date}/`, lastmod: s.date, changefreq: 'weekly', priority: '0.8' });
+    urls.push({
+      loc: `${SITE_URL}/blog/${s.date}/`,
+      lastmod: s.date,
+      changefreq: 'weekly',
+      priority: '0.8',
+      image: `${SITE_URL}/og-image/${s.date}.png`,
+    });
   }
-  const entries = urls.map(u => `  <url>
-    <loc>${escapeXml(u.loc)}</loc>
-    <lastmod>${escapeXml(u.lastmod)}</lastmod>
-    <changefreq>${u.changefreq}</changefreq>
-    <priority>${u.priority}</priority>
-  </url>`).join('\n');
+  const entries = urls.map(u => {
+    const image = u.image
+      ? `\n    <image:image>\n      <image:loc>${escapeXml(u.image)}</image:loc>\n    </image:image>`
+      : '';
+    return `  <url>\n    <loc>${escapeXml(u.loc)}</loc>\n    <lastmod>${escapeXml(u.lastmod)}</lastmod>\n    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>${image}\n  </url>`;
+  }).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">

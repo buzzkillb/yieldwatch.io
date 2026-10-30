@@ -102,11 +102,11 @@ html = html.replace(
   </style>`
 );
 
-// Embed the index for client-side year/month filtering.
+// Embed the index for client-side year/month filtering. Blog listing pages do
+// not render a chart, so no Chart.js bundle is injected here.
 html = html.replace(
-  '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>',
-  `<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script>const BLOG_INDEX = ${JSON.stringify(blogIndex)};</script>`
+  '<body>',
+  `<body>\n<script>const BLOG_INDEX = ${JSON.stringify(blogIndex)};</script>`
 );
 
 // Replace the fetch-based init with embedded-index filtering.
