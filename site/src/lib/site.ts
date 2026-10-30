@@ -206,12 +206,17 @@ function escapeXml(str: string): string {
 
 export function buildSitemap(): string {
   const today = new Date().toISOString().split('T')[0];
+  // Pages whose content is edited by hand. Bump this when their copy changes so
+  // lastmod stays honest instead of resetting on every daily data rebuild.
+  const STATIC_CONTENT_UPDATED = '2026-10-30';
   const urls: { loc: string; lastmod: string; changefreq: string; priority: string }[] = [
     { loc: `${SITE_URL}/`, lastmod: today, changefreq: 'daily', priority: '1.0' },
     { loc: `${SITE_URL}/blog/`, lastmod: today, changefreq: 'daily', priority: '0.9' },
     { loc: `${SITE_URL}/blog/archive/`, lastmod: today, changefreq: 'daily', priority: '0.8' },
-    { loc: `${SITE_URL}/api-docs/`, lastmod: today, changefreq: 'weekly', priority: '0.7' },
-    { loc: `${SITE_URL}/faq/`, lastmod: today, changefreq: 'weekly', priority: '0.7' },
+    { loc: `${SITE_URL}/methodology/`, lastmod: STATIC_CONTENT_UPDATED, changefreq: 'monthly', priority: '0.7' },
+    { loc: `${SITE_URL}/about/`, lastmod: STATIC_CONTENT_UPDATED, changefreq: 'monthly', priority: '0.6' },
+    { loc: `${SITE_URL}/api-docs/`, lastmod: STATIC_CONTENT_UPDATED, changefreq: 'weekly', priority: '0.7' },
+    { loc: `${SITE_URL}/faq/`, lastmod: STATIC_CONTENT_UPDATED, changefreq: 'weekly', priority: '0.7' },
   ];
   // Paginated listing pages canonicalize to /blog/ and Google reports them as
   // "Alternate page with proper canonical tag". Keep them out of the sitemap so

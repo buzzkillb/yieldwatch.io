@@ -1,0 +1,111 @@
+---
+import { SITE_URL, latestDay, dateFormatted } from '../lib/site';
+import { buildFooter, buildHeader, CHROME_STYLE } from '../lib/chrome';
+
+const pageTitle = 'About YieldWatch | Free U.S. Treasury Yield Data';
+const pageDescription = 'YieldWatch publishes free U.S. Treasury yield curve data and plain-English daily summaries. Learn who runs the site, why it is free, and what it covers.';
+const pageUrl = `${SITE_URL}/about/`;
+const latest = latestDay();
+const dataDate = latest ? dateFormatted(latest.date) : null;
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'AboutPage',
+      '@id': `${pageUrl}#page`,
+      url: pageUrl,
+      name: pageTitle,
+      description: pageDescription,
+      isPartOf: { '@id': `${SITE_URL}/#site` },
+      about: { '@id': `${SITE_URL}/#org` },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Dashboard', item: `${SITE_URL}/` },
+        { '@type': 'ListItem', position: 2, name: 'About', item: pageUrl },
+      ],
+    },
+  ],
+};
+
+const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${pageTitle}</title>
+  <meta name="description" content="${pageDescription}">
+  <link rel="canonical" href="${pageUrl}">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="${pageTitle}">
+  <meta property="og:description" content="${pageDescription}">
+  <meta property="og:url" content="${pageUrl}">
+  <meta property="og:site_name" content="YieldWatch">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="${pageTitle}">
+  <meta name="twitter:description" content="${pageDescription}">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%236366f1' rx='15' width='100' height='100'/%3E%3Cpath d='M20 70 L35 55 L50 65 L65 40 L80 45' stroke='white' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='80' cy='45' r='6' fill='white'/%3E%3C/svg%3E">
+  <link rel="alternate" type="application/rss+xml" title="Daily Treasury Yield Summaries RSS" href="/feed.xml">
+  <script type="application/ld+json">${JSON.stringify(schema)}</script>
+  ${CHROME_STYLE}
+  <style>
+    :root { --bg-primary: #0a0a0f; --bg-secondary: #0f0f18; --bg-card: #16161f; --border-color: #2a2a3a; --text-primary: #f0f0f5; --text-secondary: #a0a0b0; --text-muted: #606070; --accent: #6366f1; --accent-hover: #818cf8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg-primary); color: var(--text-primary); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.7; }
+    main { max-width: 780px; margin: 0 auto; padding: 2.5rem 1.25rem 3rem; }
+    h1 { font-size: 2.1rem; line-height: 1.2; margin: 0 0 0.75rem; }
+    h2 { font-size: 1.3rem; margin: 2rem 0 0.5rem; color: var(--accent-hover); }
+    p, li { color: var(--text-secondary); }
+    a { color: var(--accent-hover); }
+    .lede { color: var(--text-primary); font-size: 1.08rem; }
+    .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 1rem 1.25rem; margin: 1.5rem 0; }
+    .card p { margin: 0.35rem 0; }
+    ul { padding-left: 1.25rem; }
+    li { margin: 0.3rem 0; }
+    .meta { color: var(--text-muted); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  ${buildHeader(null)}
+  <main>
+    <h1>About YieldWatch</h1>
+    <p class="lede">YieldWatch is an independent, free reference site for U.S. Treasury yield curve data. It turns the Treasury's published daily rates into a readable dashboard, a plain-English daily summary, and a public JSON API. There is no account, no paywall, and no advertising.</p>
+
+    <h2>What the site covers</h2>
+    <p>Every business day, YieldWatch publishes the full Treasury par yield curve, from 4-week bills through 30-year bonds, together with historical series going back to 1990. The <a href="/">dashboard</a> shows the current curve and long-run charts. The <a href="/blog/">daily summaries</a> describe what moved and by how much, and the <a href="/blog/archive/">archive</a> keeps every summary on one crawlable page. The <a href="/api-docs/">public API</a> exposes the same data as JSON.</p>
+
+    <div class="card">
+      <p><strong>Current data:</strong> ${dataDate ? `Treasury rates through ${dataDate}` : 'latest published business day'}</p>
+      <p><strong>Update schedule:</strong> Daily, after the U.S. Treasury publishes its rates, typically around 3:30 PM Eastern Time on business days.</p>
+      <p><strong>Data source:</strong> U.S. Department of the Treasury, Daily Treasury Par Yield Curve Rates.</p>
+    </div>
+
+    <h2>Why it is free</h2>
+    <p>YieldWatch exists because the underlying data is public and the useful context around it is not always easy to find. The site is intentionally small and static, so it can run at negligible cost. That is why it can stay free without ads or tracking-heavy scripts.</p>
+
+    <h2>Editorial principles</h2>
+    <ul>
+      <li><strong>Official numbers only.</strong> Rates come from the U.S. Treasury. We do not substitute estimates or intraday quotes for the official daily close.</li>
+      <li><strong>No forecasts.</strong> Daily summaries describe what the published data shows. They do not predict where rates will go.</li>
+      <li><strong>Visible methodology.</strong> The <a href="/methodology/">methodology page</a> explains sourcing, timing, validation, and limitations.</li>
+      <li><strong>Corrections welcome.</strong> If a number or description looks wrong, tell us and we will fix it and note the change.</li>
+    </ul>
+
+    <h2>Who it is for</h2>
+    <p>Homebuyers watching mortgage benchmarks, students learning how the yield curve works, journalists checking a rate before publication, and developers who need a free Treasury data feed. The <a href="/faq/">FAQ</a> covers definitions and common questions such as inversions and the difference between bills, notes, and bonds.</p>
+
+    <h2>What YieldWatch is not</h2>
+    <p>YieldWatch is a data reference, not an investment adviser. Nothing on the site is a recommendation to buy or sell any security. Rates are shown as published and may be revised by the Treasury after initial release.</p>
+
+    <h2>Contact</h2>
+    <p>Questions, corrections, or data requests: <a href="mailto:hello@yieldwatch.io">hello@yieldwatch.io</a>. API consumers can start with the <a href="/api-docs/">API documentation</a>.</p>
+  </main>
+  ${buildFooter()}
+</body>
+</html>`;
+---
+
+<Fragment set:html={html} />

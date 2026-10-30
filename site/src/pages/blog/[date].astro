@@ -26,7 +26,20 @@ const articleH1 = headline;
 
 // Keep <title> near the ~60-character SERP limit. The date is already in the
 // URL, breadcrumb schema, and visible post header, so drop it from the title.
-const titleHeadline = headline.replace(/\s*\([A-Z][a-z]{2} \d{1,2}, \d{4}\)$/, '').trim();
+const stripDateLabel = (h: string) => h.replace(/\s*\([A-Z][a-z]{2} \d{1,2}, \d{4}\)$/, '').trim();
+const titleHeadlineRaw = stripDateLabel(headline);
+
+// A handful of days share an identical largest-move headline (for example two
+// different years with the same 2-month bill rate). Search engines treat those
+// as duplicate titles, so prefix the date on any headline used more than once.
+const allBaseTitles = SUMMARIES.map(s => stripDateLabel(postHeadline(s.date)));
+const duplicateTitles = new Set(allBaseTitles.filter((t, i) => allBaseTitles.indexOf(t) !== i));
+const shortDate = new Date(`${date}T00:00:00Z`).toLocaleDateString('en-US', {
+  timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric',
+});
+const titleHeadline = duplicateTitles.has(titleHeadlineRaw)
+  ? `${shortDate}: ${titleHeadlineRaw}`
+  : titleHeadlineRaw;
 const brandSuffix = ' | YieldWatch';
 const pageTitle = titleHeadline.length + brandSuffix.length <= 60
   ? `${titleHeadline}${brandSuffix}`

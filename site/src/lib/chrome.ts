@@ -60,6 +60,10 @@ export function buildFooter(): string {
         <span class="yw-divider">|</span>
         <a href="/api-docs/">API Documentation</a>
         <span class="yw-divider">|</span>
+        <a href="/methodology/">Methodology</a>
+        <span class="yw-divider">|</span>
+        <a href="/about/">About</a>
+        <span class="yw-divider">|</span>
         <a href="https://home.treasury.gov" target="_blank" rel="noopener noreferrer">U.S. Treasury</a>
       </div>
       <div class="yw-footer-meta">Updated daily at 3:30 PM ET</div>

@@ -4,7 +4,7 @@
 // styles, and card markup. Year/month filters work client-side over an
 // embedded index; pagination is static.
 import {
-  readTemplate, escapeHtml, SUMMARIES, POSTS_PER_PAGE, postHeadline, blogTotalPages,
+  readTemplate, escapeHtml, SUMMARIES, POSTS_PER_PAGE, postHeadline, blogTotalPages, SITE_URL,
 } from '../lib/site';
 
 interface Props { page: number }
@@ -29,6 +29,31 @@ let html = readTemplate('blog.html', 'blog');
 const seoMetaTags: string[] = [];
 if (current > 1) seoMetaTags.push(`<link rel="prev" href="${hrefFor(current - 1)}">`);
 if (current < totalPages) seoMetaTags.push(`<link rel="next" href="${hrefFor(current + 1)}">`);
+
+// Paginated listing pages were canonicalizing to /blog/, which Search Console
+// reports as "Alternate page with proper canonical tag" for every page. Give
+// each page its own self-canonical URL, and keep pages 2+ out of the index
+// (noindex, follow) so they stay useful crawl paths without diluting the
+// index with near-duplicate card lists. Page 1 keeps /blog/ as canonical.
+if (current > 1) {
+  html = html.replace(
+    /<link rel="canonical" href="[^"]*">/,
+    `<link rel="canonical" href="${SITE_URL}/blog/${current}/">`
+  );
+  html = html.replace(
+    /<meta name="robots" content="[^"]*">/,
+    '<meta name="robots" content="noindex, follow">'
+  );
+  html = html.replace(
+    /<title>[^<]*<\/title>/,
+    `<title>Daily Treasury Summaries, Page ${current} | YieldWatch</title>`
+  );
+  html = html.replace(
+    /<meta name="description" content="[^"]*">/,
+    `<meta name="description" content="Page ${current} of the YieldWatch archive of daily U.S. Treasury yield curve summaries, with headline moves and verified rates for each business day.">`
+  );
+}
+
 if (seoMetaTags.length > 0) {
   html = html.replace('</head>', `\n    ${seoMetaTags.join('\n    ')}\n  </head>`);
 }
