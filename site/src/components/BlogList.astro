@@ -21,7 +21,7 @@ const blogIndex = sorted.map(s => ({
   excerpt: (s.summary || s.blogSummary || '').trim().replace(/\s+/g, ' ').slice(0, 200) + '…',
 }));
 
-const hrefFor = (p: number) => (p <= 1 ? '/blog' : `/blog/${p}`);
+const hrefFor = (p: number) => (p <= 1 ? '/blog/' : `/blog/${p}/`);
 
 let html = readTemplate('blog.html', 'blog');
 
@@ -37,10 +37,10 @@ if (seoMetaTags.length > 0) {
 const cardsHtml = items.map(item => {
   const dateStr = new Date(item.date + 'T00:00:00').toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
   return `
-          <a href="/blog/${item.date}" class="summary-card-link">
+          <a href="/blog/${item.date}/" class="summary-card-link">
             <article class="summary-card">
               <div class="summary-date">${dateStr}</div>
-              <h3 class="summary-card-title">${escapeHtml(postHeadline(item.date))}</h3>
+              <h2 class="summary-card-title">${escapeHtml(postHeadline(item.date))}</h2>
               <div class="analysis-tag">${item.blogSummary && item.blogSummary.length > 0 ? 'Full analysis available' : 'Quick summary'}</div>
               <p class="summary-excerpt">${escapeHtml(item.summary)}</p>
             </article>
@@ -63,7 +63,7 @@ const paginationHtml = totalPages <= 1 ? '' : `<div class="pagination-controls">
       </div>`;
 html = html.replace(
   '<div id="pagination" class="pagination"></div>',
-  `<div class="archive-cta"><a href="/blog/archive">Browse the complete archive &mdash; every daily summary on one page</a> <span class="archive-count">(${blogTotalPages()} pages of summaries, ${SUMMARIES.length} posts)</span></div>
+  `<div class="archive-cta"><a href="/blog/archive/">Browse the complete archive &mdash; every daily summary on one page</a> <span class="archive-count">(${blogTotalPages()} pages of summaries, ${SUMMARIES.length} posts)</span></div>
         <div id="pagination" class="pagination">${paginationHtml}</div>`
 );
 

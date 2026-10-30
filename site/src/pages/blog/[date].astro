@@ -16,15 +16,31 @@ const { date } = Astro.params;
 const entry = SUMMARIES.find(s => s.date === date)!;
 const blogSummary = entry.blogSummary || entry.summary;
 const dateStr = dateFormatted(date);
-const blogUrl = `${SITE_URL}/blog/${date}`;
+const blogUrl = `${SITE_URL}/blog/${date}/`;
 const ogImageUrl = `${SITE_URL}/og-image/${date}.png`;
 // Unique, data-driven headline (largest day-over-day move) — replaces the
 // templated "{date} | Treasury Yield Daily" title shared by every post.
 const headline = postHeadline(date);
 const ogTitle = headline; // headline already includes the date label
-const pageTitle = `${headline} | Treasury Yield Daily`;
 const articleH1 = headline;
-const metaDescription = escapeHtml(blogSummary.substring(0, 160));
+
+// Keep <title> near the ~60-character SERP limit. The date is already in the
+// URL, breadcrumb schema, and visible post header, so drop it from the title.
+const titleHeadline = headline.replace(/\s*\([A-Z][a-z]{2} \d{1,2}, \d{4}\)$/, '').trim();
+const brandSuffix = ' | YieldWatch';
+const pageTitle = titleHeadline.length + brandSuffix.length <= 60
+  ? `${titleHeadline}${brandSuffix}`
+  : titleHeadline.length <= 60
+    ? titleHeadline
+    : titleHeadline.slice(0, 59).replace(/\s+\S*$/, '') + '…';
+
+// Meta descriptions: trim at a word boundary BEFORE HTML-escaping so entities
+// cannot push the rendered description past 160 characters.
+const cleanSummary = blogSummary.replace(/\s+/g, ' ').trim();
+const descCut = cleanSummary.length > 150
+  ? cleanSummary.slice(0, 150).replace(/\s+\S*$/, '') + '…'
+  : cleanSummary;
+const metaDescription = escapeHtml(descCut);
 
 // Adjacent posts + recent-5 hub (same semantics as the SSR version).
 const desc = [...SUMMARIES].map(s => s.date).sort((a, b) => b.localeCompare(a));
@@ -38,8 +54,8 @@ const related = relatedPosts(date, 8);
 
 const prevNextHtml = (prevDate || nextDate)
   ? `<nav class="post-nav" aria-label="Adjacent daily summaries">
-            ${prevDate ? `<a class="post-nav-link" rel="prev" href="/blog/${prevDate}">&larr; ${escapeHtml(linkLabel(prevDate))}</a>` : '<span class="post-nav-spacer"></span>'}
-            ${nextDate ? `<a class="post-nav-link" rel="next" href="/blog/${nextDate}">${escapeHtml(linkLabel(nextDate))} &rarr;</a>` : '<span class="post-nav-spacer"></span>'}
+            ${prevDate ? `<a class="post-nav-link" rel="prev" href="/blog/${prevDate}/">&larr; ${escapeHtml(linkLabel(prevDate))}</a>` : '<span class="post-nav-spacer"></span>'}
+            ${nextDate ? `<a class="post-nav-link" rel="next" href="/blog/${nextDate}/">${escapeHtml(linkLabel(nextDate))} &rarr;</a>` : '<span class="post-nav-spacer"></span>'}
           </nav>`
   : '';
 
@@ -47,9 +63,9 @@ const recentHtml = related.length > 0
   ? `<section class="related-summaries" aria-label="Related daily summaries">
             <h2 class="related-title">More Treasury yield daily summaries</h2>
             <ul class="related-list">
-              ${related.map(p => `<li><a href="/blog/${p.date}">${escapeHtml(p.headline)}</a></li>`).join('')}
+              ${related.map(p => `<li><a href="/blog/${p.date}/">${escapeHtml(p.headline)}</a></li>`).join('')}
             </ul>
-            <p class="related-archive"><a href="/blog/archive">Browse the complete archive of every daily summary</a></p>
+            <p class="related-archive"><a href="/blog/archive/">Browse the complete archive of every daily summary</a></p>
           </section>`
   : '';
 
@@ -131,7 +147,7 @@ const breadcrumbSchemaMatch = html.match(/id="breadcrumb-schema">([\s\S]*?)<\/sc
 if (breadcrumbSchemaMatch) {
   const updatedSchema = breadcrumbSchemaMatch[1]
     .replace(/"name": "Daily Summary"/, `"name": "${dateStr} Summary"`)
-    .replace(/item": "https:\/\/yieldwatch\.io\/blog"(?=[^"]*\}])/g, `item": "${blogUrl}"`);
+    .replace(/item": "https:\/\/yieldwatch\.io\/blog\/?"(?=[^"]*\}])/g, `item": "${blogUrl}"`);
   html = html.replace(breadcrumbSchemaMatch[0], `id="breadcrumb-schema">\n  ${updatedSchema}\n  </script>`);
 }
 

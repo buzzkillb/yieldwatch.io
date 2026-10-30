@@ -10,7 +10,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="YieldWatch">
   <meta property="og:locale" content="en_US">
-  <meta property="og:url" content="https://yieldwatch.io/api-docs">
+  <meta property="og:url" content="https://yieldwatch.io/api-docs/">
   <meta property="og:title" content="API Documentation | U.S. Treasury Yield Curve">
   <meta property="og:description" content="Complete API reference for the YieldWatch Treasury yield curve dashboard">
   <meta property="og:image" content="https://yieldwatch.io/og/og.png">
@@ -30,7 +30,7 @@
   <meta name="twitter:image:height" content="630">
 
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-  <link rel="canonical" href="https://yieldwatch.io/api-docs">
+  <link rel="canonical" href="https://yieldwatch.io/api-docs/">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%236366f1' rx='15' width='100' height='100'/%3E%3Cpath d='M20 70 L35 55 L50 65 L65 40 L80 45' stroke='white' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='80' cy='45' r='6' fill='white'/%3E%3C/svg%3E">
   <style>
     :root {
@@ -324,7 +324,8 @@
       margin: 2rem 0;
     }
 
-    .rate-limit-note h4 {
+    .rate-limit-note h2,
+    .api-subhead {
       color: var(--warning);
       margin-bottom: 0.5rem;
       font-size: 0.85rem;
@@ -444,7 +445,7 @@
     </div>
 
     <div class="rate-limit-note">
-      <h4>Static snapshot API</h4>
+      <h2 class="api-subhead">Static snapshot API</h2>
       <p>All endpoints are served as <strong>static JSON files</strong> from Cloudflare's global CDN &mdash; no rate limits, no query-parameter filtering. Fetch a snapshot covering your range (e.g. <code>/api/rates/6m.json</code>) and filter client-side. Files are regenerated every business day at 4:30&ndash;6:30 PM ET via GitHub Actions.</p>
     </div>
 

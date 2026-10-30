@@ -74,16 +74,41 @@ export function recentDays(n: number): RateDay[] {
   return RATES.slice(-n);
 }
 
-// Replicates the SSR "seo-static-rates" block from api/src/index.ts.
-// NOTE: rates are stored in the API's own (lexicographic) order — do not re-sort.
+// Server-rendered, VISIBLE summary for the homepage. Google classified the old
+// off-screen (-9999px) block as a Soft 404 because Googlebot saw only ~100 words
+// and no visible H1. Keep this content genuinely visible: it is the crawlable
+// description of the dashboard and the canonical answer block for AEO/GEO.
 export function buildSeoBlock(day: RateDay): string {
-  const keyRates = day.rates
-    .filter(r => ['4WK', '2YR', '10YR', '30YR'].includes(r.maturity))
-    .map(r => `${r.maturity === '4WK' ? '4-week' : r.maturity.replace('YR', '-year')} Treasury ${(r.maturity === '4WK' ? 'bill rate' : 'yield')} at ${r.rate.toFixed(2)} percent`);
+  const SEO_MATURITY_ORDER = ['4WK', '6WK', '1MO', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
+  const label = (m: string) => {
+    const weeks = /^(\d+)WK$/.exec(m);
+    if (weeks) return `${weeks[1]}-week bill`;
+    const months = /^(\d+)MO$/.exec(m);
+    if (months) return `${months[1]}-month bill`;
+    const years = /^(\d+)YR$/.exec(m);
+    if (years) return `${years[1]}-year`;
+    return m;
+  };
+  const sorted = [...day.rates].sort(
+    (a, b) => SEO_MATURITY_ORDER.indexOf(a.maturity) - SEO_MATURITY_ORDER.indexOf(b.maturity)
+  );
+  const keyRates = ['4WK', '2YR', '10YR', '30YR']
+    .map(m => sorted.find(r => r.maturity === m))
+    .filter((r): r is { maturity: string; rate: number } => Boolean(r))
+    .map(r => `${label(r.maturity)} at ${r.rate.toFixed(2)} percent`);
   const formatted = dateFormatted(day.date);
-  return `<section id="seo-static-rates" aria-label="Current Treasury rates summary">
-  <h1 style="position:absolute;left:-9999px;">Current U.S. Treasury Yield Curve Rates</h1>
-  <p style="position:absolute;left:-9999px;">U.S. Treasury yield curve rates for ${formatted}: ${keyRates.join(', ')}. The full Treasury yield curve with 35+ years of historical data is available on this dashboard and in our daily summaries.</p>
+  const rows = sorted.map(r => `      <tr><td style="padding:0.4rem 0.75rem;border-bottom:1px solid var(--border-color,#2a2a3a);">${label(r.maturity)}</td><td style="padding:0.4rem 0.75rem;border-bottom:1px solid var(--border-color,#2a2a3a);text-align:right;font-variant-numeric:tabular-nums;">${r.rate.toFixed(2)}%</td></tr>`).join('\n');
+  return `<section id="seo-static-rates" aria-label="Current Treasury rates summary" style="margin-bottom:1.75rem;">
+  <h1 style="font-size:2rem;line-height:1.25;font-weight:600;margin-bottom:0.75rem;background:linear-gradient(135deg,var(--text-primary,#f0f0f5),var(--accent,#6366f1));-webkit-background-clip:text;background-clip:text;color:transparent;">U.S. Treasury Yield Curve Rates</h1>
+  <p style="color:var(--text-secondary,#a0a0b0);margin-bottom:0.9rem;max-width:760px;">Latest published U.S. Treasury par yield curve rates for ${formatted}: ${keyRates.join(', ')}. The table below lists the full curve published by the U.S. Department of the Treasury.</p>
+  <table style="border-collapse:collapse;width:100%;max-width:640px;margin:0 0 1rem;font-size:0.95rem;">
+    <caption style="text-align:left;color:var(--text-muted,#606070);font-size:0.85rem;padding-bottom:0.35rem;">Treasury par yield curve rates, ${formatted}</caption>
+    <thead><tr><th scope="col" style="text-align:left;padding:0.4rem 0.75rem;border-bottom:1px solid var(--border-color,#2a2a3a);">Maturity</th><th scope="col" style="text-align:right;padding:0.4rem 0.75rem;border-bottom:1px solid var(--border-color,#2a2a3a);">Yield</th></tr></thead>
+    <tbody>
+${rows}
+    </tbody>
+  </table>
+  <p style="color:var(--text-secondary,#a0a0b0);max-width:760px;">The yield curve shows the yield on Treasury securities across maturities. An inverted curve, where short-term yields exceed long-term yields, has historically preceded economic recessions. YieldWatch tracks 35+ years of historical data and publishes a <a href="/blog/" style="color:var(--accent,#6366f1);">plain-English daily summary</a>; see the <a href="/faq/" style="color:var(--accent,#6366f1);">FAQ</a> for definitions and context.</p>
 </section>`;
 }
 
@@ -144,7 +169,7 @@ export function generateOgSvg(data: { maturity: string; rate: number }[] | strin
 // Ported from api/src/routes/sitemap.ts (pure function).
 export function buildRssFeed(posts: { date: string; excerpt: string; title?: string }[]): string {
   const items = posts.map(post => {
-    const url = `${SITE_URL}/blog/${post.date}`;
+    const url = `${SITE_URL}/blog/${post.date}/`;
     const pubDate = new Date(`${post.date}T20:00:00Z`).toUTCString();
     const title = post.title || `Treasury Yield Curve Summary for ${post.date}`;
     return `    <item>
@@ -160,7 +185,7 @@ export function buildRssFeed(posts: { date: string; excerpt: string; title?: str
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>YieldWatch Daily Summaries</title>
-    <link>${SITE_URL}/blog</link>
+    <link>${SITE_URL}/blog/</link>
     <description>Plain-English daily analysis of U.S. Treasury yield curve rates, published every business day.</description>
     <language>en-us</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
@@ -183,16 +208,16 @@ export function buildSitemap(): string {
   const today = new Date().toISOString().split('T')[0];
   const urls: { loc: string; lastmod: string; changefreq: string; priority: string }[] = [
     { loc: `${SITE_URL}/`, lastmod: today, changefreq: 'daily', priority: '1.0' },
-    { loc: `${SITE_URL}/blog`, lastmod: today, changefreq: 'daily', priority: '0.9' },
-    { loc: `${SITE_URL}/blog/archive`, lastmod: today, changefreq: 'daily', priority: '0.8' },
-    { loc: `${SITE_URL}/api-docs`, lastmod: today, changefreq: 'weekly', priority: '0.7' },
-    { loc: `${SITE_URL}/faq`, lastmod: today, changefreq: 'weekly', priority: '0.7' },
+    { loc: `${SITE_URL}/blog/`, lastmod: today, changefreq: 'daily', priority: '0.9' },
+    { loc: `${SITE_URL}/blog/archive/`, lastmod: today, changefreq: 'daily', priority: '0.8' },
+    { loc: `${SITE_URL}/api-docs/`, lastmod: today, changefreq: 'weekly', priority: '0.7' },
+    { loc: `${SITE_URL}/faq/`, lastmod: today, changefreq: 'weekly', priority: '0.7' },
   ];
-  for (let p = 2; p <= blogTotalPages(); p++) {
-    urls.push({ loc: `${SITE_URL}/blog/${p}`, lastmod: today, changefreq: 'daily', priority: '0.5' });
-  }
+  // Paginated listing pages canonicalize to /blog/ and Google reports them as
+  // "Alternate page with proper canonical tag". Keep them out of the sitemap so
+  // it only lists final, self-canonical URLs; every post is still listed below.
   for (const s of SUMMARIES) {
-    urls.push({ loc: `${SITE_URL}/blog/${s.date}`, lastmod: s.date, changefreq: 'weekly', priority: '0.8' });
+    urls.push({ loc: `${SITE_URL}/blog/${s.date}/`, lastmod: s.date, changefreq: 'weekly', priority: '0.8' });
   }
   const entries = urls.map(u => `  <url>
     <loc>${escapeXml(u.loc)}</loc>

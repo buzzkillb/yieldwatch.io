@@ -27,10 +27,10 @@ const LOGO_SVG = `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.or
 
 const NAV_ITEMS: { key: ChromeActive; href: string; label: string }[] = [
   { key: 'dashboard', href: '/', label: 'Dashboard' },
-  { key: 'blog', href: '/blog', label: 'Daily Summaries' },
-  { key: 'archive', href: '/blog/archive', label: 'Archive' },
-  { key: 'faq', href: '/faq', label: 'FAQ' },
-  { key: 'api-docs', href: '/api-docs', label: 'API Docs' },
+  { key: 'blog', href: '/blog/', label: 'Daily Summaries' },
+  { key: 'archive', href: '/blog/archive/', label: 'Archive' },
+  { key: 'faq', href: '/faq/', label: 'FAQ' },
+  { key: 'api-docs', href: '/api-docs/', label: 'API Docs' },
 ];
 
 export function buildHeader(active: ChromeActive = null): string {
@@ -56,9 +56,9 @@ export function buildFooter(): string {
   return `<footer class="yw-footer">
     <div class="yw-footer-content">
       <div class="yw-footer-links">
-        <a href="/faq">FAQ</a>
+        <a href="/faq/">FAQ</a>
         <span class="yw-divider">|</span>
-        <a href="/api-docs">API Documentation</a>
+        <a href="/api-docs/">API Documentation</a>
         <span class="yw-divider">|</span>
         <a href="https://home.treasury.gov" target="_blank" rel="noopener noreferrer">U.S. Treasury</a>
       </div>
@@ -117,6 +117,10 @@ export const CHROME_STYLE = `<style id="yw-chrome">
     .yw-nav { gap: 1rem; }
     .yw-nav-link { font-size: 0.85rem; }
     footer.yw-footer { padding: 1.25rem 1rem; }
+  }
+  @media (max-width: 480px) {
+    .yw-nav { gap: 0.55rem; flex-wrap: nowrap; }
+    .yw-nav-link { font-size: 0.72rem; letter-spacing: 0; }
   }
 </style>`;
 

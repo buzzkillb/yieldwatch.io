@@ -27,22 +27,22 @@ for (const [year, months] of [...byYear.entries()].sort((a, b) => b[0].localeCom
   for (const [month, posts] of [...months.entries()].sort((a, b) => b[0].localeCompare(a[0]))) {
     listHtml += `        <h3 class="archive-month">${MONTHS[Number(month) - 1]} ${year}</h3>
         <ul class="archive-list">
-${posts.map(p => `          <li><a href="/blog/${p.date}">${escapeHtml(p.headline)}</a></li>`).join('\n')}
+${posts.map(p => `          <li><a href="/blog/${p.date}/">${escapeHtml(p.headline)}</a></li>`).join('\n')}
         </ul>\n`;
   }
   listHtml += `      </section>\n`;
 }
 
 const pageTitle = 'Complete Daily Treasury Yield Summary Archive | YieldWatch';
-const pageDescription = `Every daily Treasury yield summary published on YieldWatch, all ${SUMMARIES.length} posts on one page. Plain-English analysis of U.S. Treasury par yield curve rates, 4-week bills through 30-year bonds.`;
+const pageDescription = `Every daily U.S. Treasury yield summary published on YieldWatch: ${SUMMARIES.length} plain-English posts covering 4-week bills through 30-year bonds.`;
 
 const breadcrumbSchema = {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
   itemListElement: [
     { '@type': 'ListItem', position: 1, name: 'Dashboard', item: SITE_URL },
-    { '@type': 'ListItem', position: 2, name: 'Daily Summaries', item: `${SITE_URL}/blog` },
-    { '@type': 'ListItem', position: 3, name: 'Archive', item: `${SITE_URL}/blog/archive` },
+    { '@type': 'ListItem', position: 2, name: 'Daily Summaries', item: `${SITE_URL}/blog/` },
+    { '@type': 'ListItem', position: 3, name: 'Archive', item: `${SITE_URL}/blog/archive/` },
   ],
 };
 ---
@@ -53,12 +53,12 @@ const breadcrumbSchema = {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{pageTitle}</title>
     <meta name="description" content={pageDescription}>
-    <link rel="canonical" href={`${SITE_URL}/blog/archive`}>
+    <link rel="canonical" href={`${SITE_URL}/blog/archive/`}>
     <meta name="robots" content="index, follow">
     <meta property="og:type" content="website">
     <meta property="og:title" content={pageTitle}>
     <meta property="og:description" content={pageDescription}>
-    <meta property="og:url" content={`${SITE_URL}/blog/archive`}>
+    <meta property="og:url" content={`${SITE_URL}/blog/archive/`}>
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content={pageTitle}>
     <meta name="twitter:description" content={pageDescription}>
