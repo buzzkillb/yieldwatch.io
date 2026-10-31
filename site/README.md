@@ -11,9 +11,12 @@ static files.
   `summaries.json` (all daily summaries + rates). `stats.json` and
   `maturities.json` are no longer stored; they are derived from `rates.json`
   on every build so the public API snapshots cannot go stale.
-- `src/templates/` — verbatim copies of the original page shells
-  (index, blog, blog-post, faq, api-docs). Astro pages process them at build
-  time the same way the old Bun server did SSR.
+- `src/templates/` — remaining original page shells (index, blog, blog-post)
+  that are still processed at build time. FAQ and API docs have been migrated
+  to native `.astro` pages; the dashboard and blog routes are next.
+- `src/pages/faq.astro` and `src/pages/api-docs.astro` — native Astro pages.
+  The FAQ derives its `FAQPage` JSON-LD from the same question array it renders,
+  and the API examples are built from the shipped JSON so docs cannot drift.
 - `src/pages/` — one `.astro` file per route + static JSON/SVG/XML endpoints
 - `scripts/export-data.mjs` — one-time export from the old API (done)
 - `scripts/gen-derived.mjs` — prebuild step: static API JSON snapshots
