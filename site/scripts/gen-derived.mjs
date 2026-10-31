@@ -16,6 +16,14 @@ const dataDir = join(root, 'src', 'data');
 const pub = join(root, 'public');
 
 const readJson = async (name) => JSON.parse(await readFile(join(dataDir, name), 'utf8'));
+
+// Trim prose on a word boundary so generated excerpts never end mid-word.
+function truncateWords(text, max) {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[.,;:]$/, '')}…`;
+}
 const writeJson = async (rel, value) => {
   const p = join(pub, rel);
   await mkdir(dirname(p), { recursive: true });
@@ -131,7 +139,7 @@ await writeJson('api/blog/index.json', {
     date: s.date,
     dateFormatted: s.dateFormatted || fmtDate(s.date),
     hasFullPost: Boolean(s.blogSummary && s.blogSummary.length > 0),
-    excerpt: (s.summary || s.blogSummary || '').trim().replace(/\s+/g, ' ').slice(0, 200),
+    excerpt: truncateWords((s.summary || s.blogSummary || '').trim().replace(/\s+/g, ' '), 200),
   })),
   meta: { count: summariesDesc.length },
 });

@@ -1,5 +1,17 @@
 ---
-import { readTemplate } from '../lib/site';
-const html = readTemplate('api-docs.html', 'api-docs');
+import { statSync } from 'node:fs';
+import { join } from 'node:path';
+import { RATES, readTemplate } from '../lib/site';
+
+// Keep the coverage numbers in the docs derived from the shipped snapshot so
+// they cannot drift as the archive grows.
+const snapshotPath = join(process.cwd(), 'public', 'api', 'rates', 'all.json');
+const snapshotMb = (statSync(snapshotPath).size / 1e6).toFixed(1);
+
+let html = readTemplate('api-docs.html', 'api-docs');
+html = html
+  .replaceAll('9,200 business days', `${RATES.length.toLocaleString('en-US')} business days`)
+  .replace('~3.5&nbsp;MB', `~${snapshotMb}&nbsp;MB`);
 ---
+
 <Fragment set:html={html} />

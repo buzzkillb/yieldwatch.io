@@ -30,7 +30,7 @@ const report = {
   missingSocialMeta: [],
   missingSkipLink: [], missingMain: [],
   imgNoAlt: [],
-  brokenInternal: {}, brokenAnchor: {},
+  brokenInternal: {}, brokenAnchor: {}, nonCanonicalInternal: {},
   thin: [],
   noLang: [], noViewport: [],
   noindex: [],
@@ -163,6 +163,11 @@ for (const f of files) {
     const [path, fragment] = href.split('#');
     const cands = [join(ROOT, path), join(ROOT, path, 'index.html'), join(ROOT, path.replace(/\/$/, '') + '.html')];
     if (!cands.some(existsSync)) (report.brokenInternal[href] ||= []).push(rel);
+    else if (path !== '/' && !path.endsWith('/') && existsSync(join(ROOT, path, 'index.html'))) {
+      // A page directory was linked without its canonical trailing slash, which
+      // costs a redirect hop and splits link equity.
+      (report.nonCanonicalInternal[path] ||= []).push(rel);
+    }
     else if (fragment) {
       const target = cands.find(existsSync);
       if (target.endsWith('.html')) {
@@ -208,6 +213,7 @@ report.dupDesc = Object.fromEntries(Object.entries(report.dupDesc).filter(([, v]
 report.canonConflicts = Object.fromEntries([...canonMap.entries()].filter(([, v]) => v.length > 1));
 report.brokenInternalCount = Object.keys(report.brokenInternal).length;
 report.brokenAnchorCount = Object.keys(report.brokenAnchor).length;
+report.nonCanonicalInternalCount = Object.keys(report.nonCanonicalInternal).length;
 report.ogImageBrokenCount = report.ogImageBroken.length;
 report.dupTitleCount = Object.keys(report.dupTitle).length;
 report.dupDescCount = Object.keys(report.dupDesc).length;
@@ -223,7 +229,7 @@ report.issueCount = [
   'missingCanonical', 'badCanonical', 'canonConflicts', 'h1Issues', 'noJsonLd', 'badJsonLd',
   'badBreadcrumb', 'dupSchemaIdCount', 'missingOgImage', 'ogImageBrokenCount', 'missingTwitterImage', 'missingOgAlt',
   'missingSocialMetaCount', 'missingSkipLink', 'missingMain', 'imgNoAlt', 'brokenInternalCount',
-  'brokenAnchorCount', 'thinCount', 'noLang', 'noViewport', 'missingFromSitemapCount',
+  'brokenAnchorCount', 'nonCanonicalInternalCount', 'thinCount', 'noLang', 'noViewport', 'missingFromSitemapCount',
   'sitemapMissingFilesCount', 'noindexInSitemapCount',
 ].reduce((sum, key) => {
   const value = report[key];

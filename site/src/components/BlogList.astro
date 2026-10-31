@@ -4,7 +4,7 @@
 // styles, and card markup. Year/month filters work client-side over an
 // embedded index; pagination is static.
 import {
-  readTemplate, escapeHtml, inlineJson, SUMMARIES, POSTS_PER_PAGE, postHeadline, blogTotalPages, SITE_URL,
+  readTemplate, escapeHtml, truncateWords, inlineJson, SUMMARIES, POSTS_PER_PAGE, postHeadline, blogTotalPages, SITE_URL,
 } from '../lib/site';
 
 interface Props { page: number }
@@ -19,7 +19,7 @@ const blogIndex = sorted.map(s => ({
   date: s.date,
   hasFullPost: Boolean(s.blogSummary && s.blogSummary.length > 0),
   title: escapeHtml(postHeadline(s.date)),
-  excerpt: escapeHtml((s.summary || s.blogSummary || '').trim().replace(/\s+/g, ' ').slice(0, 200)) + '…',
+  excerpt: escapeHtml(truncateWords(s.summary || s.blogSummary || '', 200)),
 }));
 
 const hrefFor = (p: number) => (p <= 1 ? '/blog/' : `/blog/${p}/`);

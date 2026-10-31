@@ -446,7 +446,7 @@
 
     <div class="rate-limit-note">
       <h2 class="api-subhead">Static snapshot API</h2>
-      <p>All endpoints are served as <strong>static JSON files</strong> from Cloudflare's global CDN &mdash; no rate limits, no query-parameter filtering. Fetch a snapshot covering your range (e.g. <code>/api/rates/6m.json</code>) and filter client-side. Files are regenerated every business day after the U.S. Treasury publishes its ~3:30 PM ET update, via GitHub Actions.</p>
+      <p>All endpoints are served as <strong>static JSON snapshots</strong> &mdash; no rate limits and no query-parameter filtering. Fetch the snapshot that covers your range (e.g. <code>/api/rates/6m.json</code>) and filter client-side. Snapshots are refreshed every business day after the U.S. Treasury publishes its ~3:30 PM ET update.</p>
     </div>
 
     <div class="section">
@@ -767,7 +767,7 @@
         <span class="divider">|</span>
         <a href="https://home.treasury.gov" target="_blank" rel="noopener noreferrer">U.S. Treasury</a>
       </div>
-      <div class="footer-meta">Data regenerated every business day after the U.S. Treasury publishes its ~3:30 PM ET update, via GitHub Actions</div>
+      <div class="footer-meta">Data refreshed every business day after the U.S. Treasury publishes its ~3:30 PM ET update</div>
     </div>
   </footer>
 </body>

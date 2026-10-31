@@ -121,7 +121,9 @@ const articleSchema = {
   '@context': 'https://schema.org',
   '@type': 'Article',
   headline: headline,
-  description: blogSummary.substring(0, 300),
+  description: cleanSummary.length > 300
+    ? cleanSummary.slice(0, 300).replace(/\s+\S*$/, '') + '…'
+    : cleanSummary,
   datePublished: `${date}T20:00:00Z`,
   dateModified: `${date}T20:00:00Z`,
   mainEntityOfPage: { '@type': 'WebPage', '@id': blogUrl },
@@ -190,10 +192,6 @@ html = html.replace(
 );
 
 // Disable the client loader; drive the template's own renderChart with embedded data.
-html = html.replace(
-  '</header>\n\n  <main class="container">',
-  `</header>\n\n  <main class="container">`
-);
 html = html.replace(
   '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>',
   `<script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>

@@ -32,6 +32,16 @@ export function escapeHtml(str: string): string {
     .replace(/'/g, '&#039;');
 }
 
+// Trim prose on a word boundary before escaping. Slicing after escaping can
+// cut an HTML entity in half and leak fragments like "&am" onto the page.
+export function truncateWords(str: string, max: number): string {
+  const text = str.trim().replace(/\s+/g, ' ');
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[.,;:]$/, '')}…`;
+}
+
 export function dateFormatted(date: string): string {
   return new Date(date + 'T00:00:00Z').toLocaleDateString('en-US', {
     timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric',
@@ -142,7 +152,7 @@ export function buildSitemap(): string {
   const today = new Date().toISOString().split('T')[0];
   // Pages whose content is edited by hand. Bump this when their copy changes so
   // lastmod stays honest instead of resetting on every daily data rebuild.
-  const STATIC_CONTENT_UPDATED = '2026-10-30';
+  const STATIC_CONTENT_UPDATED = '2026-10-31';
   const urls: { loc: string; lastmod: string; changefreq: string; priority: string; image?: string }[] = [
     { loc: `${SITE_URL}/`, lastmod: today, changefreq: 'daily', priority: '1.0' },
     { loc: `${SITE_URL}/blog/`, lastmod: today, changefreq: 'daily', priority: '0.9' },
