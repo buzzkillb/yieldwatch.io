@@ -1,17 +1,118 @@
 ---
-import { statSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { RATES, readTemplate } from '../lib/site';
+import { RATES, SUMMARIES, readTemplate, truncateWords } from '../lib/site';
 
-// Keep the coverage numbers in the docs derived from the shipped snapshot so
-// they cannot drift as the archive grows.
-const snapshotPath = join(process.cwd(), 'public', 'api', 'rates', 'all.json');
-const snapshotMb = (statSync(snapshotPath).size / 1e6).toFixed(1);
+// Every example response on this page is derived from the data the site
+// actually ships. Hand-written examples went stale silently (they still showed
+// an October 9 snapshot as "latest" a month later), so build them from the
+// real files instead.
+const publicDir = join(process.cwd(), 'public');
+const snapshotMb = (statSync(join(publicDir, 'api', 'rates', 'all.json')).size / 1e6).toFixed(1);
+
+const latestRateDay = [...RATES].sort((a, b) => a.date.localeCompare(b.date))[RATES.length - 1];
+const latestSummary = [...SUMMARIES].sort((a, b) => a.date.localeCompare(b.date))[SUMMARIES.length - 1];
+
+const formatDate = (date: string) =>
+  new Date(`${date}T00:00:00Z`).toLocaleDateString('en-US', {
+    timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric',
+  });
+
+const rateStats = JSON.parse(readFileSync(join(publicDir, 'api', 'rates', 'stats.json'), 'utf8'));
+const tenYear = rateStats.data.find((row: { maturity: string }) => row.maturity === '10YR');
+const blogYears = JSON.parse(readFileSync(join(publicDir, 'api', 'blog', 'years.json'), 'utf8'));
+
+const rate = (maturity: string) => latestRateDay.rates.find(r => r.maturity === maturity)?.rate;
+
+// Escape only the characters that would break the surrounding HTML; JSON
+// strings already handle quotes.
+const escapePre = (value: string) =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+const jsonBlock = (value: unknown) => escapePre(JSON.stringify(value, null, 2));
+
+const latestRatesExample = jsonBlock({
+  success: true,
+  data: {
+    date: latestRateDay.date,
+    dateFormatted: formatDate(latestRateDay.date),
+    rates: latestRateDay.rates.map(r => ({ maturity: r.maturity, rate: r.rate })),
+  },
+});
+
+const ratesAllExample = jsonBlock({
+  success: true,
+  data: [{
+    date: latestRateDay.date,
+    rates: ['4WK', '2YR', '10YR'].map(m => ({ maturity: m, rate: rate(m) })),
+  }],
+  meta: {
+    from: 'earliest',
+    to: 'latest',
+    maturity: 'all',
+    count: RATES.length,
+    limit: RATES.length,
+    offset: 0,
+    hasMore: false,
+  },
+});
+
+const rateStatsExample = jsonBlock({
+  success: true,
+  data: [tenYear],
+});
+
+const healthExample = jsonBlock({
+  status: 'ok',
+  latestRateDate: latestRateDay.date,
+  latestSummaryDate: latestSummary.date,
+});
+
+const dailySummaryExample = escapePre(
+  `${truncateWords(latestSummary.summary, 180)}`
+);
+
+const blogIndexExample = jsonBlock({
+  success: true,
+  data: [{
+    date: latestSummary.date,
+    dateFormatted: latestSummary.dateFormatted,
+    hasFullPost: Boolean(latestSummary.blogSummary && latestSummary.blogSummary.length > 0),
+    excerpt: truncateWords(latestSummary.summary || latestSummary.blogSummary, 120),
+  }],
+  meta: { count: SUMMARIES.length },
+});
+
+const blogPostExample = jsonBlock({
+  success: true,
+  data: {
+    date: latestSummary.date,
+    dateFormatted: latestSummary.dateFormatted,
+    summary: truncateWords(latestSummary.summary, 120),
+    blogSummary: truncateWords(latestSummary.blogSummary, 100),
+    rates: ['4WK', '10YR'].map(m => ({ maturity: m, rate: rate(m) })),
+  },
+});
+
+const yearsExample = escapePre(JSON.stringify({ success: true, data: blogYears.data }));
 
 let html = readTemplate('api-docs.html', 'api-docs');
 html = html
   .replaceAll('9,200 business days', `${RATES.length.toLocaleString('en-US')} business days`)
-  .replace('~3.5&nbsp;MB', `~${snapshotMb}&nbsp;MB`);
+  .replace('~3.5&nbsp;MB', `~${snapshotMb}&nbsp;MB`)
+  .replaceAll('{{EXAMPLE_RATES_LATEST}}', latestRatesExample)
+  .replaceAll('{{EXAMPLE_RATES_ALL}}', ratesAllExample)
+  .replaceAll('{{EXAMPLE_RATE_STATS}}', rateStatsExample)
+  .replaceAll('{{EXAMPLE_HEALTH}}', healthExample)
+  .replaceAll('{{EXAMPLE_DAILY_SUMMARY}}', dailySummaryExample)
+  .replaceAll('{{EXAMPLE_BLOG_INDEX}}', blogIndexExample)
+  .replaceAll('{{BLOG_POST_URL}}', `/api/blog/${latestSummary.date}.json`)
+  .replaceAll('{{EXAMPLE_BLOG_POST}}', blogPostExample)
+  .replaceAll('{{YEARS_EXAMPLE}}', yearsExample);
+
+if (html.includes('{{')) {
+  throw new Error('Unreplaced template token in api-docs');
+}
 ---
 
 <Fragment set:html={html} />

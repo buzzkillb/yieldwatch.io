@@ -315,19 +315,6 @@
       color: var(--text-primary);
     }
 
-    .loading, .error {
-      text-align: center;
-      padding: 3rem;
-      color: var(--text-secondary);
-    }
-
-    .error {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      border-radius: 12px;
-      color: #ef4444;
-    }
-
     @media (max-width: 768px) {
       .header {
         padding: 1rem;
@@ -444,103 +431,6 @@
       '#f59e0b', '#ef4444'
     ];
 
-    const MATURITY_ORDER = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
-
-    async function loadPost() {
-      const pathParts = window.location.pathname.split('/');
-      const date = pathParts[pathParts.length - 1];
-
-      if (!date || !date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        document.getElementById('content').innerHTML = '<div class="error">Invalid date format</div>';
-        return;
-      }
-
-      try {
-        const response = await fetch(`/api/blog/${date}`);
-        const data = await response.json();
-
-        if (!data.success) {
-          document.getElementById('content').innerHTML = `<div class="error">${data.error || 'Failed to load summary'}</div>`;
-          return;
-        }
-
-        const { dateFormatted, blogSummary, rates } = data.data;
-
-        document.title = `${dateFormatted} | Treasury Yield Daily`;
-        document.getElementById('page-title').textContent = `${dateFormatted} | Treasury Yield Daily`;
-        document.getElementById('meta-desc').content = blogSummary.substring(0, 160);
-
-        const blogUrl = `https://yieldwatch.io/blog/${date}`;
-        const ogImageUrl = `https://yieldwatch.io/og-image/${date}.png`;
-        document.getElementById('og-url').content = blogUrl;
-        document.getElementById('og-title').content = `${dateFormatted} Treasury Yield`;
-        document.getElementById('og-description').content = blogSummary.substring(0, 160);
-        document.getElementById('og-image').content = ogImageUrl;
-        document.getElementById('article-date').content = `${date}T00:00:00Z`;
-        document.getElementById('article-modified').content = `${date}T00:00:00Z`;
-        document.getElementById('twitter-url').content = blogUrl;
-        document.getElementById('twitter-title').content = `${dateFormatted} Treasury Yield`;
-        document.getElementById('twitter-description').content = blogSummary.substring(0, 160);
-        document.getElementById('twitter-image').content = ogImageUrl;
-        document.getElementById('canonical-url').href = blogUrl;
-
-        const breadcrumbSchema = JSON.parse(document.getElementById('breadcrumb-schema').textContent);
-        breadcrumbSchema.itemListElement[2].item = blogUrl;
-        document.getElementById('breadcrumb-schema').textContent = JSON.stringify(breadcrumbSchema);
-
-        const lastUpdated = document.getElementById('lastUpdated');
-        if (lastUpdated) {
-          lastUpdated.textContent = dateFormatted;
-        }
-
-        const chartColors = rates.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
-
-        const stripHtml = (str) => str.replace(/<[^>]*>/g, '');
-        const formatBlogSummary = (text) => {
-          return text
-            .split(/\n\n+/)
-            .filter(p => p.trim())
-            .map(p => `<p>${stripHtml(p.trim())}</p>`)
-            .join('');
-        };
-
-        const content = `
-          <article>
-            <header class="post-header">
-              <p class="post-date">${dateFormatted}</p>
-              <h2 class="post-title">Treasury Yield Curve Analysis</h2>
-            </header>
-
-            <div class="blog-content blog-summary">
-              ${formatBlogSummary(blogSummary)}
-            </div>
-
-            <section class="chart-section">
-              <h2 class="chart-title">Yield Curve</h2>
-              <div class="chart-wrapper">
-                <canvas id="yieldChart"></canvas>
-              </div>
-              <div class="rates-grid">
-                ${rates.map((r, i) => `
-                  <div class="rate-item" style="border-top: 3px solid ${CHART_COLORS[i % CHART_COLORS.length]}">
-                    <div class="rate-maturity">${r.maturity}</div>
-                    <div class="rate-value">${r.rate.toFixed(2)}%</div>
-                  </div>
-                `).join('')}
-              </div>
-            </section>
-          </article>
-        `;
-
-        document.getElementById('content').innerHTML = content;
-
-        setTimeout(() => renderChart(rates, chartColors), 100);
-      } catch (error) {
-        console.error('Error loading post:', error);
-        document.getElementById('content').innerHTML = '<div class="error">Failed to load summary. Please try again.</div>';
-      }
-    }
-
     function renderChart(rates, colors) {
       const ctx = document.getElementById('yieldChart').getContext('2d');
       const chartCanvas = document.getElementById('yieldChart');
@@ -604,7 +494,7 @@
       });
     }
 
-    loadPost();
+    renderChart(POST_RATES, POST_RATES.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]));
   </script>
   <footer class="footer">
     <div class="footer-content">

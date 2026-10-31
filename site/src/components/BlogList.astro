@@ -132,9 +132,7 @@ html = html.replace(
 
 // Replace the fetch-based init with embedded-index filtering.
 html = html.replace(
-  `    loadAvailableYears();
-    initFilters();
-    loadSummaries();`,
+  '    // Static index: filters are wired in BlogList.astro.',
   `    (function initStaticFilters() {
       const yearSelect = document.getElementById('yearFilter');
       const monthSelect = document.getElementById('monthFilter');

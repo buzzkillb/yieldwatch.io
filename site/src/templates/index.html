@@ -1089,27 +1089,6 @@
     }
 
     async function fetchHistoricalData() {
-      const now = new Date();
-      let fromDate;
-      
-      if (currentRange === '3m') {
-        fromDate = new Date(now.setMonth(now.getMonth() - 3));
-      } else if (currentRange === '6m') {
-        fromDate = new Date(now.setMonth(now.getMonth() - 6));
-      } else if (currentRange === '1y') {
-        fromDate = new Date(now.setFullYear(now.getFullYear() - 1));
-      } else if (currentRange === '2y') {
-        fromDate = new Date(now.setFullYear(now.getFullYear() - 2));
-      } else if (currentRange === '5y') {
-        fromDate = new Date(now.setFullYear(now.getFullYear() - 5));
-      } else {
-        fromDate = null;
-      }
-
-      const from = fromDate ? fromDate.toISOString().split('T')[0] : '1990-01-01';
-      const to = new Date().toISOString().split('T')[0];
-      const reqLimit = currentRange === 'all' ? '150000' : '10000';
-
       setLoading(true);
       
       try {

@@ -29,7 +29,7 @@ const report = {
   missingTwitterImage: [], missingOgAlt: [],
   missingSocialMeta: [],
   missingSkipLink: [], missingMain: [],
-  imgNoAlt: [],
+  imgNoAlt: [], dupDomId: [], headingSkip: [], unreplacedToken: [],
   brokenInternal: {}, brokenAnchor: {}, nonCanonicalInternal: {},
   thin: [],
   noLang: [], noViewport: [],
@@ -149,6 +149,22 @@ for (const f of files) {
     if (!/\balt\s*=/i.test(m[1])) report.imgNoAlt.push([rel, m[0].slice(0, 90)]);
   }
 
+  // Structural checks operate on markup only; script/style bodies contain
+  // string copies of ids and markup that are not part of the DOM.
+  const dom = html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ');
+  const domIds = new Map();
+  for (const m of dom.matchAll(/\bid="([^"]+)"/g)) domIds.set(m[1], (domIds.get(m[1]) || 0) + 1);
+  for (const [id, count] of domIds) if (count > 1) report.dupDomId.push([rel, id, count]);
+
+  const levels = [...dom.matchAll(/<h([1-6])\b/gi)].map(m => Number(m[1]));
+  for (let i = 1; i < levels.length; i++) {
+    if (levels[i] - levels[i - 1] > 1) report.headingSkip.push([rel, levels[i - 1], levels[i]]);
+  }
+
+  if (html.includes('{{')) report.unreplacedToken.push(rel);
+
   // Thin content only matters for pages we ask search engines to index.
   const words = strip(html).split(/\s+/).filter(Boolean).length;
   if (words < 250 && !isNoindex) report.thin.push([rel, words]);
@@ -228,7 +244,7 @@ report.issueCount = [
   'missingTitle', 'longTitle', 'dupTitleCount', 'missingDesc', 'longDesc', 'dupDescCount',
   'missingCanonical', 'badCanonical', 'canonConflicts', 'h1Issues', 'noJsonLd', 'badJsonLd',
   'badBreadcrumb', 'dupSchemaIdCount', 'missingOgImage', 'ogImageBrokenCount', 'missingTwitterImage', 'missingOgAlt',
-  'missingSocialMetaCount', 'missingSkipLink', 'missingMain', 'imgNoAlt', 'brokenInternalCount',
+  'missingSocialMetaCount', 'missingSkipLink', 'missingMain', 'imgNoAlt', 'dupDomId', 'headingSkip', 'unreplacedToken', 'brokenInternalCount',
   'brokenAnchorCount', 'nonCanonicalInternalCount', 'thinCount', 'noLang', 'noViewport', 'missingFromSitemapCount',
   'sitemapMissingFilesCount', 'noindexInSitemapCount',
 ].reduce((sum, key) => {

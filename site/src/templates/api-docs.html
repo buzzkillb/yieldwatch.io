@@ -461,29 +461,7 @@
         <h3>Response</h3>
         <div class="code-block">
           <div class="code-label">Example Response</div>
-          <pre>{
-  "success": true,
-  "data": {
-    "date": "2026-10-09",
-    "dateFormatted": "October 9, 2026",
-    "rates": [
-      { "maturity": "4WK", "rate": 4.13 },
-      { "maturity": "6WK", "rate": 4.13 },
-      { "maturity": "2MO", "rate": 4.13 },
-      { "maturity": "3MO", "rate": 4.25 },
-      { "maturity": "4MO", "rate": 4.29 },
-      { "maturity": "6MO", "rate": 4.32 },
-      { "maturity": "1YR", "rate": 4.47 },
-      { "maturity": "2YR", "rate": 4.8 },
-      { "maturity": "3YR", "rate": 4.89 },
-      { "maturity": "5YR", "rate": 5.02 },
-      { "maturity": "7YR", "rate": 5.13 },
-      { "maturity": "10YR", "rate": 5.24 },
-      { "maturity": "20YR", "rate": 5.65 },
-      { "maturity": "30YR", "rate": 5.6 }
-    ]
-  }
-}</pre>
+          <pre>{{EXAMPLE_RATES_LATEST}}</pre>
         </div>
       </div>
     </div>
@@ -500,28 +478,7 @@
         <h3>Response</h3>
         <div class="code-block">
           <div class="code-label">Example Response (truncated)</div>
-          <pre>{
-  "success": true,
-  "data": [
-    {
-      "date": "2026-10-09",
-      "rates": [
-        { "maturity": "4WK", "rate": 4.13 },
-        { "maturity": "2YR", "rate": 4.8 },
-        { "maturity": "10YR", "rate": 5.24 }
-      ]
-    }
-  ],
-  "meta": {
-    "from": "earliest",
-    "to": "latest",
-    "maturity": "all",
-    "count": 9200,
-    "limit": 9200,
-    "offset": 0,
-    "hasMore": false
-  }
-}</pre>
+          <pre>{{EXAMPLE_RATES_ALL}}</pre>
         </div>
 
         <h3>Snapshot Files</h3>
@@ -610,22 +567,7 @@
         <h3>Response</h3>
         <div class="code-block">
           <div class="code-label">Example Response</div>
-          <pre>{
-  "success": true,
-  "data": [
-    {
-      "maturity": "10YR",
-      "yearHigh": 5.31,
-      "yearHighDate": "2026-10-05",
-      "yearLow": 3.97,
-      "yearLowDate": "2026-02-27",
-      "allTimeHigh": 9.09,
-      "allTimeHighDate": "1990-05-02",
-      "allTimeLow": 0.52,
-      "allTimeLowDate": "2020-08-04"
-    }
-  ]
-}</pre>
+          <pre>{{EXAMPLE_RATE_STATS}}</pre>
         </div>
       </div>
     </div>
@@ -642,11 +584,7 @@
         <h3>Response</h3>
         <div class="code-block">
           <div class="code-label">Example Response</div>
-          <pre>{
-  "status": "ok",
-  "latestRateDate": "2026-10-09",
-  "latestSummaryDate": "2026-10-09"
-}</pre>
+          <pre>{{EXAMPLE_HEALTH}}</pre>
         </div>
       </div>
     </div>
@@ -663,8 +601,7 @@
         <h3>Response</h3>
         <div class="code-block">
           <div class="code-label">Example Response (text/plain)</div>
-          <pre>Short-term Treasury bills moved higher over the past week, with the 4-week and
-6-week rates at 4.13 percent on Friday, October 9, 2026, ...</pre>
+          <pre>{{EXAMPLE_DAILY_SUMMARY}}</pre>
         </div>
       </div>
     </div>
@@ -681,18 +618,7 @@
         <h3>Response</h3>
         <div class="code-block">
           <div class="code-label">Example Response (truncated)</div>
-          <pre>{
-  "success": true,
-  "data": [
-    {
-      "date": "2026-10-30",
-      "dateFormatted": "October 30, 2026",
-      "hasFullPost": true,
-      "excerpt": "Treasury yields finished the week higher across the curve, ..."
-    }
-  ],
-  "meta": { "count": 209 }
-}</pre>
+          <pre>{{EXAMPLE_BLOG_INDEX}}</pre>
         </div>
       </div>
     </div>
@@ -701,27 +627,15 @@
       <h2><span class="method">GET</span> Blog Post Data</h2>
       <div class="endpoint">
         <div class="endpoint-header">
-          <span class="endpoint-url">/api/blog/2026-10-09.json</span>
+          <span class="endpoint-url">{{BLOG_POST_URL}}</span>
           <span class="badge badge-get">GET</span>
         </div>
-        <p class="description">Structured data for one business day's post: <code>date</code>, <code>dateFormatted</code>, long-form <code>summary</code>, shorter <code>blogSummary</code>, and that day's <code>rates</code>. One file per business day (e.g. <code>/api/blog/2026-10-08.json</code>). Available years are listed at <code>/api/blog/years.json</code>, which returns <code>{"success": true, "data": ["2026"]}</code>.</p>
+        <p class="description">Structured data for one business day's post: <code>date</code>, <code>dateFormatted</code>, long-form <code>summary</code>, shorter <code>blogSummary</code>, and that day's <code>rates</code>. One file per business day. Available years are listed at <code>/api/blog/years.json</code>, which returns <code>{{YEARS_EXAMPLE}}</code>.</p>
 
         <h3>Response</h3>
         <div class="code-block">
           <div class="code-label">Example Response (truncated)</div>
-          <pre>{
-  "success": true,
-  "data": {
-    "date": "2026-10-09",
-    "dateFormatted": "October 9, 2026",
-    "summary": "Short-term Treasury bills moved higher over the past week, ...",
-    "blogSummary": "The short end of the Treasury market opened Friday, ...",
-    "rates": [
-      { "maturity": "4WK", "rate": 4.13 },
-      { "maturity": "10YR", "rate": 5.24 }
-    ]
-  }
-}</pre>
+          <pre>{{EXAMPLE_BLOG_POST}}</pre>
         </div>
       </div>
     </div>

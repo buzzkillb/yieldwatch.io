@@ -263,21 +263,6 @@
       white-space: nowrap;
     }
 
-    .loading {
-      text-align: center;
-      padding: 3rem;
-      color: var(--text-secondary);
-    }
-
-    .error {
-      text-align: center;
-      padding: 2rem;
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      border-radius: 12px;
-      color: #ef4444;
-    }
-
     @media (max-width: 768px) {
       .header {
         padding: 1rem;
@@ -432,10 +417,10 @@
 
     <div class="content-wrap">
       <div class="filter-bar">
-        <select id="yearFilter">
+        <select id="yearFilter" aria-label="Filter summaries by year">
           <option value="">All Years</option>
         </select>
-        <select id="monthFilter" disabled>
+        <select id="monthFilter" aria-label="Filter summaries by month" disabled>
           <option value="">All Months</option>
         </select>
       </div>
@@ -447,130 +432,8 @@
   </main>
 
   <script>
-    const CHART_COLORS = [
-      '#6366f1', '#a855f7', '#ec4899', '#f43f5e', '#f97316', '#eab308',
-      '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#10b981',
-      '#f59e0b', '#ef4444'
-    ];
-
     const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
                     'July', 'August', 'September', 'October', 'November', 'December'];
-
-    let availableYears = [];
-    let currentPage = 1;
-    let totalPages = 1;
-
-    function getPageFromUrl() {
-      const params = new URLSearchParams(window.location.search);
-      return Math.max(1, parseInt(params.get('page')) || 1);
-    }
-
-    function updateUrl(page, year, month) {
-      const url = new URL(window.location);
-      url.searchParams.set('page', page);
-      if (year) url.searchParams.set('year', year);
-      if (month) url.searchParams.set('month', month);
-      window.history.pushState({}, '', url);
-    }
-
-    function getFiltersFromUrl() {
-      const params = new URLSearchParams(window.location.search);
-      return {
-        year: params.get('year') || '',
-        month: params.get('month') || '',
-        page: Math.max(1, parseInt(params.get('page')) || 1)
-      };
-    }
-
-    async function loadAvailableYears() {
-      try {
-        const res = await fetch('/api/blog/years');
-        const data = await res.json();
-        if (data.success && data.data) {
-          availableYears = data.data.sort().reverse();
-          populateYearDropdown();
-        }
-      } catch (e) {
-        console.error('Error loading years:', e);
-      }
-    }
-
-    function populateYearDropdown() {
-      const yearSelect = document.getElementById('yearFilter');
-      yearSelect.innerHTML = '<option value="">All Years</option>';
-      availableYears.forEach(year => {
-        const opt = document.createElement('option');
-        opt.value = year;
-        opt.textContent = year;
-        yearSelect.appendChild(opt);
-      });
-
-      const filters = getFiltersFromUrl();
-      if (filters.year) {
-        yearSelect.value = filters.year;
-        populateMonthsDropdown(filters.year);
-      }
-    }
-
-    function populateMonthsDropdown(year) {
-      const monthSelect = document.getElementById('monthFilter');
-      monthSelect.innerHTML = '<option value="">All Months</option>';
-      monthSelect.disabled = !year;
-
-      if (year) {
-        const allMonths = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
-        allMonths.forEach((monthNum, idx) => {
-          const opt = document.createElement('option');
-          opt.value = monthNum;
-          opt.textContent = MONTHS[idx];
-          monthSelect.appendChild(opt);
-        });
-      }
-    }
-
-    async function loadSummaries() {
-      const filters = getFiltersFromUrl();
-      currentPage = filters.page;
-
-      const yearSelect = document.getElementById('yearFilter');
-      const monthSelect = document.getElementById('monthFilter');
-      const year = yearSelect.value;
-      const month = monthSelect.value;
-
-      try {
-        let url = `/api/blog/list?page=${currentPage}`;
-        if (year) url += `&year=${year}`;
-        if (month) url += `&month=${month}`;
-
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (!data.success || !data.data.length) {
-          let errorMsg = 'No summaries found.';
-          if (year && month) {
-            const selectedDate = new Date(`${year}-${month.padStart(2, '0')}-01`);
-            const now = new Date();
-            if (selectedDate > now) {
-              errorMsg = `No summaries for ${MONTHS[parseInt(month) - 1]} ${year} - we haven't reached that date yet, timetraveler.`;
-            } else {
-              errorMsg = `No summaries for ${MONTHS[parseInt(month) - 1]} ${year}.`;
-            }
-          } else if (year) {
-            errorMsg = `No summaries for ${year}.`;
-          }
-          document.getElementById('content').innerHTML = `<div class="error">${errorMsg}</div>`;
-          document.getElementById('pagination').innerHTML = '';
-          return;
-        }
-
-        totalPages = data.pagination.totalPages;
-        renderSummaries(data.data);
-        renderPagination();
-      } catch (error) {
-        console.error('Error loading summaries:', error);
-        document.getElementById('content').innerHTML = '<div class="error">Failed to load summaries. Please try again.</div>';
-      }
-    }
 
     function renderSummaries(summaries) {
       const summariesHtml = summaries.map((item) => {
@@ -593,64 +456,7 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function renderPagination() {
-      if (totalPages <= 1) {
-        document.getElementById('pagination').innerHTML = '';
-        return;
-      }
-
-      const filters = getFiltersFromUrl();
-      let html = '<div class="pagination-controls">';
-
-      if (currentPage > 1) {
-        html += `<button class="page-link" data-page="${currentPage - 1}">&larr; Previous</button>`;
-      }
-
-      html += `<span class="page-info">Page ${currentPage} of ${totalPages}</span>`;
-
-      if (currentPage < totalPages) {
-        html += `<button class="page-link" data-page="${currentPage + 1}">Next &rarr;</button>`;
-      }
-
-      html += '</div>';
-      document.getElementById('pagination').innerHTML = html;
-
-      document.querySelectorAll('.page-link').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const filters = getFiltersFromUrl();
-          const year = document.getElementById('yearFilter').value;
-          const month = document.getElementById('monthFilter').value;
-          updateUrl(parseInt(btn.dataset.page), year, month);
-          loadSummaries();
-        });
-      });
-    }
-
-    function initFilters() {
-      const yearSelect = document.getElementById('yearFilter');
-      const monthSelect = document.getElementById('monthFilter');
-
-      yearSelect.addEventListener('change', () => {
-        populateMonthsDropdown(yearSelect.value);
-        const filters = getFiltersFromUrl();
-        updateUrl(1, yearSelect.value, monthSelect.value);
-        loadSummaries();
-      });
-
-      monthSelect.addEventListener('change', () => {
-        const filters = getFiltersFromUrl();
-        updateUrl(1, yearSelect.value, monthSelect.value);
-        loadSummaries();
-      });
-
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('year')) yearSelect.value = params.get('year');
-      if (params.get('month')) monthSelect.value = params.get('month');
-    }
-
-    loadAvailableYears();
-    initFilters();
-    loadSummaries();
+    // Static index: filters are wired in BlogList.astro.
   </script>
   <footer class="footer">
     <div class="footer-content">
