@@ -19,7 +19,10 @@ YieldWatch tracks U.S. Treasury par yield curve rates from 4-week bills to 30-ye
 - API catalog: https://yieldwatch.io/.well-known/api-catalog
 - MCP server card: https://yieldwatch.io/.well-known/mcp/server-card.json
 - Sitemap: https://yieldwatch.io/sitemap.xml
+- Latest rates JSON: https://yieldwatch.io/api/rates/latest.json
 - Blog index JSON: https://yieldwatch.io/api/blog/index.json
+- Latest daily summary (plain text): https://yieldwatch.io/api/daily-summary
+- RSS feed: https://yieldwatch.io/feed.xml
 
 ## Common questions
 

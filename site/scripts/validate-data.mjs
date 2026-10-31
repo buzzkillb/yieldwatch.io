@@ -39,6 +39,13 @@ for (const row of rates) {
 }
 
 const rateDates = new Set(rates.map(r => r.date));
+const rateRows = new Map(rates.map(r => [r.date, r.rates]));
+const formatDate = (date) =>
+  new Date(`${date}T00:00:00Z`).toLocaleDateString('en-US', {
+    timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric',
+  });
+const rateFingerprint = (points) =>
+  points.map(p => `${p.maturity}:${p.rate}`).sort().join('|');
 const summaryDates = new Set();
 for (const s of summaries) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s?.date ?? '')) { errors.push(`Bad summary date: ${s?.date}`); continue; }
@@ -47,6 +54,14 @@ for (const s of summaries) {
   if (!rateDates.has(s.date)) errors.push(`Summary ${s.date} has no matching rate row`);
   if (typeof s.summary !== 'string' || s.summary.length < 50) errors.push(`Summary ${s.date} is too short`);
   if (typeof s.blogSummary !== 'string' || s.blogSummary.length < 400) errors.push(`Blog summary ${s.date} is too short`);
+  if (s.dateFormatted !== formatDate(s.date)) errors.push(`Summary ${s.date} has a stale dateFormatted value`);
+  // The headline and API payloads are derived from these embedded rates, so a
+  // summary that drifts from the official row would publish wrong numbers.
+  if (!Array.isArray(s.rates) || s.rates.length < 9) {
+    errors.push(`Summary ${s.date} is missing its rate snapshot`);
+  } else if (rateRows.has(s.date) && rateFingerprint(s.rates) !== rateFingerprint(rateRows.get(s.date))) {
+    errors.push(`Summary ${s.date} rates do not match the official rate row`);
+  }
 }
 
 if (summaries.length > 1) {

@@ -21,15 +21,24 @@ export const SUMMARIES = summariesJson as SummaryEntry[];
 export const SITE_URL = 'https://yieldwatch.io';
 export const POSTS_PER_PAGE = 5;
 
+export const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
 export const CHART_COLORS = ['#6366f1', '#a855f7', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
 
-export function escapeHtml(str: string): string {
+function escapeMarkup(str: string, apostrophe: string): string {
   return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(/'/g, apostrophe);
+}
+
+export function escapeHtml(str: string): string {
+  return escapeMarkup(str, '&#039;');
 }
 
 // Trim prose on a word boundary before escaping. Slicing after escaping can
@@ -140,23 +149,24 @@ ${items}
 }
 
 function escapeXml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+  return escapeMarkup(str, '&apos;');
 }
 
 export function buildSitemap(): string {
-  const today = new Date().toISOString().split('T')[0];
+  // Use the newest data actually shipped, not the wall clock: a code-only
+  // rebuild should not claim the homepage or listings changed today.
+  const latestRateDate = latestDay().date;
+  const latestSummaryDate = SUMMARIES.reduce(
+    (latest, s) => (s.date > latest ? s.date : latest),
+    latestRateDate,
+  );
   // Pages whose content is edited by hand. Bump this when their copy changes so
   // lastmod stays honest instead of resetting on every daily data rebuild.
   const STATIC_CONTENT_UPDATED = '2026-10-31';
   const urls: { loc: string; lastmod: string; changefreq: string; priority: string; image?: string }[] = [
-    { loc: `${SITE_URL}/`, lastmod: today, changefreq: 'daily', priority: '1.0' },
-    { loc: `${SITE_URL}/blog/`, lastmod: today, changefreq: 'daily', priority: '0.9' },
-    { loc: `${SITE_URL}/blog/archive/`, lastmod: today, changefreq: 'daily', priority: '0.8' },
+    { loc: `${SITE_URL}/`, lastmod: latestRateDate, changefreq: 'daily', priority: '1.0' },
+    { loc: `${SITE_URL}/blog/`, lastmod: latestSummaryDate, changefreq: 'daily', priority: '0.9' },
+    { loc: `${SITE_URL}/blog/archive/`, lastmod: latestSummaryDate, changefreq: 'daily', priority: '0.8' },
     { loc: `${SITE_URL}/methodology/`, lastmod: STATIC_CONTENT_UPDATED, changefreq: 'monthly', priority: '0.7' },
     { loc: `${SITE_URL}/about/`, lastmod: STATIC_CONTENT_UPDATED, changefreq: 'monthly', priority: '0.6' },
     { loc: `${SITE_URL}/api-docs/`, lastmod: STATIC_CONTENT_UPDATED, changefreq: 'weekly', priority: '0.7' },
@@ -268,6 +278,7 @@ export function relatedPosts(date: string, cap = 8): PostLink[] {
   let h = 7;
   for (let k = 0; k < date.length; k++) h = (h * 31 + date.charCodeAt(k)) >>> 0;
   const pool = all.filter(d => !d.startsWith(date.slice(0, 7)));
+  if (!pool.length) return out;
   for (const k of [0, 1, 2]) {
     if (out.length >= cap) break;
     push(pool[(h + k * 97) % pool.length]);

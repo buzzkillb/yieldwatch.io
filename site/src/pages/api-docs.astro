@@ -1,7 +1,7 @@
 ---
 import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { RATES, SUMMARIES, readTemplate, truncateWords } from '../lib/site';
+import { RATES, SUMMARIES, dateFormatted, latestDay, readTemplate, truncateWords } from '../lib/site';
 
 // Every example response on this page is derived from the data the site
 // actually ships. Hand-written examples went stale silently (they still showed
@@ -10,13 +10,8 @@ import { RATES, SUMMARIES, readTemplate, truncateWords } from '../lib/site';
 const publicDir = join(process.cwd(), 'public');
 const snapshotMb = (statSync(join(publicDir, 'api', 'rates', 'all.json')).size / 1e6).toFixed(1);
 
-const latestRateDay = [...RATES].sort((a, b) => a.date.localeCompare(b.date))[RATES.length - 1];
+const latestRateDay = latestDay();
 const latestSummary = [...SUMMARIES].sort((a, b) => a.date.localeCompare(b.date))[SUMMARIES.length - 1];
-
-const formatDate = (date: string) =>
-  new Date(`${date}T00:00:00Z`).toLocaleDateString('en-US', {
-    timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric',
-  });
 
 const rateStats = JSON.parse(readFileSync(join(publicDir, 'api', 'rates', 'stats.json'), 'utf8'));
 const tenYear = rateStats.data.find((row: { maturity: string }) => row.maturity === '10YR');
@@ -35,7 +30,7 @@ const latestRatesExample = jsonBlock({
   success: true,
   data: {
     date: latestRateDay.date,
-    dateFormatted: formatDate(latestRateDay.date),
+    dateFormatted: dateFormatted(latestRateDay.date),
     rates: latestRateDay.rates.map(r => ({ maturity: r.maturity, rate: r.rate })),
   },
 });
@@ -68,9 +63,8 @@ const healthExample = jsonBlock({
   latestSummaryDate: latestSummary.date,
 });
 
-const dailySummaryExample = escapePre(
-  `${truncateWords(latestSummary.summary, 180)}`
-);
+// The endpoint serves the full text, so the docs example must not truncate it.
+const dailySummaryExample = escapePre(latestSummary.summary);
 
 const blogIndexExample = jsonBlock({
   success: true,
@@ -78,7 +72,7 @@ const blogIndexExample = jsonBlock({
     date: latestSummary.date,
     dateFormatted: latestSummary.dateFormatted,
     hasFullPost: Boolean(latestSummary.blogSummary && latestSummary.blogSummary.length > 0),
-    excerpt: truncateWords(latestSummary.summary || latestSummary.blogSummary, 120),
+    excerpt: truncateWords(latestSummary.summary || latestSummary.blogSummary, 200),
   }],
   meta: { count: SUMMARIES.length },
 });

@@ -1,10 +1,9 @@
 ---
 import BlogList from '../../components/BlogList.astro';
-import { SUMMARIES, POSTS_PER_PAGE } from '../../lib/site';
+import { blogTotalPages } from '../../lib/site';
 
 export function getStaticPaths() {
-  const total = Math.max(1, Math.ceil(SUMMARIES.length / POSTS_PER_PAGE));
-  return Array.from({ length: total - 1 }, (_, i) => ({ params: { page: String(i + 2) } }));
+  return Array.from({ length: blogTotalPages() - 1 }, (_, i) => ({ params: { page: String(i + 2) } }));
 }
 
 const { page } = Astro.params;

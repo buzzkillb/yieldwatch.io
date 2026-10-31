@@ -11,7 +11,7 @@ interface Props { page: number }
 const { page } = Astro.props;
 
 const sorted = [...SUMMARIES].sort((a, b) => b.date.localeCompare(a.date));
-const totalPages = Math.max(1, Math.ceil(sorted.length / POSTS_PER_PAGE));
+const totalPages = blogTotalPages();
 const current = Math.min(Math.max(1, page), totalPages);
 const items = sorted.slice((current - 1) * POSTS_PER_PAGE, current * POSTS_PER_PAGE);
 

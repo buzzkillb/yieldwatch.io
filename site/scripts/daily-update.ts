@@ -68,10 +68,15 @@ const newRows = rows.filter(r => !known.has(r.date)).sort((a, b) => a.date.local
 // Backfill gaps only within the era this site actually publishes summaries
 // for. rates.json starts in 1990; generating posts for all ~9,000 historical
 // days would be wasteful.
+// rates.json reaches back to 1990, but the site's published era begins in 2026.
+// Without a floor, an empty summaries.json would trigger ~9,000 generations.
+const SUMMARY_ERA_START = '2026-01-01';
 const summaryDates = new Set(summaries.map(s => s.date));
-const earliestSummaryDate = summaries.length ? summaries[summaries.length - 1].date : null;
+const earliestSummaryDate = summaries.length
+  ? summaries[summaries.length - 1].date
+  : SUMMARY_ERA_START;
 const missingSummaryDates = rates
-  .filter(r => (!earliestSummaryDate || r.date >= earliestSummaryDate) && !summaryDates.has(r.date))
+  .filter(r => r.date >= earliestSummaryDate && !summaryDates.has(r.date))
   .map(r => r.date);
 const targetDates = new Set<string>([
   ...newRows.map(r => r.date),

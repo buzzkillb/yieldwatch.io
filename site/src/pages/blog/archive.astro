@@ -4,11 +4,9 @@
 // headline. This gives every post a strong internal link exactly 1-2 clicks
 // from anywhere on the site (nav or related blocks), independent of the
 // sitemap or pagination depth.
-import { escapeHtml, inlineJson, postHeadline, SUMMARIES, SITE_URL } from '../../lib/site';
+import { escapeHtml, inlineJson, postHeadline, MONTH_NAMES, SUMMARIES, SITE_URL } from '../../lib/site';
 import { buildFooter, buildHeader, CHROME_STYLE } from '../../lib/chrome';
 import { socialMetaTags, siteSchemaGraph } from '../../lib/meta';
-
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 const sorted = [...SUMMARIES].sort((a, b) => b.date.localeCompare(a.date));
 const byYear = new Map<string, Map<string, { date: string; headline: string }[]>>();
@@ -26,7 +24,7 @@ for (const [year, months] of [...byYear.entries()].sort((a, b) => b[0].localeCom
   listHtml += `      <section class="archive-year-block" aria-label="Daily summaries from ${year}">
         <h2 class="archive-year">${year}</h2>\n`;
   for (const [month, posts] of [...months.entries()].sort((a, b) => b[0].localeCompare(a[0]))) {
-    listHtml += `        <h3 class="archive-month">${MONTHS[Number(month) - 1]} ${year}</h3>
+    listHtml += `        <h3 class="archive-month">${MONTH_NAMES[Number(month) - 1]} ${year}</h3>
         <ul class="archive-list">
 ${posts.map(p => `          <li><a href="/blog/${p.date}/">${escapeHtml(p.headline)}</a></li>`).join('\n')}
         </ul>\n`;

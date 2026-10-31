@@ -3,7 +3,7 @@
 // locally, on Cloudflare Pages, and after each daily data update.
 //   public/api/**        — static API snapshots (same shapes as the live API)
 //   public/og-image/<date>.svg|.png — per-post OG images (PNG for social crawlers)
-//   public/og/og.png     — brand image (copied from scripts/assets)
+//   public/og/og.png     — branded fallback (latest generated PNG)
 //   public/_redirects, public/_headers — CF Pages routing + headers
 import { writeFile, mkdir, copyFile, readFile, readdir, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -160,34 +160,54 @@ for (const file of await readdir(join(pub, 'api', 'blog'))) {
 // --- OG images ---------------------------------------------------------------
 const MATURITY_ORDER = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
 
-function generateOgSvg(data) {
+const escapeXmlText = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+function generateOgSvg(data, dateLabel = '') {
   const ratesMap = new Map(data.map(d => [d.maturity, d.rate]));
   const pts = MATURITY_ORDER.map(m => ({ maturity: m, rate: ratesMap.get(m) || 0 })).filter(r => r.rate > 0);
-  if (pts.length === 0) {
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
-    <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#0a0a0f"/><stop offset="100%" style="stop-color:#12121a"/></linearGradient></defs>
+  const brand = `
+    <defs>
+      <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#08080d"/><stop offset="100%" style="stop-color:#151524"/></linearGradient>
+      <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#6366f1"/><stop offset="50%" style="stop-color:#818cf8"/><stop offset="100%" style="stop-color:#a855f7"/></linearGradient>
+      <linearGradient id="areaGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.28"/><stop offset="100%" style="stop-color:#6366f1;stop-opacity:0"/></linearGradient>
+      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#ffffff" stroke-opacity="0.035" stroke-width="1"/></pattern>
+    </defs>
     <rect fill="url(#bg)" width="1200" height="630"/>
-    <text x="600" y="315" text-anchor="middle" fill="#a0a0b0" font-family="system-ui, sans-serif" font-size="42">YieldWatch · No rate data available</text>
+    <rect fill="url(#grid)" width="1200" height="630"/>
+    <text x="64" y="62" fill="#a5b4fc" font-family="Helvetica, Arial, sans-serif" font-size="20" font-weight="700" letter-spacing="2">YIELDWATCH.IO</text>
+    <text x="1136" y="62" text-anchor="end" fill="#8b8b9e" font-family="Helvetica, Arial, sans-serif" font-size="17" letter-spacing="1">OFFICIAL TREASURY RATES</text>
+    <text x="64" y="128" fill="#f5f5fa" font-family="Helvetica, Arial, sans-serif" font-size="50" font-weight="700">U.S. Treasury Yield Curve</text>
+    <text x="64" y="168" fill="#b8b8cc" font-family="Helvetica, Arial, sans-serif" font-size="24">${escapeXmlText(dateLabel)}${dateLabel ? '  ·  ' : ''}Par yields, all maturities</text>
+    <text x="64" y="604" fill="#8b8b9e" font-family="Helvetica, Arial, sans-serif" font-size="20">Daily yield analysis and 35+ years of rate history</text>
+    <text x="1136" y="604" text-anchor="end" fill="#a5b4fc" font-family="Helvetica, Arial, sans-serif" font-size="20" font-weight="700">yieldwatch.io</text>`;
+  if (pts.length === 0) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">${brand}
+    <rect x="64" y="210" width="1072" height="330" rx="18" fill="#11111c" stroke="#2a2a40"/>
+    <text x="600" y="388" text-anchor="middle" fill="#b8b8cc" font-family="Helvetica, Arial, sans-serif" font-size="32">No rate data available</text>
   </svg>`;
   }
   const maxRate = Math.max(...pts.map(r => r.rate));
   const minRate = Math.min(...pts.map(r => r.rate));
   const range = maxRate - minRate || 1;
-  const chartX = 50, chartY = 50, chartW = 1100, chartH = 530;
+  const chartX = 108, chartW = 984, chartTop = 262, chartBottom = 508;
   const spacing = pts.length > 1 ? chartW / (pts.length - 1) : 0;
-  const yOf = (r) => chartY + chartH - ((r.rate - minRate + 0.5) / (range + 1)) * chartH;
+  const yOf = (r) => chartBottom - ((r.rate - minRate) / range) * (chartBottom - chartTop);
   let pathD = '';
   pts.forEach((r, i) => { pathD += i === 0 ? `M ${chartX + i * spacing} ${yOf(r)}` : ` L ${chartX + i * spacing} ${yOf(r)}`; });
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
-    <defs>
-      <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#0a0a0f"/><stop offset="100%" style="stop-color:#12121a"/></linearGradient>
-      <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#6366f1"/><stop offset="50%" style="stop-color:#818cf8"/><stop offset="100%" style="stop-color:#a855f7"/></linearGradient>
-      <linearGradient id="areaGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.25"/><stop offset="100%" style="stop-color:#6366f1;stop-opacity:0"/></linearGradient>
-    </defs>
-    <rect fill="url(#bg)" width="1200" height="630"/>
-    <path d="${pathD} ${chartX + chartW} ${chartY + chartH} L ${chartX} ${chartY + chartH} Z" fill="url(#areaGrad)"/>
+  const grid = [0, 0.5, 1].map(t => {
+    const y = chartBottom - t * (chartBottom - chartTop);
+    const v = minRate + t * range;
+    return `<line x1="${chartX - 8}" y1="${y}" x2="${chartX + chartW}" y2="${y}" stroke="#ffffff" stroke-opacity="0.09" stroke-width="1"/>
+      <text x="${chartX - 18}" y="${y + 5}" text-anchor="end" fill="#7d7d94" font-family="Helvetica, Arial, sans-serif" font-size="15">${v.toFixed(2)}%</text>`;
+  }).join('\n    ');
+  const labels = pts.map((r, i) => `<text x="${chartX + i * spacing}" y="540" text-anchor="middle" fill="#7d7d94" font-family="Helvetica, Arial, sans-serif" font-size="14">${escapeXmlText(r.maturity)}</text>`).join('\n    ');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">${brand}
+    <rect x="64" y="210" width="1072" height="345" rx="18" fill="#11111c" stroke="#2a2a40"/>
+    ${grid}
+    <path d="${pathD} ${chartX + chartW} ${chartBottom} L ${chartX} ${chartBottom} Z" fill="url(#areaGrad)"/>
     <path d="${pathD}" fill="none" stroke="url(#lineGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-    ${pts.map((r, i) => `<circle cx="${chartX + i * spacing}" cy="${yOf(r)}" r="8" fill="#6366f1" stroke="white" stroke-width="3"/>`).join('\n    ')}
+    ${pts.map((r, i) => `<circle cx="${chartX + i * spacing}" cy="${yOf(r)}" r="7" fill="#6366f1" stroke="#0b0b14" stroke-width="3"/>`).join('\n    ')}
+    ${labels}
   </svg>`;
 }
 
@@ -196,7 +216,7 @@ await mkdir(ogDir, { recursive: true });
 for (const s of summaries) {
   const day = byDate.get(s.date);
   const points = (day?.rates || s.rates || []).map(r => ({ maturity: r.maturity, rate: r.rate }));
-  const svg = generateOgSvg(points);
+  const svg = generateOgSvg(points, fmtDate(s.date));
   await writeFile(join(ogDir, `${s.date}.svg`), svg);
   // PNG twin: social crawlers (Facebook/X/LinkedIn) ignore SVG og:image.
   await writeFile(join(ogDir, `${s.date}.png`), await sharp(Buffer.from(svg)).png().toBuffer());
@@ -207,13 +227,22 @@ for (const file of await readdir(ogDir)) {
   if (m && !summaryDates.has(m[1])) await unlink(join(ogDir, file));
 }
 
+// Keep the stable /og.png fallback current: prefer the branded PNG for the
+// newest summary, and only fall back to the checked-in brand asset.
 const ogAsset = join(root, 'scripts', 'assets', 'og.png');
-if (existsSync(ogAsset)) {
+const latestOg = summariesDesc[0]
+  ? join(ogDir, `${summariesDesc[0].date}.png`)
+  : null;
+if (latestOg && existsSync(latestOg)) {
+  await mkdir(join(pub, 'og'), { recursive: true });
+  await copyFile(latestOg, join(pub, 'og', 'og.png'));
+  console.log('wrote public/og/og.png from latest summary');
+} else if (existsSync(ogAsset)) {
   await mkdir(join(pub, 'og'), { recursive: true });
   await copyFile(ogAsset, join(pub, 'og', 'og.png'));
-  console.log('wrote public/og/og.png');
+  console.log('wrote public/og/og.png from brand asset');
 }
-const noDataSvg = generateOgSvg([]);
+const noDataSvg = generateOgSvg([], '');
 await writeFile(join(pub, 'og-image', 'no-data.svg'), noDataSvg);
 await writeFile(join(pub, 'og-image', 'no-data.png'), await sharp(Buffer.from(noDataSvg)).png().toBuffer());
 
