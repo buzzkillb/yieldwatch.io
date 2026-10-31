@@ -21,12 +21,7 @@ export const SUMMARIES = summariesJson as SummaryEntry[];
 export const SITE_URL = 'https://yieldwatch.io';
 export const POSTS_PER_PAGE = 5;
 
-const MATURITY_ORDER = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
 export const CHART_COLORS = ['#6366f1', '#a855f7', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
-
-export function sortRates(rates: RatePoint[]): RatePoint[] {
-  return [...rates].sort((a, b) => MATURITY_ORDER.indexOf(a.maturity) - MATURITY_ORDER.indexOf(b.maturity));
-}
 
 export function escapeHtml(str: string): string {
   return str
@@ -67,16 +62,12 @@ export function latestDay(): RateDay {
   return RATES[RATES.length - 1];
 }
 
-export function recentDays(n: number): RateDay[] {
-  return RATES.slice(-n);
-}
-
 // Server-rendered, VISIBLE summary for the homepage. Google classified the old
 // off-screen (-9999px) block as a Soft 404 because Googlebot saw only ~100 words
 // and no visible H1. Keep this content genuinely visible: it is the crawlable
 // description of the dashboard and the canonical answer block for AEO/GEO.
 export function buildSeoBlock(day: RateDay): string {
-  const SEO_MATURITY_ORDER = ['4WK', '6WK', '1MO', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
+  const SEO_MATURITY_ORDER = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
   const label = (m: string) => {
     const weeks = /^(\d+)WK$/.exec(m);
     if (weeks) return `${weeks[1]}-week bill`;
@@ -107,60 +98,6 @@ ${rows}
   </table>
   <p style="color:var(--text-secondary,#a0a0b0);max-width:760px;">The yield curve shows the yield on Treasury securities across maturities. An inverted curve, where short-term yields exceed long-term yields, has historically preceded economic recessions. YieldWatch tracks 35+ years of historical data and publishes a <a href="/blog/" style="color:var(--accent,#6366f1);">plain-English daily summary</a>; see the <a href="/faq/" style="color:var(--accent,#6366f1);">FAQ</a> for definitions and context.</p>
 </section>`;
-}
-
-// Ported from api/src/index.ts generateOgSvg — string SVG, no sharp required.
-export function generateOgSvg(data: { maturity: string; rate: number }[] | string, date?: string, errorMsg?: string): string {
-  if (typeof data === 'string' || errorMsg) {
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
-      <rect fill="#0a0a0f" width="1200" height="630"/>
-      <text x="600" y="315" font-family="system-ui, sans-serif" font-size="32" fill="#6366f1" text-anchor="middle">No Data</text>
-    </svg>`;
-  }
-  const maturities = MATURITY_ORDER;
-  const ratesMap = new Map(data.map(d => [d.maturity, d.rate]));
-  const rates = maturities.map(m => ({ maturity: m, rate: ratesMap.get(m) || 0 }));
-  const maxRate = Math.max(...rates.map(r => r.rate));
-  const minRate = Math.min(...rates.map(r => r.rate));
-  const rateRange = maxRate - minRate || 1;
-
-  const chartX = 50, chartY = 50, chartW = 1100, chartH = 530;
-  const pointSpacing = chartW / (rates.length - 1);
-
-  let pathD = '';
-  rates.forEach((r, i) => {
-    const x = chartX + i * pointSpacing;
-    const y = chartY + chartH - ((r.rate - minRate + 0.5) / (rateRange + 1)) * chartH;
-    pathD += i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
-  });
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
-    <defs>
-      <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style="stop-color:#0a0a0f"/>
-        <stop offset="100%" style="stop-color:#12121a"/>
-      </linearGradient>
-      <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" style="stop-color:#6366f1"/>
-        <stop offset="50%" style="stop-color:#818cf8"/>
-        <stop offset="100%" style="stop-color:#a855f7"/>
-      </linearGradient>
-      <linearGradient id="areaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.25"/>
-        <stop offset="100%" style="stop-color:#6366f1;stop-opacity:0"/>
-      </linearGradient>
-    </defs>
-
-    <rect fill="url(#bg)" width="1200" height="630"/>
-    <path d="${pathD} ${chartX + chartW} ${chartY + chartH} L ${chartX} ${chartY + chartH} Z" fill="url(#areaGrad)"/>
-    <path d="${pathD}" fill="none" stroke="url(#lineGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-
-    ${rates.map((r, i) => {
-      const x = chartX + i * pointSpacing;
-      const y = chartY + chartH - ((r.rate - minRate + 0.5) / (rateRange + 1)) * chartH;
-      return `<circle cx="${x}" cy="${y}" r="8" fill="#6366f1" stroke="white" stroke-width="3"/>`;
-    }).join('\n    ')}
-  </svg>`;
 }
 
 // Ported from api/src/routes/sitemap.ts (pure function).

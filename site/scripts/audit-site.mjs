@@ -24,7 +24,7 @@ const report = {
   missingDesc: [], longDesc: [], dupDesc: {},
   missingCanonical: [], badCanonical: [],
   h1Issues: [],
-  noJsonLd: [], badJsonLd: [], dupSchemaId: [],
+  noJsonLd: [], badJsonLd: [], dupSchemaId: [], badBreadcrumb: [],
   missingOgImage: [], ogImageBroken: [],
   missingTwitterImage: [], missingOgAlt: [],
   missingSocialMeta: [],
@@ -45,6 +45,13 @@ function strip(h) {
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function collectBreadcrumbs(node, out) {
+  if (Array.isArray(node)) { for (const n of node) collectBreadcrumbs(n, out); return; }
+  if (!node || typeof node !== 'object') return;
+  if (node['@type'] === 'BreadcrumbList') out.push(node);
+  for (const v of Object.values(node)) collectBreadcrumbs(v, out);
 }
 
 function collectSchemaIds(node, out, defined) {
@@ -97,6 +104,20 @@ for (const f of files) {
       const dups = [];
       collectSchemaIds(parsed, dups, definedIds);
       for (const id of dups) report.dupSchemaId.push([rel, id]);
+      const crumbs = [];
+      collectBreadcrumbs(parsed, crumbs);
+      for (const bc of crumbs) {
+        const items = bc.itemListElement;
+        if (!Array.isArray(items) || items.length === 0) {
+          report.badBreadcrumb.push([rel, 'empty itemListElement']);
+          continue;
+        }
+        if (!items.every((it, i) => Number(it.position) === i + 1)) report.badBreadcrumb.push([rel, 'non-sequential positions']);
+        const urls = items.map(it => it.item);
+        if (new Set(urls).size !== urls.length) report.badBreadcrumb.push([rel, 'duplicate item URLs']);
+        const leaf = items[items.length - 1];
+        if (canonical && leaf.item !== canonical) report.badBreadcrumb.push([rel, `leaf ${leaf.item} != ${canonical}`]);
+      }
     } catch (e) { report.badJsonLd.push([rel, String(e).slice(0, 80)]); }
   }
 
@@ -200,7 +221,7 @@ report.noindexInSitemapCount = report.noindexInSitemap.length;
 report.issueCount = [
   'missingTitle', 'longTitle', 'dupTitleCount', 'missingDesc', 'longDesc', 'dupDescCount',
   'missingCanonical', 'badCanonical', 'canonConflicts', 'h1Issues', 'noJsonLd', 'badJsonLd',
-  'dupSchemaIdCount', 'missingOgImage', 'ogImageBrokenCount', 'missingTwitterImage', 'missingOgAlt',
+  'badBreadcrumb', 'dupSchemaIdCount', 'missingOgImage', 'ogImageBrokenCount', 'missingTwitterImage', 'missingOgAlt',
   'missingSocialMetaCount', 'missingSkipLink', 'missingMain', 'imgNoAlt', 'brokenInternalCount',
   'brokenAnchorCount', 'thinCount', 'noLang', 'noViewport', 'missingFromSitemapCount',
   'sitemapMissingFilesCount', 'noindexInSitemapCount',

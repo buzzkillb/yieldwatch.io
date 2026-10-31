@@ -7,18 +7,25 @@ YieldWatch tracks U.S. Treasury par yield curve rates from 4-week bills to 30-ye
 ## Key pages
 
 - [Dashboard](https://yieldwatch.io/): Current Treasury yield curve rates for all maturities, updated daily
-- [Daily Summaries](https://yieldwatch.io/blog): Plain-English analysis of each business day's Treasury yield data
-- [Daily Summary Archive](https://yieldwatch.io/blog/archive): Every daily summary on one page, grouped by month
-- [FAQ](https://yieldwatch.io/faq): What the yield curve means, inversions, and Treasury basics
-- [API Docs](https://yieldwatch.io/api-docs): Free public JSON API for all rates data
-- [Data Methodology](https://yieldwatch.io/methodology): Sourcing, validation, update timing, maturity coverage, and limitations
-- [About](https://yieldwatch.io/about): Who runs YieldWatch, why it is free, and its editorial principles
+- [Daily Summaries](https://yieldwatch.io/blog/): Plain-English analysis of each business day's Treasury yield data
+- [Daily Summary Archive](https://yieldwatch.io/blog/archive/): Every daily summary on one page, grouped by month
+- [FAQ](https://yieldwatch.io/faq/): What the yield curve means, inversions, and Treasury basics
+- [API Docs](https://yieldwatch.io/api-docs/): Free public JSON API for all rates data
+- [Data Methodology](https://yieldwatch.io/methodology/): Sourcing, validation, update timing, maturity coverage, and limitations
+- [About](https://yieldwatch.io/about/): Who runs YieldWatch, why it is free, and its editorial principles
+
+## Machine-readable endpoints
+
+- API catalog: https://yieldwatch.io/.well-known/api-catalog
+- MCP server card: https://yieldwatch.io/.well-known/mcp/server-card.json
+- Sitemap: https://yieldwatch.io/sitemap.xml
+- Blog index JSON: https://yieldwatch.io/api/blog/index.json
 
 ## Common questions
 
 - What is the current 30-year Treasury yield? See the dashboard at https://yieldwatch.io/
-- What is today's 10-year Treasury rate? See the dashboard, or the latest daily summary at https://yieldwatch.io/blog
-- What does an inverted yield curve mean? See https://yieldwatch.io/faq
+- What is today's 10-year Treasury rate? See the dashboard, or the latest daily summary at https://yieldwatch.io/blog/
+- What does an inverted yield curve mean? See https://yieldwatch.io/faq/
 
 ## Data source
 
@@ -26,4 +33,4 @@ All rates come from the U.S. Department of the Treasury's published daily par yi
 
 ## Contact
 
-Public JSON API available at https://yieldwatch.io/api-docs. Data may be used with attribution to YieldWatch (https://yieldwatch.io).
+Public JSON API available at https://yieldwatch.io/api-docs/. Data may be used with attribution to YieldWatch (https://yieldwatch.io).

@@ -1121,8 +1121,20 @@
           if (currentRange === '3m') {
             buildSparklines(data.data);
           }
-          // Use Web Worker for heavy processing
-          const result = await processInWorker(data.data);
+          // Use Web Worker for heavy processing, with a main-thread fallback
+          // so a blocked or unavailable worker cannot leave the chart blank.
+          let result;
+          try {
+            result = await processInWorker(data.data);
+          } catch (workerError) {
+            console.warn('Chart worker unavailable; processing on the main thread.', workerError);
+            if (chartWorker) {
+              chartWorker.terminate();
+              chartWorker = null;
+            }
+            processChartData(data.data);
+            result = { labels: chartData.labels, datasets: chartData.datasets };
+          }
           chartData.labels = result.labels;
           chartData.datasets = result.datasets;
           renderChart();
@@ -1462,9 +1474,10 @@
           description: 'Get the latest U.S. Treasury yield curve rates for all maturities (4WK to 30YR)',
           inputSchema: { type: 'object', properties: {} },
           execute: async () => {
-            const response = await fetch('/api/rates/latest');
-            const data = await response.json();
-            return { success: true, data };
+            const response = await fetch('/api/rates/latest.json');
+            if (!response.ok) throw new Error(`Rates request failed: ${response.status}`);
+            const payload = await response.json();
+            return { success: true, data: payload.data };
           },
         },
         {
@@ -1476,16 +1489,27 @@
               from: { type: 'string', description: 'Start date (YYYY-MM-DD)' },
               to: { type: 'string', description: 'End date (YYYY-MM-DD)' },
               maturity: { type: 'string', description: 'Optional maturity (e.g., 10YR)' },
+              limit: { type: 'number', description: 'Maximum rows to return (default 500, max 2000)' },
             },
           },
-          execute: async ({ from, to, maturity }) => {
-            const params = new URLSearchParams();
-            if (from) params.set('from', from);
-            if (to) params.set('to', to);
-            if (maturity) params.set('maturity', maturity);
-            const response = await fetch(`/api/rates?${params}`);
-            const data = await response.json();
-            return { success: true, data };
+          execute: async ({ from, to, maturity, limit = 500 }) => {
+            // Static snapshots cannot honor query strings, so filter locally.
+            const response = await fetch('/api/rates/all.json');
+            if (!response.ok) throw new Error(`Rates request failed: ${response.status}`);
+            const payload = await response.json();
+            const max = Math.min(Math.max(Number(limit) || 500, 1), 2000);
+            const rows = (payload.data || [])
+              .filter(row => (!from || row.date >= from) && (!to || row.date <= to))
+              .map(row => ({
+                date: row.date,
+                rates: maturity ? row.rates.filter(r => r.maturity === maturity) : row.rates,
+              }))
+              .filter(row => row.rates.length > 0);
+            return {
+              success: true,
+              data: rows.slice(-max),
+              meta: { matched: rows.length, returned: Math.min(rows.length, max), truncated: rows.length > max },
+            };
           },
         },
         {
@@ -1493,9 +1517,10 @@
           description: 'Get list of available Treasury maturity tenors',
           inputSchema: { type: 'object', properties: {} },
           execute: async () => {
-            const response = await fetch('/api/rates/maturities');
-            const data = await response.json();
-            return { success: true, data };
+            const response = await fetch('/api/rates/maturities.json');
+            if (!response.ok) throw new Error(`Maturities request failed: ${response.status}`);
+            const payload = await response.json();
+            return { success: true, data: payload.data };
           },
         },
         {
@@ -1503,9 +1528,10 @@
           description: 'Get historical high/low statistics for Treasury yields',
           inputSchema: { type: 'object', properties: {} },
           execute: async () => {
-            const response = await fetch('/api/rates/stats');
-            const data = await response.json();
-            return { success: true, data };
+            const response = await fetch('/api/rates/stats.json');
+            if (!response.ok) throw new Error(`Stats request failed: ${response.status}`);
+            const payload = await response.json();
+            return { success: true, data: payload.data };
           },
         },
         {
@@ -1518,8 +1544,18 @@
             },
           },
           execute: async ({ page = 1 }) => {
-            const response = await fetch(`/blog?page=${page}`);
-            return { success: true, message: 'Blog page retrieved' };
+            const response = await fetch('/api/blog/index.json');
+            if (!response.ok) throw new Error(`Blog index request failed: ${response.status}`);
+            const payload = await response.json();
+            const perPage = 10;
+            const current = Math.max(Math.floor(Number(page) || 1), 1);
+            const start = (current - 1) * perPage;
+            const items = (payload.data || []).slice(start, start + perPage);
+            return {
+              success: true,
+              data: items,
+              meta: { page: current, perPage, total: payload.meta?.count ?? payload.data?.length ?? 0 },
+            };
           },
         },
       ];

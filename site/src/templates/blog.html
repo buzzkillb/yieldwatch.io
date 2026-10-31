@@ -67,7 +67,7 @@
         "@type": "ListItem",
         "position": 2,
         "name": "Daily Summaries",
-        "item": "https://yieldwatch.io/blog"
+        "item": "https://yieldwatch.io/blog/"
       }
     ]
   }
@@ -578,9 +578,10 @@
         const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
         return `
-          <a href="/blog/${item.date}" class="summary-card-link">
+          <a href="/blog/${item.date}/" class="summary-card-link">
             <article class="summary-card">
               <div class="summary-date">${dateStr}</div>
+              ${item.title ? `<h2 class="summary-card-title">${item.title}</h2>` : ''}
               <div class="analysis-tag">${item.hasFullPost ? 'Full analysis available' : 'Quick summary'}</div>
               <p class="summary-excerpt">${item.excerpt}</p>
             </article>

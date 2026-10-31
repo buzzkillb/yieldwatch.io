@@ -1,360 +1,110 @@
-# U.S. Treasury Yield Curve Dashboard
+# YieldWatch
 
-A real-time dashboard tracking U.S. Treasury yield curve rates with over 35 years of historical data and interactive charts.
+Daily U.S. Treasury yield-curve rates, plain-English summaries, and a free public JSON API.
 
-![Dashboard](https://github.com/user-attachments/assets/75754844-96a3-4c0e-b979-7ab385aa80a1)
+**Production:** https://yieldwatch.io — a fully pre-rendered Astro site deployed as static
+assets on Cloudflare Workers. There is no VPS, no Postgres, and no request-time server.
 
-## Features
+## How it works
 
+1. A scheduled GitHub Actions job fetches the U.S. Treasury's daily par yield-curve XML.
+2. `site/scripts/daily-update.ts` validates and appends official rates to
+   `site/src/data/rates.json` **before** calling the LLM gateway for the daily summary.
+3. The summary is appended to `site/src/data/summaries.json`; missing summaries inside
+   the published window are backfilled on the next run.
+4. The commit triggers a Cloudflare Workers Build, which runs `site/scripts/gen-derived.mjs`
+   (static API snapshots, OG images, redirects, headers) and `astro build`.
+5. A post-build audit (`site/scripts/audit-site.mjs`) fails CI on SEO, accessibility,
+   schema, link, sitemap, or data regressions.
 
-- **Daily Treasury Rates**: Real-time yield curve data from the U.S. Treasury Department
-- **35+ Years of History**: Data spanning from 1990 to present (~9,000 trading days)
-- **14 Maturities**: 4WK to 30YR spanning the entire yield curve
-- **Interactive Chart**: Toggle individual maturities on/off, multiple time ranges (3M, 6M, 1Y, 2Y, 5Y, ALL)
-- **Dark Theme**: Beautiful, eye-friendly dark interface
-- **Rate Limited API
-**: 100 requests/minute to prevent abuse
-- **Auto-Import**: On first run, automatically loads all historical data from Treasury archives
-- **Self-Updating**: Scheduler checks every 15 minutes for new data after ~3:30 PM ET
-- **Production Ready**: Docker Compose with Traefik + Cloudflare DNS + Let's Encrypt SSL
+Official Treasury rates are authoritative. Any intraday/derived data must be labeled
+`is_official: false`.
 
-## Tech Stack
-
-| Component | Technology |
-|-----------|------------|
-| Runtime | [Bun](https://bun.sh) |
-| API Framework | [Elysia](https://elysia.dev) (TypeScript) |
-| Database | [PostgreSQL 16](https://postgresql.org) |
-| ORM | [Drizzle ORM](https://orm.drizzle.team) |
-| Charts | [Chart.js](https://www.chartjs.org) |
-| Reverse Proxy | [Traefik](https://traefik.io) |
-| SSL | Let's Encrypt via Cloudflare DNS challenge |
-| Container | Docker Compose |
-
-## Prerequisites
-
-- **Local**: Docker Desktop, Bun (optional for local development outside Docker)
-- **Production**: VPS with Docker, domain name, Cloudflare account
-
-## Quick Start (Local Development)
-
-### 1. Clone and Setup
-
-```bash
-git clone <your-repo-url>
-cd treasury
-cp .env.example .env
-```
-
-The default `.env` is configured for local development with Docker.
-
-### 2. Start Services
-
-```bash
-# Start all services (database, API, scheduler)
-docker compose up -d
-
-# Watch the scheduler load historical data (first run only - takes ~2-3 minutes)
-docker compose logs -f scheduler
-```
-
-On first run, the scheduler will automatically:
-1. Detect an empty database
-2. Fetch all historical data from Treasury archives (1990-2026)
-3. Start the daily update loop
-
-### 3. Access Dashboard
-
-- Dashboard: [http://localhost:3000](http://localhost:3000)
-- API: [http://localhost:3000/api/rates/latest](http://localhost:3000/api/rates/latest)
-
-## Production Deployment on Cloudflare VPS
-
-### 1. VPS Setup
-
-Ensure your VPS has Docker and Docker Compose installed:
-
-```bash
-# On Ubuntu 22.04+
-sudo apt update && sudo apt upgrade -y
-sudo apt install docker.io docker-compose -y
-sudo systemctl start docker
-sudo systemctl enable docker
-```
-
-### 2. Configure DNS in Cloudflare
-
-1. Log into [Cloudflare Dashboard](https://dash.cloudflare.com)
-2. Select your domain
-3. Go to **DNS** > **Records**
-4. Add an A record:
-   - Name: `@` (or your subdomain)
-   - IPv4 address: `<your-vps-ip>`
-   - Proxy status: **DNS only** (grey cloud) - will enable later
-5. Go to **My Profile** > **API Tokens**
-6. Create a custom token with:
-   - Account: None
-   - Zone: DNS > Edit
-7. Copy the token
-
-### 3. Configure Environment
-
-```bash
-cp .env.example .env
-nano .env
-```
-
-Update these required values:
-
-```env
-# REQUIRED - Security
-POSTGRES_USER=treasury
-POSTGRES_PASSWORD=<generate-strong-password>  # See below
-
-# REQUIRED - Production
-NODE_ENV=production
-ALLOWED_ORIGINS=https://yourdomain.com
-
-# REQUIRED - Cloudflare SSL
-CF_API_EMAIL=your@cloudflare-email.com
-CF_API_TOKEN=<cloudflare-api-token>
-DOMAIN=yourdomain.com
-```
-
-**Generate a strong password on Ubuntu:**
-
-```bash
-# Method 1: Using openssl (installed by default)
-openssl rand -base64 32
-
-# Method 2: Using /dev/urandom
-head -c 32 /dev/urandom | base64
-
-# Method 3: Using pwgen (install: apt install pwgen)
-pwgen -s 32 1
-```
-
-Example output: `dGhpcyBpcyBhIHNhbXBsZSBwYXNzd29yZCBmb3IgZXhhbXBsZS4uLg==`
-
-### 4. Create acme.json for Traefik
-
-```bash
-touch acme.json
-chmod 600 acme.json
-```
-
-### 5. Deploy
-
-```bash
-# Start with production config (includes Traefik)
-# Note: Use DOCKER_BUILDKIT=0 to work around bun install issues on some VPS setups
-DOCKER_BUILDKIT=0 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-
-# Watch Traefik logs for SSL certificate issuance
-docker compose logs -f traefik
-```
-
-You should see: `"level":"info","msg":"certificate obtained successfully"`
-
-### 6. Update Traefik Routing (Important)
-
-**After deploying, you must manually update the domain in `traefik/dynamic.yml`:**
-
-```bash
-nano traefik/dynamic.yml
-```
-
-Change line 17 from:
-```yaml
-rule: Host(`yieldwatch.io`)   # or your template value
-```
-
-To your actual domain:
-```yaml
-rule: Host(`yourdomain.com`)
-```
-
-Then restart Traefik:
-```bash
-docker compose restart traefik
-```
-
-**Note:** Traefik's file provider does not support environment variable expansion in the routing rules, so the domain must be hardcoded.
-
-### 7. Enable Cloudflare Proxy
-
-Once SSL is working (2-5 minutes), go back to Cloudflare DNS settings and toggle the proxy to **ON** (orange cloud).
-
-### 7. Verify
-
-- Visit `https://yourdomain.com` - dashboard should load
-- Visit `https://yourdomain.com/api/rates/latest` - API should respond
-
-## Environment Variables
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `POSTGRES_USER` | Yes | `treasury` | PostgreSQL username |
-| `POSTGRES_PASSWORD` | **Yes** | - | PostgreSQL password (must be set) |
-| `POSTGRES_DB` | No | `treasury` | Database name |
-| `POSTGRES_HOST` | No | `db` | Database host |
-| `POSTGRES_PORT` | No | `5432` | Database port |
-| `PORT` | No | `3000` | API port |
-| `NODE_ENV` | No | `development` | Set to `production` for prod |
-| `ALLOWED_ORIGINS` | Prod | - | Comma-separated allowed CORS origins |
-| `CRON_TZ` | No | `America/New_York` | Timezone for daily update check |
-| `SCHEDULER_CRON_HOUR` | No | `16` | Hour to check for updates (24h format) |
-| `SCHEDULER_CRON_MINUTE` | No | `30` | Minute to check for updates |
-| `SCHEDULER_CHECK_INTERVAL_MS` | No | `900000` | Check interval when not at cron time (15 min) |
-| `RATE_LIMIT_MAX` | No | `100` | Max requests per window |
-| `RATE_LIMIT_WINDOW_MS` | No | `60000` | Rate limit window (1 min) |
-| `CF_API_EMAIL` | Prod | - | Cloudflare account email |
-| `CF_API_TOKEN` | Prod | - | Cloudflare API token (Traefik v3) |
-| `DOMAIN` | Prod | - | Your domain name |
-
-## API Endpoints
-
-All endpoints are rate-limited to 100 requests per minute per IP.
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/` | Dashboard UI |
-| `GET` | `/health` | Health check |
-| `GET` | `/api/rates/latest` | Most recent yield curve |
-| `GET` | `/api/rates/stats` | Year highs/lows |
-| `GET` | `/api/rates/maturities` | Available maturities |
-| `GET` | `/api/rates?from=&to=&maturity=` | Historical data |
-
-### Example Responses
-
-**GET /api/rates/latest**
-```json
-{
-  "success": true,
-  "data": {
-    "date": "2026-03-20",
-    "dateFormatted": "March 20, 2026",
-    "rates": [
-      { "maturity": "4WK", "rate": 3.73 },
-      { "maturity": "6WK", "rate": 3.71 },
-      ...
-    ]
-  }
-}
-```
-
-**GET /api/rates?from=2025-03-20&to=2026-03-20**
-```json
-{
-  "success": true,
-  "data": [
-    { "date": "2025-03-20", "rates": [{ "maturity": "10YR", "rate": 4.05 }] },
-    ...
-  ],
-  "meta": { "from": "2025-03-20", "to": "2026-03-20", "maturity": "all", "count": 211 }
-}
-```
-
-## Data
-
-- **Timestamps**: Stored as UTC (`TIMESTAMPTZ`)
-- **Display**: Converted to browser's local timezone
-- **Source**: U.S. Treasury Department Daily Yield Curve
-- **Update Frequency**: Daily at ~3:30 PM ET (Treasury publish time)
-- **Historical Data**: Automatically loaded on first run from Treasury archives
-
-## Project Structure
+## Repository layout
 
 ```
-treasury/
-├── api/
-│   ├── src/
-│   │   ├── index.ts           # Elysia app entry point
-│   │   ├── db/
-│   │   │   ├── schema.ts      # Drizzle ORM schema
-│   │   │   └── index.ts       # Database connection
-│   │   ├── routes/
-│   │   │   └── rates.ts       # API route handlers
-│   │   ├── middleware/
-│   │   │   └── rateLimit.ts   # Rate limiting (sliding window)
-│   │   └── services/
-│   │       ├── fetcher.ts     # Treasury XML/CSV fetch
-│   │       └── scheduler.ts    # Cron job for daily updates
-│   ├── public/
-│   │   └── index.html         # Dashboard frontend
-│   └── package.json
-├── docker-compose.yml          # Local: db + api + scheduler
-├── docker-compose.prod.yml    # Production: adds Traefik
-├── traefik/
-│   ├── traefik.yml           # Traefik static config
-│   └── dynamic.yml           # Dynamic routing rules
-├── .env.example              # Environment template
-└── README.md
+site/                    Astro static site (the deployed product)
+  src/data/              rates.json + summaries.json (the "database")
+  src/pages/             routes, JSON/XML endpoints, sitemap, feed
+  src/templates/         page shells processed at build time
+  scripts/               gen-derived, daily-update, validate-data, audit-site
+  public/                generated API snapshots, OG images, robots, llms.txt, _headers
+.github/workflows/       CI and the daily update job
+api/                     legacy Bun API service, retained for Treasury XML parsing,
+                         summary prompt/retry code, and unit tests (not deployed)
 ```
 
-## Troubleshooting
+## Local development
 
-### Database Connection Failed
-
-```bash
-# Check if PostgreSQL is running
-docker compose ps db
-
-# View logs
-docker compose logs db
-
-# Restart if needed
-docker compose restart db
+```sh
+cd site
+npm install
+npm run build          # gen-derived + astro build → dist/
+npm run preview        # serve dist/
+npm run audit          # SEO/a11y/schema/link/sitemap audit (non-zero on failure)
+npm run validate:data  # validate src/data/*.json integrity
 ```
 
-### Historical Data Not Loading
+Daily update (requires Bun and the API dependencies):
 
-The scheduler handles this automatically on first run. To manually trigger:
-
-```bash
-# Restart scheduler (it will detect empty DB and re-import)
-docker compose restart scheduler
-docker compose logs -f scheduler
+```sh
+cd api && bun install
+cd ../site
+LLM_API_KEY=... LLM_BASE_URL=https://api.bwengr.com npm run daily-update
 ```
 
-### Scheduler Not Updating
+## Public endpoints (static snapshots)
 
-```bash
-# Check scheduler logs
-docker compose logs scheduler
+| Path | Description |
+| --- | --- |
+| `/api/rates.json` | Full historical yield curve (all dates and tenors) |
+| `/api/rates/latest.json` | Latest published curve |
+| `/api/rates/{3m,6m,1y,2y,5y,all}.json` | Pre-sliced history windows |
+| `/api/rates/maturities.json` | Available tenors |
+| `/api/rates/stats.json` | All-time and latest-year high/low statistics |
+| `/api/blog/index.json` | Daily summary index |
+| `/api/blog/{YYYY-MM-DD}.json` | One daily summary |
+| `/api/blog/years.json` | Years with published summaries |
+| `/api/daily-summary` | Latest summary as plain text |
+| `/health.json` | Data freshness and status |
+| `/.well-known/api-catalog` | RFC 8288 linkset for agents |
+| `/.well-known/mcp/server-card.json` | Tool descriptions for MCP-aware clients |
 
-# Verify CRON_TZ matches your timezone
-# Treasury publishes at ~3:30 PM ET, so CRON_TZ=America/New_York
-```
+Static snapshots do not apply query-string filtering; filter the returned JSON client-side
+(or use the MCP tools, which do so locally). CORS is enabled for simple `GET`/`HEAD`
+requests. Because assets are served statically, `OPTIONS` preflights are not handled.
 
-### Rate Limit Hit
+## Scheduled pipeline
 
-The API allows 100 requests per minute per IP. If you hit the limit:
+`.github/workflows/daily-update.yml` runs three staggered attempts on business days.
+The UTC cron times (19:45/20:45/21:45) straddle daylight saving so one attempt lands
+shortly after the Treasury's ~3:30pm ET release in both EDT and EST. The job exits
+early when no new data exists, commits rates even if summary generation fails, and
+retries the push after rebasing.
 
-```bash
-# Wait 60 seconds and try again
-# The dashboard caches data locally, minimizing API calls
-```
+Required repository secrets:
 
-### SSL Certificate Issues
+- `LLM_API_KEY` — gateway key
+- `LLM_BASE_URL` — OpenAI-compatible gateway, e.g. `https://api.bwengr.com`
 
-```bash
-# Verify acme.json exists and has correct permissions
-ls -la acme.json        # Should show: -rw-------
-chmod 600 acme.json
+## Cloudflare Workers configuration
 
-# Check Traefik logs for ACME errors
-docker compose logs traefik | grep -i acme
-```
+- Root directory: `site`
+- Build command: `npm run build`
+- Deploy command: `npx wrangler deploy`
+- Output: `dist/` served as static assets from `site/wrangler.jsonc`
+- Environment: `NODE_VERSION=20`
 
-## Security Notes
+`site/public/_headers` carries CSP and other security headers; `_redirects` preserves
+documented `/api/*` paths and legacy `/blog?page=N` URLs.
 
-- All credentials are loaded from `.env` - never hardcoded
-- `POSTGRES_USER` and `POSTGRES_PASSWORD` are required
-- API uses sliding window rate limiting (100 req/min per IP)
-- CORS origins must be explicitly set in production via `ALLOWED_ORIGINS`
-- Health endpoint does not expose environment information
+## Data integrity
 
-## License
+`site/scripts/validate-data.mjs` enforces:
 
-MIT
+- chronological order and no duplicate dates
+- required tenors (3MO, 2YR, 10YR, 30YR) and plausible 0–25% yields
+- summary/rate alignment and minimum summary length
+
+Run it before committing data changes. CI runs the validator, the site build, and the
+post-build audit on every push and pull request.

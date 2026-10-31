@@ -122,8 +122,8 @@ const articleSchema = {
   '@type': 'Article',
   headline: headline,
   description: blogSummary.substring(0, 300),
-  datePublished: `${date}T00:00:00Z`,
-  dateModified: `${date}T00:00:00Z`,
+  datePublished: `${date}T20:00:00Z`,
+  dateModified: `${date}T20:00:00Z`,
   mainEntityOfPage: { '@type': 'WebPage', '@id': blogUrl },
   image: ogImageUrl,
   author: { '@type': 'Organization', name: 'YieldWatch', url: SITE_URL },
@@ -148,21 +148,33 @@ html = html.replace(`id="og-title" content="Treasury Yield Daily Summary"`, `id=
 html = html.replace(`id="og-description" content="Treasury yield curve daily analysis"`, `id="og-description" content="${metaDescription}"`);
 html = html.replace(`id="og-image" content="https://yieldwatch.io/og/og.png"`, `id="og-image" content="${ogImageUrl}"`);
 html = html.replaceAll('content="U.S. Treasury Yield Curve Dashboard"', `content="${escapeHtml(`U.S. Treasury yield curve chart for ${dateStr}`)}"`);
-html = html.replace(`id="article-date" content=""`, `id="article-date" content="${date}T00:00:00Z"`);
-html = html.replace(`id="article-modified" content=""`, `id="article-modified" content="${date}T00:00:00Z"`);
+html = html.replace(`id="article-date" content=""`, `id="article-date" content="${date}T20:00:00Z"`);
+html = html.replace(`id="article-modified" content=""`, `id="article-modified" content="${date}T20:00:00Z"`);
 html = html.replace(`id="twitter-url" content="https://yieldwatch.io/blog"`, `id="twitter-url" content="${blogUrl}"`);
 html = html.replace(`id="twitter-title" content="Treasury Yield Daily Summary"`, `id="twitter-title" content="${escapeHtml(ogTitle)}"`);
 html = html.replace(`id="twitter-description" content="Treasury yield curve daily analysis"`, `id="twitter-description" content="${metaDescription}"`);
 html = html.replace(`id="twitter-image" content="https://yieldwatch.io/og/og.png"`, `id="twitter-image" content="${ogImageUrl}"`);
 html = html.replace(`id="canonical-url" href="https://yieldwatch.io/blog/"`, `id="canonical-url" href="${blogUrl}"`);
 
-// Breadcrumb schema: name + item update.
+// Breadcrumb schema: parse, update the leaf, then re-serialize so the final
+// ListItem points at the post itself instead of the blog index.
 const breadcrumbSchemaMatch = html.match(/id="breadcrumb-schema">([\s\S]*?)<\/script>/);
 if (breadcrumbSchemaMatch) {
-  const updatedSchema = breadcrumbSchemaMatch[1]
-    .replace(/"name": "Daily Summary"/, `"name": "${dateStr} Summary"`)
-    .replace(/item": "https:\/\/yieldwatch\.io\/blog\/?"(?=[^"]*\}])/g, `item": "${blogUrl}"`);
-  html = html.replace(breadcrumbSchemaMatch[0], `id="breadcrumb-schema">\n  ${updatedSchema}\n  </script>`);
+  try {
+    const breadcrumb = JSON.parse(breadcrumbSchemaMatch[1]);
+    const items = breadcrumb.itemListElement;
+    if (Array.isArray(items) && items.length > 0) {
+      const leaf = items[items.length - 1];
+      leaf.name = `${dateStr} Summary`;
+      leaf.item = blogUrl;
+    }
+    html = html.replace(
+      breadcrumbSchemaMatch[0],
+      `id="breadcrumb-schema">\n  ${inlineJson(breadcrumb)}\n  </script>`
+    );
+  } catch (err) {
+    console.warn(`Invalid breadcrumb JSON-LD for ${date}:`, err);
+  }
 }
 
 // Article JSON-LD.

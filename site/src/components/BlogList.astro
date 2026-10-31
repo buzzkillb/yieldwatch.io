@@ -18,6 +18,7 @@ const items = sorted.slice((current - 1) * POSTS_PER_PAGE, current * POSTS_PER_P
 const blogIndex = sorted.map(s => ({
   date: s.date,
   hasFullPost: Boolean(s.blogSummary && s.blogSummary.length > 0),
+  title: escapeHtml(postHeadline(s.date)),
   excerpt: escapeHtml((s.summary || s.blogSummary || '').trim().replace(/\s+/g, ' ').slice(0, 200)) + '…',
 }));
 
@@ -56,6 +57,26 @@ if (current > 1) {
 
 if (seoMetaTags.length > 0) {
   html = html.replace('</head>', `\n    ${seoMetaTags.join('\n    ')}\n  </head>`);
+}
+
+// Breadcrumb schema must end at the canonical URL for this page. Add a
+// "Page N" crumb for paginated listings instead of leaving the leaf at /blog/.
+for (const scriptMatch of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
+  let breadcrumb;
+  try { breadcrumb = JSON.parse(scriptMatch[1].trim()); } catch { continue; }
+  if (breadcrumb['@type'] !== 'BreadcrumbList') continue;
+  const pageUrl = `${SITE_URL}/blog/${current === 1 ? '' : `${current}/`}`;
+  const crumbs = breadcrumb.itemListElement;
+  if (current === 1) {
+    crumbs[crumbs.length - 1].item = pageUrl;
+  } else {
+    crumbs.push({ '@type': 'ListItem', position: crumbs.length + 1, name: `Page ${current}`, item: pageUrl });
+  }
+  html = html.replace(
+    scriptMatch[0],
+    `<script type="application/ld+json">\n${inlineJson(breadcrumb)}\n</script>`
+  );
+  break;
 }
 
 // Server-render the cards.

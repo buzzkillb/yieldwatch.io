@@ -5,11 +5,11 @@
       "link": [
         {
           "rel": "service-desc",
-          "href": "https://yieldwatch.io/api-docs"
+          "href": "https://yieldwatch.io/api-docs/"
         },
         {
           "rel": "service-doc",
-          "href": "https://yieldwatch.io/faq"
+          "href": "https://yieldwatch.io/faq/"
         },
         {
           "rel": "status",
@@ -17,7 +17,7 @@
         },
         {
           "rel": "describedby",
-          "href": "https://yieldwatch.io/og"
+          "href": "https://yieldwatch.io/llms.txt"
         }
       ]
     }

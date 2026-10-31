@@ -30,8 +30,11 @@ static files.
 ## Daily pipeline
 
 GitHub Actions (`.github/workflows/daily-update.yml`) runs `daily-update.ts`
-three times on business days (4:30/5:30/6:30pm ET) and commits new data; the
-push triggers a Cloudflare Workers Build. Requires repo secrets:
+three times on business days. The UTC cron times (19:45/20:45/21:45) straddle
+daylight saving so one attempt lands shortly after the Treasury's ~3:30pm ET
+release in both EDT and EST; the job exits early when no new data exists. It
+commits new data and the push triggers a Cloudflare Workers Build. Requires
+repo secrets:
 
 - `LLM_API_KEY` — gateway key
 - `LLM_BASE_URL` — e.g. https://api.bwengr.com
