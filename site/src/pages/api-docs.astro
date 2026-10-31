@@ -1,30 +1,32 @@
 ---
-import { readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
-import { RATES, SUMMARIES, dateFormatted, latestDay, readTemplate, truncateWords } from '../lib/site';
+// Native Astro API reference. Example responses are computed from the same
+// data the site ships, so the docs cannot drift from the published snapshots.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import {
+  RATES, SUMMARIES, SITE_URL, dateFormatted, latestDay, truncateWords,
+} from '../lib/site';
+import rateStatsJson from '../../public/api/rates/stats.json';
+import blogYearsJson from '../../public/api/blog/years.json';
+import maturitiesJson from '../../public/api/rates/maturities.json';
+import allRatesRaw from '../../public/api/rates/all.json?raw';
 
-// Every example response on this page is derived from the data the site
-// actually ships. Hand-written examples went stale silently (they still showed
-// an October 9 snapshot as "latest" a month later), so build them from the
-// real files instead.
-const publicDir = join(process.cwd(), 'public');
-const snapshotMb = (statSync(join(publicDir, 'api', 'rates', 'all.json')).size / 1e6).toFixed(1);
+const pageTitle = 'API Documentation | U.S. Treasury Yield Curve';
+const pageDescription = 'Free JSON API for U.S. Treasury yield curve rates, historical data, stats, and daily summaries. No API key required. Endpoints, examples, and CORS details.';
+const pageUrl = `${SITE_URL}/api-docs/`;
+
+const snapshotMb = (Buffer.byteLength(allRatesRaw, 'utf8') / 1e6).toFixed(1);
 
 const latestRateDay = latestDay();
 const latestSummary = [...SUMMARIES].sort((a, b) => a.date.localeCompare(b.date))[SUMMARIES.length - 1];
 
-const rateStats = JSON.parse(readFileSync(join(publicDir, 'api', 'rates', 'stats.json'), 'utf8'));
-const tenYear = rateStats.data.find((row: { maturity: string }) => row.maturity === '10YR');
-const blogYears = JSON.parse(readFileSync(join(publicDir, 'api', 'blog', 'years.json'), 'utf8'));
+const rateStats = rateStatsJson as { data: { maturity: string }[] };
+const tenYear = rateStats.data.find(row => row.maturity === '10YR');
+const blogYears = blogYearsJson as { data: string[] };
+const maturitiesExample = JSON.stringify(maturitiesJson, null, 2);
 
 const rate = (maturity: string) => latestRateDay.rates.find(r => r.maturity === maturity)?.rate;
 
-// Escape only the characters that would break the surrounding HTML; JSON
-// strings already handle quotes.
-const escapePre = (value: string) =>
-  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-const jsonBlock = (value: unknown) => escapePre(JSON.stringify(value, null, 2));
+const jsonBlock = (value: unknown) => JSON.stringify(value, null, 2);
 
 const latestRatesExample = jsonBlock({
   success: true,
@@ -52,10 +54,7 @@ const ratesAllExample = jsonBlock({
   },
 });
 
-const rateStatsExample = jsonBlock({
-  success: true,
-  data: [tenYear],
-});
+const rateStatsExample = jsonBlock({ success: true, data: [tenYear] });
 
 const healthExample = jsonBlock({
   status: 'ok',
@@ -63,8 +62,7 @@ const healthExample = jsonBlock({
   latestSummaryDate: latestSummary.date,
 });
 
-// The endpoint serves the full text, so the docs example must not truncate it.
-const dailySummaryExample = escapePre(latestSummary.summary);
+const dailySummaryExample = latestSummary.summary;
 
 const blogIndexExample = jsonBlock({
   success: true,
@@ -77,6 +75,8 @@ const blogIndexExample = jsonBlock({
   meta: { count: SUMMARIES.length },
 });
 
+const blogPostUrl = `/api/blog/${latestSummary.date}.json`;
+
 const blogPostExample = jsonBlock({
   success: true,
   data: {
@@ -88,25 +88,633 @@ const blogPostExample = jsonBlock({
   },
 });
 
-const yearsExample = escapePre(JSON.stringify({ success: true, data: blogYears.data }));
+const yearsExample = JSON.stringify({ success: true, data: blogYears.data });
 
-let html = readTemplate('api-docs.html', 'api-docs');
-html = html
-  .replaceAll('9,200 business days', `${RATES.length.toLocaleString('en-US')} business days`)
-  .replace('~3.5&nbsp;MB', `~${snapshotMb}&nbsp;MB`)
-  .replaceAll('{{EXAMPLE_RATES_LATEST}}', latestRatesExample)
-  .replaceAll('{{EXAMPLE_RATES_ALL}}', ratesAllExample)
-  .replaceAll('{{EXAMPLE_RATE_STATS}}', rateStatsExample)
-  .replaceAll('{{EXAMPLE_HEALTH}}', healthExample)
-  .replaceAll('{{EXAMPLE_DAILY_SUMMARY}}', dailySummaryExample)
-  .replaceAll('{{EXAMPLE_BLOG_INDEX}}', blogIndexExample)
-  .replaceAll('{{BLOG_POST_URL}}', `/api/blog/${latestSummary.date}.json`)
-  .replaceAll('{{EXAMPLE_BLOG_POST}}', blogPostExample)
-  .replaceAll('{{YEARS_EXAMPLE}}', yearsExample);
-
-if (html.includes('{{')) {
-  throw new Error('Unreplaced template token in api-docs');
-}
+const schema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'TechArticle',
+      '@id': `${pageUrl}#article`,
+      headline: pageTitle,
+      description: pageDescription,
+      url: pageUrl,
+      isPartOf: { '@id': `${SITE_URL}/#site` },
+      about: { '@id': `${SITE_URL}/#org` },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Dashboard', item: `${SITE_URL}/` },
+        { '@type': 'ListItem', position: 2, name: 'API Documentation', item: pageUrl },
+      ],
+    },
+  ],
+};
 ---
 
-<Fragment set:html={html} />
+<BaseLayout
+  title={pageTitle}
+  description={pageDescription}
+  canonical={pageUrl}
+  robots="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+  imageAlt="YieldWatch public API documentation"
+  schema={schema}
+  active="api-docs"
+  mainClass="container"
+>
+  <style is:inline slot="head">
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #0f0f18;
+      --bg-card: #16161f;
+      --bg-tertiary: #1a1a25;
+      --border-color: #2a2a3a;
+      --text-primary: #f0f0f5;
+      --text-secondary: #a0a0b0;
+      --text-muted: #606070;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .header {
+      background: linear-gradient(145deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1.5rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .header-content {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+
+    .logo svg {
+      width: 36px;
+      height: 36px;
+    }
+
+    .logo-text {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .nav {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    .nav a:hover, .nav a.active {
+      color: var(--accent);
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .page-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    .page-subtitle {
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+
+    .section {
+      margin-bottom: 2.5rem;
+    }
+
+    h2 {
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    h2 .method {
+      font-size: 0.7rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+
+    h3 {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      margin: 1.5rem 0 0.75rem;
+    }
+
+    p {
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+
+    .endpoint {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .endpoint-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .endpoint-url {
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+      background: var(--bg-tertiary);
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      color: var(--accent-hover);
+      font-size: 0.85rem;
+      flex: 1;
+      overflow-x: auto;
+    }
+
+    .badge {
+      font-size: 0.65rem;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-get { background: var(--success); color: #000; }
+    .badge-rate { background: var(--warning); color: #000; }
+
+    .description {
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .code-block {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      overflow-x: auto;
+      font-size: 0.85rem;
+    }
+
+    .code-block pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+    }
+
+    .code-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .params {
+      display: grid;
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+
+    .param {
+      display: grid;
+      grid-template-columns: 120px 80px 1fr;
+      gap: 0.75rem;
+      align-items: start;
+      font-size: 0.85rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .param:last-child {
+      border-bottom: none;
+    }
+
+    .param-name {
+      color: var(--accent-hover);
+      font-weight: 500;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+    }
+
+    .param-type {
+      color: var(--warning);
+      font-size: 0.75rem;
+    }
+
+    .param-desc {
+      color: var(--text-secondary);
+    }
+
+    .param-required {
+      color: var(--danger);
+      font-size: 0.7rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.85rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      color: var(--text-secondary);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      color: var(--text-primary);
+    }
+
+    code {
+      background: var(--bg-tertiary);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: var(--accent-hover);
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+    }
+
+    .rate-limit-note {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--warning);
+      border-radius: 0 8px 8px 0;
+      padding: 1rem 1.5rem;
+      margin: 2rem 0;
+    }
+
+    .rate-limit-note h2,
+    .api-subhead {
+      color: var(--warning);
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+    }
+
+    .rate-limit-note p {
+      margin: 0;
+      font-size: 0.85rem;
+    }
+
+    .footer {
+      background: linear-gradient(145deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      border-top: 1px solid var(--border-color);
+      padding: 1.5rem 2rem;
+      margin-top: 2rem;
+    }
+
+    .footer-content {
+      max-width: 1100px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+
+    .footer-links .divider {
+      color: var(--text-muted);
+    }
+
+    .footer-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        padding: 1rem;
+      }
+
+      .nav {
+        gap: 1rem;
+      }
+
+      .container {
+        padding: 1rem;
+      }
+
+      .param {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+      }
+
+      .endpoint-url {
+        font-size: 0.75rem;
+        flex-wrap: wrap;
+      }
+
+      .page-title {
+        font-size: 1.5rem;
+      }
+
+      .footer-content {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .footer-links {
+        justify-content: center;
+      }
+    }
+  </style>
+
+    <div class="page-header">
+      <h1 class="page-title">API Documentation</h1>
+      <p class="page-subtitle">Complete reference for the YieldWatch public API</p>
+    </div>
+
+    <div class="rate-limit-note">
+      <h2 class="api-subhead">Static snapshot API</h2>
+      <p>All endpoints are served as <strong>static JSON snapshots</strong> &mdash; no rate limits and no query-parameter filtering. Fetch the snapshot that covers your range (e.g. <code>/api/rates/6m.json</code>) and filter client-side. Snapshots are refreshed every business day after the U.S. Treasury publishes its ~3:30 PM ET update.</p>
+    </div>
+
+    <div class="section">
+      <h2><span class="method">GET</span> Latest Rates</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-url">/api/rates/latest</span>
+          <span class="badge badge-get">GET</span>
+        </div>
+        <p class="description">Returns the most recent yield curve data available. This is the primary endpoint for displaying current treasury rates. Served from <code>/api/rates/latest.json</code>.</p>
+
+        <h3>Response</h3>
+        <div class="code-block">
+          <div class="code-label">Example Response</div>
+          <pre>{latestRatesExample}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="method">GET</span> Rate History Snapshots</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-url">/api/rates.json</span>
+          <span class="badge badge-get">GET</span>
+        </div>
+        <p class="description">Returns the complete yield-curve history as a single static file: {RATES.length.toLocaleString('en-US')} business days back to 1990 (~{snapshotMb} MB). There is no server-side filtering &mdash; fetch a pre-trimmed snapshot (see table) or filter client-side. The extensionless form <code>/api/rates</code> is rewritten (HTTP 200) to <code>/api/rates.json</code>, so both work.</p>
+
+        <h3>Response</h3>
+        <div class="code-block">
+          <div class="code-label">Example Response (truncated)</div>
+          <pre>{ratesAllExample}</pre>
+        </div>
+
+        <h3>Snapshot Files</h3>
+        <p class="description">Each snapshot returns the same shape with a concrete <code>meta</code> range (<code>from</code>, <code>to</code>, <code>count</code>, <code>hasMore</code>):</p>
+        <table>
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Coverage</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/api/rates.json</code> (alias <code>/api/rates</code>)</td>
+              <td>Complete history &mdash; {RATES.length.toLocaleString('en-US')} business days back to 1990-01-02</td>
+            </tr>
+            <tr>
+              <td><code>/api/rates/3m.json</code></td>
+              <td>Trailing 3 months</td>
+            </tr>
+            <tr>
+              <td><code>/api/rates/6m.json</code></td>
+              <td>Trailing 6 months</td>
+            </tr>
+            <tr>
+              <td><code>/api/rates/1y.json</code></td>
+              <td>Trailing 1 year</td>
+            </tr>
+            <tr>
+              <td><code>/api/rates/2y.json</code></td>
+              <td>Trailing 2 years</td>
+            </tr>
+            <tr>
+              <td><code>/api/rates/5y.json</code></td>
+              <td>Trailing 5 years</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="method">GET</span> Available Maturities</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-url">/api/rates/maturities</span>
+          <span class="badge badge-get">GET</span>
+        </div>
+        <p class="description">Returns all available maturity periods with their position in years (used for plotting the curve on a time axis). Served from <code>/api/rates/maturities.json</code>.</p>
+
+        <h3>Response</h3>
+        <div class="code-block">
+          <div class="code-label">Example Response</div>
+          <pre>{maturitiesExample}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="method">GET</span> Rate Statistics</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-url">/api/rates/stats</span>
+          <span class="badge badge-get">GET</span>
+        </div>
+        <p class="description">Returns the current-year high and low rate for each maturity, with the dates those records occurred, plus all-time highs and lows computed from the full 1990-present history. Served from <code>/api/rates/stats.json</code>.</p>
+
+        <h3>Response</h3>
+        <div class="code-block">
+          <div class="code-label">Example Response</div>
+          <pre>{rateStatsExample}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="method">GET</span> Health Check</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-url">/health</span>
+          <span class="badge badge-get">GET</span>
+        </div>
+        <p class="description">Simple health check. Returns service status plus the dates of the latest data files. Served from <code>/health.json</code> (a 200 rewrite from <code>/health</code>).</p>
+
+        <h3>Response</h3>
+        <div class="code-block">
+          <div class="code-label">Example Response</div>
+          <pre>{healthExample}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="method">GET</span> Daily Summary</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-url">/api/daily-summary</span>
+          <span class="badge badge-get">GET</span>
+        </div>
+        <p class="description">Plain-text summary of the latest business day's Treasury market, written by the automated daily writer. This is what powers the homepage summary block.</p>
+
+        <h3>Response</h3>
+        <div class="code-block">
+          <div class="code-label">Example Response (text/plain)</div>
+          <pre>{dailySummaryExample}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="method">GET</span> Blog Index</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-url">/api/blog/index.json</span>
+          <span class="badge badge-get">GET</span>
+        </div>
+        <p class="description">Index of published daily summaries, newest first: <code>date</code>, <code>dateFormatted</code>, <code>hasFullPost</code>, and a short <code>excerpt</code> for each entry. Use it to build archive or feed views without fetching every per-day file.</p>
+
+        <h3>Response</h3>
+        <div class="code-block">
+          <div class="code-label">Example Response (truncated)</div>
+          <pre>{blogIndexExample}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="method">GET</span> Blog Post Data</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-url">{blogPostUrl}</span>
+          <span class="badge badge-get">GET</span>
+        </div>
+        <p class="description">Structured data for one business day's post: <code>date</code>, <code>dateFormatted</code>, long-form <code>summary</code>, shorter <code>blogSummary</code>, and that day's <code>rates</code>. One file per business day. Available years are listed at <code>/api/blog/years.json</code>, which returns <code>{yearsExample}</code>.</p>
+
+        <h3>Response</h3>
+        <div class="code-block">
+          <div class="code-label">Example Response (truncated)</div>
+          <pre>{blogPostExample}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Response Codes</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>200</code></td>
+            <td>Success</td>
+          </tr>
+          <tr>
+            <td><code>301</code></td>
+            <td>Permanent redirect (legacy URLs like <code>/blog?page=2</code> redirect to <code>/blog/2/</code>)</td>
+          </tr>
+          <tr>
+            <td><code>404</code></td>
+            <td>Not Found - File doesn't exist (e.g. a blog date with no published post)</td>
+          </tr>
+          <tr>
+            <td><code>405</code></td>
+            <td>Method Not Allowed - static assets answer simple <code>GET</code>/<code>HEAD</code> requests only; <code>OPTIONS</code> preflights are not handled</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </BaseLayout>
