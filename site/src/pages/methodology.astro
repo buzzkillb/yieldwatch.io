@@ -1,7 +1,6 @@
 ---
-import { SITE_URL, latestDay, dateFormatted, RATES, inlineJson } from '../lib/site';
-import { buildFooter, buildHeader, CHROME_STYLE } from '../lib/chrome';
-import { socialMetaTags, siteSchemaGraph } from '../lib/meta';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { RATES, SITE_URL, dateFormatted, latestDay } from '../lib/site';
 
 const pageTitle = 'Data Methodology | U.S. Treasury Yield Rates';
 const pageDescription = 'How YieldWatch sources, validates, and publishes U.S. Treasury yield curve data, including update timing, maturity coverage, and known limitations.';
@@ -31,28 +30,16 @@ const schema = {
     },
   ],
 };
+---
 
-const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${pageTitle}</title>
-  <meta name="description" content="${pageDescription}">
-  <link rel="canonical" href="${pageUrl}">
-  <meta name="robots" content="index, follow">
-${socialMetaTags({
-    url: pageUrl,
-    title: pageTitle,
-    description: pageDescription,
-    imageAlt: 'YieldWatch data methodology: sourcing, validation, and update timing',
-  })}
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%236366f1' rx='15' width='100' height='100'/%3E%3Cpath d='M20 70 L35 55 L50 65 L65 40 L80 45' stroke='white' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='80' cy='45' r='6' fill='white'/%3E%3C/svg%3E">
-  <link rel="alternate" type="application/rss+xml" title="Daily Treasury Yield Summaries RSS" href="/feed.xml">
-  <script type="application/ld+json">${inlineJson(schema)}</script>
-  ${siteSchemaGraph()}
-  ${CHROME_STYLE}
-  <style>
+<BaseLayout
+  title={pageTitle}
+  description={pageDescription}
+  canonical={pageUrl}
+  imageAlt="YieldWatch data methodology: sourcing, validation, and update timing"
+  schema={schema}
+>
+  <style is:inline slot="head">
     :root { --bg-primary: #0a0a0f; --bg-secondary: #0f0f18; --bg-card: #16161f; --border-color: #2a2a3a; --text-primary: #f0f0f5; --text-secondary: #a0a0b0; --text-muted: #606070; --accent: #6366f1; --accent-hover: #818cf8; }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--bg-primary); color: var(--text-primary); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.7; }
@@ -72,78 +59,69 @@ ${socialMetaTags({
     th { color: var(--text-primary); }
     code { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.1rem 0.35rem; font-size: 0.9em; }
   </style>
-</head>
-<body>
-  ${buildHeader(null)}
-  <main id="main-content" tabindex="-1">
-    <h1>Data Methodology</h1>
-    <p class="lede">This page documents exactly where YieldWatch data comes from, when it updates, how it is validated, and what it does not cover. The goal is that any number on the site can be traced back to a public official source.</p>
 
-    <div class="card">
-      <p><strong>Primary source:</strong> U.S. Department of the Treasury, Daily Treasury Par Yield Curve Rates (home.treasury.gov).</p>
-      <p><strong>Latest published data:</strong> ${dataDate ?? 'see dashboard'}</p>
-      <p><strong>Historical coverage:</strong> Daily observations beginning ${historyStart}.</p>
-      <p><strong>Update cadence:</strong> Business days only, after the Treasury publishes its rates, typically around 3:30 PM Eastern Time.</p>
-    </div>
+  <h1>Data Methodology</h1>
+  <p class="lede">This page documents exactly where YieldWatch data comes from, when it updates, how it is validated, and what it does not cover. The goal is that any number on the site can be traced back to a public official source.</p>
 
-    <h2>1. Where the data comes from</h2>
-    <p>YieldWatch reads the Treasury's published daily par yield curve feed and stores each business day's official rates. No third-party market data, broker quotes, or intraday estimates are used for the official daily series. The same feed supplies the dashboard, the daily summaries, and the JSON API.</p>
-    <p>The Treasury publishes par yield curve rates, which represent the average yield on outstanding Treasury securities at each maturity. These are not constant-maturity bond-equivalent yields and are not the same as intraday market quotes.</p>
+  <div class="card">
+    <p><strong>Primary source:</strong> U.S. Department of the Treasury, Daily Treasury Par Yield Curve Rates (home.treasury.gov).</p>
+    <p><strong>Latest published data:</strong> {dataDate ?? 'see dashboard'}</p>
+    <p><strong>Historical coverage:</strong> Daily observations beginning {historyStart}.</p>
+    <p><strong>Update cadence:</strong> Business days only, after the Treasury publishes its rates, typically around 3:30 PM Eastern Time.</p>
+  </div>
 
-    <h2>2. Maturity coverage</h2>
-    <p>The site publishes the maturities the Treasury reports, including bills, notes, and bonds:</p>
-    <table>
-      <thead><tr><th>Bucket</th><th>Maturities</th></tr></thead>
-      <tbody>
-        <tr><td>Bills</td><td>4-week, 6-week, 2-month, 3-month, 4-month, 6-month</td></tr>
-        <tr><td>Notes</td><td>1-year, 2-year, 3-year, 5-year, 7-year, 10-year</td></tr>
-        <tr><td>Bonds</td><td>20-year, 30-year</td></tr>
-      </tbody>
-    </table>
-    <p>Not every maturity is published on every day. If the Treasury omits a tenor, the site shows the tenors that were published rather than filling gaps with estimates.</p>
+  <h2>1. Where the data comes from</h2>
+  <p>YieldWatch reads the Treasury's published daily par yield curve feed and stores each business day's official rates. No third-party market data, broker quotes, or intraday estimates are used for the official daily series. The same feed supplies the dashboard, the daily summaries, and the JSON API.</p>
+  <p>The Treasury publishes par yield curve rates, which represent the average yield on outstanding Treasury securities at each maturity. These are not constant-maturity bond-equivalent yields and are not the same as intraday market quotes.</p>
 
-    <h2>3. Update process</h2>
-    <ol>
-      <li>The daily job retrieves the Treasury's published feed for the latest business day.</li>
-      <li>Rates are parsed and checked against the expected maturity set and plausible ranges.</li>
-      <li>The stored series, static API snapshots, charts, and per-post metadata are regenerated.</li>
-      <li>The daily summary is written from the verified numbers and published with the rest of the site.</li>
-    </ol>
-    <p>If the Treasury feed is unavailable or a value fails validation, the previous day's data remains in place and the build is skipped rather than publishing a partial curve.</p>
+  <h2>2. Maturity coverage</h2>
+  <p>The site publishes the maturities the Treasury reports, including bills, notes, and bonds:</p>
+  <table>
+    <thead><tr><th>Bucket</th><th>Maturities</th></tr></thead>
+    <tbody>
+      <tr><td>Bills</td><td>4-week, 6-week, 2-month, 3-month, 4-month, 6-month</td></tr>
+      <tr><td>Notes</td><td>1-year, 2-year, 3-year, 5-year, 7-year, 10-year</td></tr>
+      <tr><td>Bonds</td><td>20-year, 30-year</td></tr>
+    </tbody>
+  </table>
+  <p>Not every maturity is published on every day. If the Treasury omits a tenor, the site shows the tenors that were published rather than filling gaps with estimates.</p>
 
-    <h2>4. Daily summaries</h2>
-    <p>Each daily summary is generated from the same verified rates used on the dashboard. The summary is limited to describing observed changes: level shifts, spreads between maturities, and whether the curve steepened, flattened, or inverted. It does not forecast future rates and does not contain trading recommendations.</p>
-    <p>Numbers quoted in a summary are checked against the stored rate record before publication. Headlines are derived from the largest day-over-day move so that each post has a distinct, factual title.</p>
+  <h2>3. Update process</h2>
+  <ol>
+    <li>The daily job retrieves the Treasury's published feed for the latest business day.</li>
+    <li>Rates are parsed and checked against the expected maturity set and plausible ranges.</li>
+    <li>The stored series, static API snapshots, charts, and per-post metadata are regenerated.</li>
+    <li>The daily summary is written from the verified numbers and published with the rest of the site.</li>
+  </ol>
+  <p>If the Treasury feed is unavailable or a value fails validation, the previous day's data remains in place and the build is skipped rather than publishing a partial curve.</p>
 
-    <h2>5. Validation and quality checks</h2>
-    <ul>
-      <li>Maturity labels must match the Treasury's published set.</li>
-      <li>Values must parse as numbers and fall within plausible historical bounds.</li>
-      <li>Date continuity is checked so a new row cannot silently replace an existing day.</li>
-      <li>Published summaries are checked for numeric agreement with the underlying record.</li>
-      <li>Builds fail closed: a failed validation stops publication instead of shipping bad data.</li>
-    </ul>
+  <h2>4. Daily summaries</h2>
+  <p>Each daily summary is generated from the same verified rates used on the dashboard. The summary is limited to describing observed changes: level shifts, spreads between maturities, and whether the curve steepened, flattened, or inverted. It does not forecast future rates and does not contain trading recommendations.</p>
+  <p>Numbers quoted in a summary are checked against the stored rate record before publication. Headlines are derived from the largest day-over-day move so that each post has a distinct, factual title.</p>
 
-    <h2>6. Known limitations</h2>
-    <ul>
-      <li><strong>Business days only.</strong> Weekends and federal holidays have no new official rate.</li>
-      <li><strong>Daily close, not live.</strong> The series reflects the Treasury's published daily figures, not real-time trading.</li>
-      <li><strong>Revisions.</strong> The Treasury can revise or correct published values. When that happens, the stored record is updated and the affected summary may be regenerated.</li>
-      <li><strong>Par yields.</strong> These are par yield curve rates, not zero-coupon or constant-maturity series.</li>
-      <li><strong>No intraday tracking.</strong> Any future intraday indicator will be labeled separately and never presented as an official daily rate.</li>
-    </ul>
+  <h2>5. Validation and quality checks</h2>
+  <ul>
+    <li>Maturity labels must match the Treasury's published set.</li>
+    <li>Values must parse as numbers and fall within plausible historical bounds.</li>
+    <li>Date continuity is checked so a new row cannot silently replace an existing day.</li>
+    <li>Published summaries are checked for numeric agreement with the underlying record.</li>
+    <li>Builds fail closed: a failed validation stops publication instead of shipping bad data.</li>
+  </ul>
 
-    <h2>7. API and reuse</h2>
-    <p>The same data is available through the free <a href="/api-docs/">JSON API</a>. Responses are static snapshots regenerated with each daily update, so values match the dashboard. Reuse is permitted with attribution to YieldWatch and, where practical, to the U.S. Department of the Treasury as the original source.</p>
+  <h2>6. Known limitations</h2>
+  <ul>
+    <li><strong>Business days only.</strong> Weekends and federal holidays have no new official rate.</li>
+    <li><strong>Daily close, not live.</strong> The series reflects the Treasury's published daily figures, not real-time trading.</li>
+    <li><strong>Revisions.</strong> The Treasury can revise or correct published values. When that happens, the stored record is updated and the affected summary may be regenerated.</li>
+    <li><strong>Par yields.</strong> These are par yield curve rates, not zero-coupon or constant-maturity series.</li>
+    <li><strong>No intraday tracking.</strong> Any future intraday indicator will be labeled separately and never presented as an official daily rate.</li>
+  </ul>
 
-    <h2>8. Corrections</h2>
-    <p>If you find a discrepancy, email <a href="mailto:hello@yieldwatch.io">hello@yieldwatch.io</a> with the date and maturity. Corrections are checked against the Treasury's published record and applied at the source, so the dashboard, summaries, and API stay consistent.</p>
+  <h2>7. API and reuse</h2>
+  <p>The same data is available through the free <a href="/api-docs/">JSON API</a>. Responses are static snapshots regenerated with each daily update, so values match the dashboard. Reuse is permitted with attribution to YieldWatch and, where practical, to the U.S. Department of the Treasury as the original source.</p>
 
-    <p class="meta">See also: <a href="/about/">About YieldWatch</a> and the <a href="/faq/">FAQ</a>.</p>
-  </main>
-  ${buildFooter()}
-</body>
-</html>`;
----
+  <h2>8. Corrections</h2>
+  <p>If you find a discrepancy, email <a href="mailto:hello@yieldwatch.io">hello@yieldwatch.io</a> with the date and maturity. Corrections are checked against the Treasury's published record and applied at the source, so the dashboard, summaries, and API stay consistent.</p>
 
-<Fragment set:html={html} />
+  <p class="meta">See also: <a href="/about/">About YieldWatch</a> and the <a href="/faq/">FAQ</a>.</p>
+</BaseLayout>

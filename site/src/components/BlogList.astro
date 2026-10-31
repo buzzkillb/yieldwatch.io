@@ -5,6 +5,7 @@
 // embedded index; pagination is static.
 import {
   readTemplate, escapeHtml, truncateWords, inlineJson, SUMMARIES, POSTS_PER_PAGE, postHeadline, blogTotalPages, SITE_URL,
+  replaceOnce, replaceRegexOnce,
 } from '../lib/site';
 
 interface Props { page: number }
@@ -37,26 +38,30 @@ if (current < totalPages) seoMetaTags.push(`<link rel="next" href="${hrefFor(cur
 // (noindex, follow) so they stay useful crawl paths without diluting the
 // index with near-duplicate card lists. Page 1 keeps /blog/ as canonical.
 if (current > 1) {
-  html = html.replace(
+  html = replaceRegexOnce(html,
     /<link rel="canonical" href="[^"]*">/,
-    `<link rel="canonical" href="${SITE_URL}/blog/${current}/">`
+    `<link rel="canonical" href="${SITE_URL}/blog/${current}/">`,
+    'blog canonical'
   );
-  html = html.replace(
+  html = replaceRegexOnce(html,
     /<meta name="robots" content="[^"]*">/,
-    '<meta name="robots" content="noindex, follow">'
+    '<meta name="robots" content="noindex, follow">',
+    'blog robots'
   );
-  html = html.replace(
+  html = replaceRegexOnce(html,
     /<title>[^<]*<\/title>/,
-    `<title>Daily Treasury Summaries, Page ${current} | YieldWatch</title>`
+    `<title>Daily Treasury Summaries, Page ${current} | YieldWatch</title>`,
+    'blog title'
   );
-  html = html.replace(
+  html = replaceRegexOnce(html,
     /<meta name="description" content="[^"]*">/,
-    `<meta name="description" content="Page ${current} of the YieldWatch archive of daily U.S. Treasury yield curve summaries, with headline moves and verified rates for each business day.">`
+    `<meta name="description" content="Page ${current} of the YieldWatch archive of daily U.S. Treasury yield curve summaries, with headline moves and verified rates for each business day.">`,
+    'blog description'
   );
 }
 
 if (seoMetaTags.length > 0) {
-  html = html.replace('</head>', `\n    ${seoMetaTags.join('\n    ')}\n  </head>`);
+  html = replaceOnce(html, '</head>', `\n    ${seoMetaTags.join('\n    ')}\n  </head>`, 'blog prev/next');
 }
 
 // Breadcrumb schema must end at the canonical URL for this page. Add a
@@ -93,12 +98,13 @@ const cardsHtml = items.map(item => {
           </a>`;
 }).join('');
 
-html = html.replace(
+html = replaceOnce(html,
   `<div id="content">
         <div class="loading">Loading summaries...</div>
       </div>`,
   `<div id="content"><div class="summaries-list">${cardsHtml}
-          </div></div>`
+          </div></div>`,
+  'blog cards'
 );
 
 // Static pagination + archive hub CTA (crawlable path to every post).
@@ -107,31 +113,34 @@ const paginationHtml = totalPages <= 1 ? '' : `<div class="pagination-controls">
         <span class="page-info">Page ${current} of ${totalPages}</span>
         ${current < totalPages ? `<a class="page-link" href="${hrefFor(current + 1)}">Next &rarr;</a>` : ''}
       </div>`;
-html = html.replace(
+html = replaceOnce(html,
   '<div id="pagination" class="pagination"></div>',
   `<div class="archive-cta"><a href="/blog/archive/">Browse the complete archive &mdash; every daily summary on one page</a> <span class="archive-count">(${blogTotalPages()} pages of summaries, ${SUMMARIES.length} posts)</span></div>
-        <div id="pagination" class="pagination">${paginationHtml}</div>`
+        <div id="pagination" class="pagination">${paginationHtml}</div>`,
+  'blog pagination'
 );
 
 // Card/archive styling.
-html = html.replace(
+html = replaceOnce(html,
   '  </style>',
   `  .summary-card-title { font-size: 1.02rem; font-weight: 600; color: var(--text-primary); margin: 0.2rem 0 0; }
   .archive-cta { margin: 1.5rem auto 0.5rem; text-align: center; }
   .archive-cta a { color: var(--accent); font-weight: 600; }
   .archive-count { color: var(--text-muted); font-size: 0.85rem; }
-  </style>`
+  </style>`,
+  'blog card styles'
 );
 
 // Embed the index for client-side year/month filtering. Blog listing pages do
 // not render a chart, so no Chart.js bundle is injected here.
-html = html.replace(
+html = replaceOnce(html,
   '<body>',
-  `<body>\n<script>const BLOG_INDEX = ${inlineJson(blogIndex)};</script>`
+  `<body>\n<script>const BLOG_INDEX = ${inlineJson(blogIndex)};</script>`,
+  'blog index embed'
 );
 
 // Replace the fetch-based init with embedded-index filtering.
-html = html.replace(
+html = replaceOnce(html,
   '    // Static index: filters are wired in BlogList.astro.',
   `    (function initStaticFilters() {
       const yearSelect = document.getElementById('yearFilter');
@@ -199,7 +208,8 @@ html = html.replace(
         monthSelect.value = params.get('month');
         applyFilter(false);
       }
-    })();`
+    })();`,
+  'blog filter init'
 );
 ---
 <Fragment set:html={html} />

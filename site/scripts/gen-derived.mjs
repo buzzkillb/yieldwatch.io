@@ -265,7 +265,7 @@ await writeText('.well-known/mcp/server-card.json', JSON.stringify({
   serverInfo: {
     name: 'yieldwatch.io/treasury-api',
     version: '1.0.0',
-    description: 'U.S. Treasury Yield Curve API - Real-time and historical yield curve data',
+    description: 'U.S. Treasury Yield Curve API - Daily and historical yield curve data',
   },
   endpoint: `${SITE_URL}/api/rates`,
   capabilities: {
@@ -274,7 +274,7 @@ await writeText('.well-known/mcp/server-card.json', JSON.stringify({
       { name: 'get_historical_yield_rates', description: 'Get historical yield rates for a date range' },
       { name: 'get_available_maturities', description: 'Get available maturity tenors' },
       { name: 'get_yield_statistics', description: 'Get historical high/low statistics' },
-      { name: 'get_blog_posts', description: 'Get paginated daily summary posts' },
+      { name: 'get_blog_posts', description: 'Get daily summary posts' },
     ],
     resources: [
       { name: 'daily-summaries', description: 'Daily Treasury yield curve analysis summaries' },

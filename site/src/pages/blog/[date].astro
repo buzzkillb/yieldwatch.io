@@ -6,6 +6,7 @@
 import {
   readTemplate, escapeHtml, dateFormatted, linkLabel, formatBlogSummary, truncateWords,
   SUMMARIES, CHART_COLORS, SITE_URL, postHeadline, relatedPosts, inlineJson,
+  replaceOnce, replaceAllOnce, replaceRegexOnce,
 } from '../../lib/site';
 
 export function getStaticPaths() {
@@ -135,23 +136,23 @@ const articleSchema = {
 let html = readTemplate('blog-post.html', 'blog');
 
 // Nav: expose the archive hub from every post page + style for its CTA.
-html = html.replace('  </style>', '  .related-archive { margin-top: 1rem; }\n  .related-archive a { color: var(--accent); }\n  </style>');
+html = replaceOnce(html, '  </style>', '  .related-archive { margin-top: 1rem; }\n  .related-archive a { color: var(--accent); }\n  </style>', 'post styles');
 
 // Head meta (same replacements as the SSR version).
-html = html.replace(/<title[^>]*>.*<\/title>/, `<title id="page-title">${escapeHtml(pageTitle)}</title>`);
-html = html.replace(`content="Treasury yield curve daily analysis" id="meta-desc"`, `content="${metaDescription}" id="meta-desc"`);
-html = html.replace(`id="og-url" content="https://yieldwatch.io/blog"`, `id="og-url" content="${blogUrl}"`);
-html = html.replace(`id="og-title" content="Treasury Yield Daily Summary"`, `id="og-title" content="${escapeHtml(ogTitle)}"`);
-html = html.replace(`id="og-description" content="Treasury yield curve daily analysis"`, `id="og-description" content="${metaDescription}"`);
-html = html.replace(`id="og-image" content="https://yieldwatch.io/og/og.png"`, `id="og-image" content="${ogImageUrl}"`);
-html = html.replaceAll('content="U.S. Treasury Yield Curve Dashboard"', `content="${escapeHtml(`U.S. Treasury yield curve chart for ${dateStr}`)}"`);
-html = html.replace(`id="article-date" content=""`, `id="article-date" content="${date}T20:00:00Z"`);
-html = html.replace(`id="article-modified" content=""`, `id="article-modified" content="${date}T20:00:00Z"`);
-html = html.replace(`id="twitter-url" content="https://yieldwatch.io/blog"`, `id="twitter-url" content="${blogUrl}"`);
-html = html.replace(`id="twitter-title" content="Treasury Yield Daily Summary"`, `id="twitter-title" content="${escapeHtml(ogTitle)}"`);
-html = html.replace(`id="twitter-description" content="Treasury yield curve daily analysis"`, `id="twitter-description" content="${metaDescription}"`);
-html = html.replace(`id="twitter-image" content="https://yieldwatch.io/og/og.png"`, `id="twitter-image" content="${ogImageUrl}"`);
-html = html.replace(`id="canonical-url" href="https://yieldwatch.io/blog/"`, `id="canonical-url" href="${blogUrl}"`);
+html = replaceRegexOnce(html, /<title[^>]*>.*<\/title>/, `<title id="page-title">${escapeHtml(pageTitle)}</title>`, 'post title');
+html = replaceOnce(html, `content="Treasury yield curve daily analysis" id="meta-desc"`, `content="${metaDescription}" id="meta-desc"`, 'post description');
+html = replaceOnce(html, `id="og-url" content="https://yieldwatch.io/blog"`, `id="og-url" content="${blogUrl}"`, 'post og url');
+html = replaceOnce(html, `id="og-title" content="Treasury Yield Daily Summary"`, `id="og-title" content="${escapeHtml(ogTitle)}"`, 'post og title');
+html = replaceOnce(html, `id="og-description" content="Treasury yield curve daily analysis"`, `id="og-description" content="${metaDescription}"`, 'post og description');
+html = replaceOnce(html, `id="og-image" content="https://yieldwatch.io/og/og.png"`, `id="og-image" content="${ogImageUrl}"`, 'post og image');
+html = replaceAllOnce(html, 'content="U.S. Treasury Yield Curve Dashboard"', `content="${escapeHtml(`U.S. Treasury yield curve chart for ${dateStr}`)}"`, 'post image alt');
+html = replaceOnce(html, `id="article-date" content=""`, `id="article-date" content="${date}T20:00:00Z"`, 'post article date');
+html = replaceOnce(html, `id="article-modified" content=""`, `id="article-modified" content="${date}T20:00:00Z"`, 'post article modified');
+html = replaceOnce(html, `id="twitter-url" content="https://yieldwatch.io/blog"`, `id="twitter-url" content="${blogUrl}"`, 'post twitter url');
+html = replaceOnce(html, `id="twitter-title" content="Treasury Yield Daily Summary"`, `id="twitter-title" content="${escapeHtml(ogTitle)}"`, 'post twitter title');
+html = replaceOnce(html, `id="twitter-description" content="Treasury yield curve daily analysis"`, `id="twitter-description" content="${metaDescription}"`, 'post twitter description');
+html = replaceOnce(html, `id="twitter-image" content="https://yieldwatch.io/og/og.png"`, `id="twitter-image" content="${ogImageUrl}"`, 'post twitter image');
+html = replaceOnce(html, `id="canonical-url" href="https://yieldwatch.io/blog/"`, `id="canonical-url" href="${blogUrl}"`, 'post canonical');
 
 // Breadcrumb schema: parse, update the leaf, then re-serialize so the final
 // ListItem points at the post itself instead of the blog index.
@@ -175,22 +176,25 @@ if (breadcrumbSchemaMatch) {
 }
 
 // Article JSON-LD.
-html = html.replace(
+html = replaceOnce(html,
   '</head>',
-  `<script type="application/ld+json">\n  ${inlineJson(articleSchema)}\n  </script>\n</head>`
+  `<script type="application/ld+json">\n  ${inlineJson(articleSchema)}\n  </script>\n</head>`,
+  'post article schema'
 );
 
 // Swap the loading placeholder for the pre-rendered article.
-html = html.replace(
+html = replaceOnce(html,
   '<div id="content">\n      <div class="loading">Loading summary...</div>\n    </div>',
-  `<div id="content">${articleContent}</div>`
+  `<div id="content">${articleContent}</div>`,
+  'post content'
 );
 
 // Inject this post's rates for the template's chart renderer.
-html = html.replace(
+html = replaceOnce(html,
   '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>',
   `<script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>
-  <script>const POST_RATES = ${inlineJson(rates)};</script>`
+  <script>const POST_RATES = ${inlineJson(rates)};</script>`,
+  'post chart data'
 );
 ---
 <Fragment set:html={html} />

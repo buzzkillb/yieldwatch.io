@@ -2,7 +2,7 @@
   "serverInfo": {
     "name": "yieldwatch.io/treasury-api",
     "version": "1.0.0",
-    "description": "U.S. Treasury Yield Curve API - Real-time and historical yield curve data"
+    "description": "U.S. Treasury Yield Curve API - Daily and historical yield curve data"
   },
   "endpoint": "https://yieldwatch.io/api/rates",
   "capabilities": {
@@ -25,7 +25,7 @@
       },
       {
         "name": "get_blog_posts",
-        "description": "Get paginated daily summary posts"
+        "description": "Get daily summary posts"
       }
     ],
     "resources": [
