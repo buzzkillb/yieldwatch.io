@@ -141,9 +141,14 @@ html = html.replace(
         monthSelect.innerHTML = '<option value="">All Months</option>';
         monthSelect.disabled = !year;
         if (year) {
+          const available = new Set(
+            BLOG_INDEX.filter(i => i.date.startsWith(year)).map(i => i.date.slice(5, 7))
+          );
           MONTHS.forEach((name, idx) => {
+            const value = String(idx + 1).padStart(2, '0');
+            if (!available.has(value)) return;
             const opt = document.createElement('option');
-            opt.value = String(idx + 1).padStart(2, '0');
+            opt.value = value;
             opt.textContent = name;
             monthSelect.appendChild(opt);
           });
