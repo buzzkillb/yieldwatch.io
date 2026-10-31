@@ -24,7 +24,7 @@ for (const [year, months] of [...byYear.entries()].sort((a, b) => b[0].localeCom
   listHtml += `      <section class="archive-year-block" aria-label="Daily summaries from ${year}">
         <h2 class="archive-year">${year}</h2>\n`;
   for (const [month, posts] of [...months.entries()].sort((a, b) => b[0].localeCompare(a[0]))) {
-    listHtml += `        <h3 class="archive-month">${MONTH_NAMES[Number(month) - 1]} ${year}</h3>
+    listHtml += `        <h3 class="archive-month"><a href="/blog/?year=${year}&amp;month=${month}">${MONTH_NAMES[Number(month) - 1]} ${year}</a></h3>
         <ul class="archive-list">
 ${posts.map(p => `          <li><a href="/blog/${p.date}/">${escapeHtml(p.headline)}</a></li>`).join('\n')}
         </ul>\n`;
@@ -121,6 +121,8 @@ const collectionSchema = {
       .archive-count { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem; }
       .archive-year { font-size: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.4rem; margin: 2.5rem 0 1rem; }
       .archive-month { font-size: 1.1rem; color: var(--accent-hover); margin: 1.5rem 0 0.5rem; }
+      .archive-month a { color: inherit; text-decoration: none; }
+      .archive-month a:hover { text-decoration: underline; }
       .archive-list { list-style: none; padding: 0; margin: 0 0 0.5rem; }
       .archive-list li { border-bottom: 1px solid var(--border-color); }
       .archive-list a { display: block; padding: 0.55rem 0.25rem; color: var(--text-primary); text-decoration: none; }
