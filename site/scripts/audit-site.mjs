@@ -199,6 +199,45 @@ for (const f of files) {
   }
 }
 
+// Shared chrome uniformity: every page must emit the same header/footer markup
+// and the same canonical token block. Any page that drifts is reported here so
+// template changes cannot quietly fork the site's visual identity.
+const chromeSigs = { header: new Map(), footer: new Map() };
+const chromeMissing = { header: [], footer: [], tokens: [] };
+for (const f of files) {
+  const rel = '/' + relative(ROOT, f).replace(/index\.html$/, '').replace(/\\/g, '/');
+  const html = readFileSync(f, 'utf8');
+  for (const tag of ['header', 'footer']) {
+    const m = html.match(new RegExp(`<${tag}[^>]*>[\\s\\S]*?</${tag}>`, 'i'));
+    if (!m) { chromeMissing[tag].push(rel); continue; }
+    const sig = m[0].replace(/\s+/g, ' ').trim().replace(/\saria-current="page"/g, '');
+    if (!chromeSigs[tag].has(sig)) chromeSigs[tag].set(sig, []);
+    chromeSigs[tag].get(sig).push(rel);
+  }
+  if (!html.includes('<style id="yw-tokens">')) chromeMissing.tokens.push(rel);
+}
+const dominant = (map) => [...map.entries()].sort((a, b) => b[1].length - a[1].length)[0]?.[0] ?? null;
+const chromeDrift = [];
+for (const tag of ['header', 'footer']) {
+  const dom = dominant(chromeSigs[tag]);
+  for (const [sig, list] of chromeSigs[tag]) {
+    if (sig === dom) continue;
+    chromeDrift.push(...list.map(rel => `${tag}:${rel}`));
+  }
+}
+report.chromeMissingHeader = chromeMissing.header;
+report.chromeMissingFooter = chromeMissing.footer;
+report.chromeMissingTokens = chromeMissing.tokens;
+report.chromeHeaderVariants = chromeSigs.header.size;
+report.chromeFooterVariants = chromeSigs.footer.size;
+report.chromeDrift = chromeDrift;
+report.chromeMissingHeaderCount = chromeMissing.header.length;
+report.chromeMissingFooterCount = chromeMissing.footer.length;
+report.chromeMissingTokensCount = chromeMissing.tokens.length;
+report.chromeHeaderVariantsCount = Math.max(0, chromeSigs.header.size - 1);
+report.chromeFooterVariantsCount = Math.max(0, chromeSigs.footer.size - 1);
+report.chromeDriftCount = chromeDrift.length;
+
 // Sitemap ↔ page consistency.
 const sitemapPath = join(ROOT, 'sitemap.xml');
 const sitemapUrls = new Set();
@@ -247,6 +286,8 @@ report.issueCount = [
   'missingSocialMetaCount', 'missingSkipLink', 'missingMain', 'imgNoAlt', 'dupDomId', 'headingSkip', 'unreplacedToken', 'brokenInternalCount',
   'brokenAnchorCount', 'nonCanonicalInternalCount', 'thinCount', 'noLang', 'noViewport', 'missingFromSitemapCount',
   'sitemapMissingFilesCount', 'noindexInSitemapCount',
+  'chromeMissingHeaderCount', 'chromeMissingFooterCount', 'chromeMissingTokensCount',
+  'chromeHeaderVariantsCount', 'chromeFooterVariantsCount', 'chromeDriftCount',
 ].reduce((sum, key) => {
   const value = report[key];
   if (Array.isArray(value)) return sum + value.length;

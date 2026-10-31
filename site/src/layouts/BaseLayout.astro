@@ -5,6 +5,7 @@
 import { buildFooter, buildHeader, CHROME_STYLE, type ChromeActive } from '../lib/chrome';
 import { BRAND_OG_ALT, siteSchemaGraph, socialMetaTags } from '../lib/meta';
 import { inlineJson } from '../lib/site';
+import { BASE_STYLE } from '../lib/tokens';
 
 interface Props {
   title: string;
@@ -48,6 +49,7 @@ const FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' vi
     <Fragment set:html={siteSchemaGraph()} />
     <Fragment set:html={CHROME_STYLE} />
     <slot name="head" />
+    <Fragment set:html={BASE_STYLE} />
   </head>
   <body class={bodyClass || undefined}>
     <Fragment set:html={buildHeader(active)} />

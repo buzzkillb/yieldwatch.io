@@ -2,6 +2,7 @@
 // Templates are raw HTML, so the chrome is injected as a string at build time.
 // Keeping one source of truth prevents nav/footer drift between pages.
 import ratesJson from '../data/rates.json';
+import { BASE_STYLE } from './tokens';
 
 export type ChromeActive = 'dashboard' | 'blog' | 'archive' | 'api-docs' | 'faq' | null;
 
@@ -152,7 +153,9 @@ export function applyChrome(html: string, active: ChromeActive): string {
     .replace(/<footer class="footer">[\s\S]*?<\/footer>/, buildFooter());
 
   if (!out.includes('id="yw-chrome"')) {
-    out = out.replace('</head>', `  ${CHROME_STYLE}\n</head>`);
+    // Tokens first, chrome rules second, both last in the head so no template
+    // style block can override the shared palette or body treatment.
+    out = out.replace('</head>', `  ${BASE_STYLE}\n  ${CHROME_STYLE}\n</head>`);
   }
   return out;
 }

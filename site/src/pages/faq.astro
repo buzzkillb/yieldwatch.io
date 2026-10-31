@@ -106,10 +106,7 @@ const schema = {
   mainClass="container"
 >
   <style is:inline slot="head">
-    :root { --bg-primary: #0a0a0f; --bg-secondary: #0f0f18; --bg-card: #16161f; --border-color: #2a2a3a; --text-primary: #f0f0f5; --text-secondary: #a0a0b0; --text-muted: #606070; --accent: #6366f1; --accent-hover: #818cf8; }
     * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg-primary); color: var(--text-primary); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; line-height: 1.6; }
-    main.container { max-width: 1100px; margin: 0 auto; padding: 3rem 2rem; }
     .page-title { font-size: 2rem; font-weight: 600; margin: 0 0 2rem; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
     .faq-intro { color: var(--text-secondary); margin: 0 0 2.5rem; font-size: 1.05rem; max-width: 700px; }
     .faq-section { margin-bottom: 2.5rem; }
@@ -118,7 +115,7 @@ const schema = {
     .faq-answer { color: var(--text-secondary); line-height: 1.7; margin: 0; }
     .faq-answer a { color: var(--accent); }
     @media (max-width: 768px) {
-      main.container { padding: 2rem 1rem; }
+      main.container { padding: 1rem; }
       .page-title { font-size: 1.5rem; }
       .faq-item { padding: 1rem; }
     }
