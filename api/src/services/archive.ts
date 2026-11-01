@@ -1,6 +1,7 @@
 import { db, schema } from '../db';
 import { desc } from 'drizzle-orm';
 import postgres from 'postgres';
+import { KNOWN_MATURITY_KEYS } from '../utils/maturities';
 
 const ARCHIVE_CSV_URLS = [
   'https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rate-archives/par-yield-curve-rates-1990-2023.csv',
@@ -50,7 +51,7 @@ const CSV_COLUMNS: Record<string, string> = {
   '30 YEAR': '30YR',
 };
 
-const KNOWN_MATURITY_KEYS = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
+// KNOWN_MATURITY_KEYS is imported from ../utils/maturities (canonical list).
 
 function normalizeColumnName(col: string): string | null {
   const cleaned = col.trim();

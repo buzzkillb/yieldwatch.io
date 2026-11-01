@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const readJson = async (name) => JSON.parse(await readFile(join(root, 'src', 'data', name), 'utf8'));
-const MATURITIES = new Set(['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR']);
+const MATURITIES = new Set((await readJson('maturities.json')).order);
 const errors = [];
 
 const rates = await readJson('rates.json');

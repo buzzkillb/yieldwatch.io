@@ -2,7 +2,8 @@ import { Elysia, t } from 'elysia';
 import { db, schema } from '../db';
 import { desc, eq, sql, like, and, gte, lte } from 'drizzle-orm';
 
-const MATURITY_ORDER = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
+import { MATURITY_ORDER } from '../utils/maturities';
+
 const POSTS_PER_PAGE = 5;
 
 export const blogRoutes = new Elysia({ prefix: '/api/blog' })

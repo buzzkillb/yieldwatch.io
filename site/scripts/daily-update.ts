@@ -26,7 +26,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dataDir = join(root, 'src', 'data');
 const TREASURY_XML_URL = 'https://home.treasury.gov/sites/default/files/interest-rates/yield.xml';
 const force = process.argv.includes('--force');
-const REQUIRED_TENORS = ['3MO', '2YR', '10YR', '30YR'];
+const REQUIRED_TENORS = JSON.parse(await readFile(join(dataDir, 'maturities.json'), 'utf8')).requiredTenors;
 const LEGACY_REQUIRED_TENORS = ['10YR'];
 
 const ratesPath = join(dataDir, 'rates.json');

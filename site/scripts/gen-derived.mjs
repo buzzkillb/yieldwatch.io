@@ -44,11 +44,21 @@ const summaries = await readJson('summaries.json');
 // stats.json/maturities.json used to be exported once by the old API and went
 // stale as new rate days landed. Derive both from rates.json on every build so
 // the public API snapshots always match the data they describe.
-const MATURITY_YEARS = {
-  '4WK': 4 / 52, '6WK': 6 / 52, '2MO': 2 / 12, '3MO': 3 / 12, '4MO': 4 / 12,
-  '6MO': 6 / 12, '1YR': 1, '2YR': 2, '3YR': 3, '5YR': 5, '7YR': 7,
-  '10YR': 10, '20YR': 20, '30YR': 30,
+// Canonical maturity list shared with the site and the dashboard client.
+const MATURITY_ORDER = (await readJson('maturities.json')).order;
+
+// Tenor duration in years, parsed from the canonical maturity codes rather
+// than a second hardcoded list that could drift.
+const tenorYears = (m) => {
+  const wk = /^(\d+)WK$/.exec(m);
+  if (wk) return Number(wk[1]) / 52;
+  const mo = /^(\d+)MO$/.exec(m);
+  if (mo) return Number(mo[1]) / 12;
+  const yr = /^(\d+)YR$/.exec(m);
+  if (yr) return Number(yr[1]);
+  return Number.NaN;
 };
+const MATURITY_YEARS = Object.fromEntries(MATURITY_ORDER.map(m => [m, tenorYears(m)]));
 
 function assertRatesIntegrity(rows) {
   if (!Array.isArray(rows) || rows.length === 0) throw new Error('rates.json is empty');
@@ -161,7 +171,7 @@ for (const file of await readdir(join(pub, 'api', 'blog'))) {
 }
 
 // --- OG images ---------------------------------------------------------------
-const MATURITY_ORDER = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
+// MATURITY_ORDER comes from the canonical config loaded above.
 
 const escapeXmlText = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 

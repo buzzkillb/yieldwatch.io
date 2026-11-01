@@ -1,9 +1,4 @@
-    const MATURITY_ORDER = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
-    const CHART_COLORS = [
-      '#6366f1', '#a855f7', '#ec4899', '#f43f5e', '#f97316', '#eab308',
-      '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#10b981',
-      '#f59e0b', '#ef4444'
-    ];
+import { CHART_COLORS, MATURITY_ORDER } from '../lib/maturities';
 
     let chart = null;
     let latestRates = {};

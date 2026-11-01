@@ -5,7 +5,6 @@
 // pre-generated static range snapshots.
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { buildSeoBlock, latestDay, SITE_URL } from '../lib/site';
-import dashboardJs from '../client/dashboard.js?raw';
 import '../styles/dashboard.css';
 
 const latest = latestDay();
@@ -122,5 +121,7 @@ const schema = {
     <p style="color:var(--text-secondary,#a0a0b0);margin:0 0 0.75rem;">For definitions, see the <a href="/faq/" style="color:var(--accent,#6366f1);">FAQ</a>. For sourcing, validation, update timing, and known limitations, read the <a href="/methodology/" style="color:var(--accent,#6366f1);">data methodology</a>. Developers can pull the same numbers from the <a href="/api-docs/" style="color:var(--accent,#6366f1);">public API</a>, and <a href="/about/" style="color:var(--accent,#6366f1);">About YieldWatch</a> explains who runs the site and why it is free.</p>
   </section>
 
-  <script is:inline set:html={dashboardJs} />
+  <script>
+    import '../client/dashboard.js';
+  </script>
 </BaseLayout>

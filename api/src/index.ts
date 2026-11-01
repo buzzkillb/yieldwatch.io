@@ -11,6 +11,7 @@ import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { readStaticFile, readStaticFileString } from './utils/staticFiles';
 import { generateOgChart } from './utils/ogChart';
+import { MATURITY_ORDER } from './utils/maturities';
 
 function escapeHtml(str: string): string {
   return str
@@ -652,7 +653,7 @@ function generateOgSvg(data: { maturity: string; rate: number }[] | string, date
     </svg>`;
   }
 
-  const maturities = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
+  const maturities = MATURITY_ORDER;
   const ratesMap = new Map(data.map(d => [d.maturity, d.rate]));
   const rates = maturities.map(m => ({ maturity: m, rate: ratesMap.get(m) || 0 }));
   const maxRate = Math.max(...rates.map(r => r.rate));

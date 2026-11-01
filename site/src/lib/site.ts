@@ -2,6 +2,11 @@
 // Single source of truth: src/data/*.json (updated daily by scripts/daily-update.mjs).
 import ratesJson from '../data/rates.json';
 import summariesJson from '../data/summaries.json';
+import { maturityLabel, maturityRank } from './maturities';
+
+// Chart palette lives in ./maturities so the dashboard client and the build
+// scripts read the same values.
+export { CHART_COLORS } from './maturities';
 
 export interface RatePoint { maturity: string; rate: number }
 export interface RateDay { date: string; rates: RatePoint[] }
@@ -24,7 +29,7 @@ export const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-export const CHART_COLORS = ['#6366f1', '#a855f7', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
+// (CHART_COLORS re-exported above from ./maturities)
 
 function escapeMarkup(str: string, apostrophe: string): string {
   return str
@@ -84,18 +89,9 @@ export function latestDay(): RateDay {
 // and no visible H1. Keep this content genuinely visible: it is the crawlable
 // description of the dashboard and the canonical answer block for AEO/GEO.
 export function buildSeoBlock(day: RateDay): string {
-  const SEO_MATURITY_ORDER = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
-  const label = (m: string) => {
-    const weeks = /^(\d+)WK$/.exec(m);
-    if (weeks) return `${weeks[1]}-week bill`;
-    const months = /^(\d+)MO$/.exec(m);
-    if (months) return `${months[1]}-month bill`;
-    const years = /^(\d+)YR$/.exec(m);
-    if (years) return `${years[1]}-year`;
-    return m;
-  };
+  const label = maturityLabel;
   const sorted = [...day.rates].sort(
-    (a, b) => SEO_MATURITY_ORDER.indexOf(a.maturity) - SEO_MATURITY_ORDER.indexOf(b.maturity)
+    (a, b) => maturityRank(a.maturity) - maturityRank(b.maturity)
   );
   const keyRates = ['4WK', '2YR', '10YR', '30YR']
     .map(m => sorted.find(r => r.maturity === m))

@@ -10,6 +10,7 @@ import {
   sleep,
   generateAndSaveSummaries,
 } from './summaryService';
+import { KNOWN_MATURITY_KEYS } from '../utils/maturities';
 import { generateOgChart } from '../utils/ogChart';
 import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
@@ -49,7 +50,7 @@ const CSV_COLUMNS: Record<string, string> = {
   '30 YR': '30YR', '30 YEAR': '30YR', '30Yr': '30YR',
 };
 
-const KNOWN_MATURITY_KEYS = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
+// KNOWN_MATURITY_KEYS is imported from ../utils/maturities (canonical list).
 
 async function generateDailySummary(targetDate?: string): Promise<void> {
   try {
