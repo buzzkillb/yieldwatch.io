@@ -107,6 +107,9 @@ await writeJson('api/rates.json', {
 await writeJson('api/rates/latest.json', {
   success: true,
   data: { date: latest.date, dateFormatted: fmtDate(latest.date), rates: latest.rates },
+  // Additive coverage metadata so clients can tell how far back the archive
+  // actually goes instead of guessing from the latest date.
+  meta: { earliest: rates[0].date, latest: latest.date, count: rates.length },
 });
 
 await writeJson('api/rates/maturities.json', { success: true, data: maturities });

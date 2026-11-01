@@ -4,13 +4,13 @@
 const MATURITY_ORDER = ['4WK', '6WK', '2MO', '3MO', '4MO', '6MO', '1YR', '2YR', '3YR', '5YR', '7YR', '10YR', '20YR', '30YR'];
 
 self.onmessage = function(e) {
-  const rawData = e.data;
-  
+  const { id, data: rawData } = e.data || {};
+
   try {
     const result = processChartData(rawData);
-    self.postMessage({ success: true, data: result });
+    self.postMessage({ id: id, success: true, data: result });
   } catch (error) {
-    self.postMessage({ success: false, error: error.message });
+    self.postMessage({ id: id, success: false, error: error.message });
   }
 };
 
@@ -57,7 +57,7 @@ function processChartData(rawData) {
   const labels = new Float64Array(dateCount);
   for (let i = 0; i < dateCount; i++) {
     const [year, month, day] = sortedDates[i].split('-');
-    labels[i] = Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day));
+    labels[i] = Date.UTC(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
   }
   
   return {

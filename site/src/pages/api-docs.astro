@@ -35,6 +35,11 @@ const latestRatesExample = jsonBlock({
     dateFormatted: dateFormatted(latestRateDay.date),
     rates: latestRateDay.rates.map(r => ({ maturity: r.maturity, rate: r.rate })),
   },
+  meta: {
+    earliest: RATES[0].date,
+    latest: latestRateDay.date,
+    count: RATES.length,
+  },
 });
 
 const ratesAllExample = jsonBlock({
@@ -44,12 +49,9 @@ const ratesAllExample = jsonBlock({
     rates: ['4WK', '2YR', '10YR'].map(m => ({ maturity: m, rate: rate(m) })),
   }],
   meta: {
-    from: 'earliest',
-    to: 'latest',
-    maturity: 'all',
+    from: RATES[0].date,
+    to: latestRateDay.date,
     count: RATES.length,
-    limit: RATES.length,
-    offset: 0,
     hasMore: false,
   },
 });

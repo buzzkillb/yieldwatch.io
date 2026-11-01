@@ -12,6 +12,8 @@
     let currentRange = '3m';
     let availableRanges = { '3m': true, '6m': true, '1y': true, '2y': true, '5y': true, 'all': true };
     let latestDataDate = null;
+    let earliestDataDate = null;
+    let historyRequestId = 0;
 
     function announceToScreenReader(message) {
       const announcement = document.createElement('div');
@@ -32,59 +34,70 @@
       }
     }
 
+    const RANGE_BUTTONS = {
+      '3m': 'btn3m', '6m': 'btn6m', '1y': 'btn1y',
+      '2y': 'btn2y', '5y': 'btn5y', 'all': 'btnAll',
+    };
+    const RANGE_LABELS = {
+      '3m': '3 month', '6m': '6 month', '1y': '1 year',
+      '2y': '2 year', '5y': '5 year', 'all': 'all',
+    };
+
+    function coverageDescription() {
+      if (!earliestDataDate || !latestDataDate) return 'data available';
+      const months = (latestDataDate.getFullYear() - earliestDataDate.getFullYear()) * 12
+        + (latestDataDate.getMonth() - earliestDataDate.getMonth());
+      if (months < 1) return 'less than one month of data available';
+      if (months < 12) return `${months} month${months === 1 ? '' : 's'} of data available`;
+      const years = Math.floor(months / 12);
+      const rem = months % 12;
+      return `${years} year${years === 1 ? '' : 's'}${rem ? ` ${rem} month${rem === 1 ? '' : 's'}` : ''} of data available`;
+    }
+
     function updateAvailableRanges() {
       if (!latestDataDate) return;
-      
-      const now = new Date();
-      const threeMonthsAgo = new Date(now.setMonth(now.getMonth() - 3));
-      const sixMonthsAgo = new Date(now.setMonth(now.getMonth() - 6));
-      const oneYearAgo = new Date(now.setFullYear(now.getFullYear() - 1));
-      const twoYearsAgo = new Date(now.setFullYear(now.getFullYear() - 2));
-      const fiveYearsAgo = new Date(now.setFullYear(now.getFullYear() - 5));
-      
-      availableRanges['3m'] = latestDataDate >= threeMonthsAgo;
-      availableRanges['6m'] = latestDataDate >= sixMonthsAgo;
-      availableRanges['1y'] = latestDataDate >= oneYearAgo;
-      availableRanges['2y'] = latestDataDate >= twoYearsAgo;
-      availableRanges['5y'] = latestDataDate >= fiveYearsAgo;
-      availableRanges['all'] = true;
-      
-      const btn3m = document.getElementById('btn3m');
-      const btn6m = document.getElementById('btn6m');
-      const btn1y = document.getElementById('btn1y');
-      const btn2y = document.getElementById('btn2y');
-      const btn5y = document.getElementById('btn5y');
-      const btnAll = document.getElementById('btnAll');
-      
-      btn3m.disabled = !availableRanges['3m'];
-      btn6m.disabled = !availableRanges['6m'];
-      btn1y.disabled = !availableRanges['1y'];
-      btn2y.disabled = !availableRanges['2y'];
-      btn5y.disabled = !availableRanges['5y'];
-      btnAll.disabled = !availableRanges['all'];
-      
-      btn3m.title = availableRanges['3m'] ? 'Show 3 month history' : '3 month data not available';
-      btn6m.title = availableRanges['6m'] ? 'Show 6 month history' : '6 month data not available';
-      btn1y.title = availableRanges['1y'] ? 'Show 1 year history' : '1 year data not available';
-      btn2y.title = availableRanges['2y'] ? 'Show 2 year history' : '2 year data not available';
-      btn5y.title = availableRanges['5y'] ? 'Show 5 year history' : '5 year data not available';
-      btnAll.title = availableRanges['all'] ? 'Show all available history' : 'All data not available';
-      
+
+      // Each cutoff is computed from an untouched base date. Previously the
+      // same Date object was mutated in place, so every longer range was
+      // measured from an already-shifted date (3, 9, 21, 45, 105 months).
+      const base = new Date();
+      const cutoff = (months, years) => {
+        const d = new Date(base.getTime());
+        d.setFullYear(d.getFullYear() - years, d.getMonth() - months, d.getDate());
+        return d;
+      };
+      const cutoffs = {
+        '3m': cutoff(3, 0), '6m': cutoff(6, 0), '1y': cutoff(0, 1),
+        '2y': cutoff(0, 2), '5y': cutoff(0, 5),
+      };
+
+      // A range is only available when the archive actually reaches back to
+      // its start date. Comparing the newest row against the cutoff would
+      // wrongly enable 5Y on a site that launched last week.
+      const coverageStart = earliestDataDate || null;
+      Object.entries(cutoffs).forEach(([range, start]) => {
+        // Without coverage metadata (e.g. a cached pre-upgrade payload),
+        // fail open rather than disabling every range but "all".
+        availableRanges[range] = coverageStart ? coverageStart <= start : true;
+      });
+      availableRanges.all = true;
+
+      Object.entries(RANGE_BUTTONS).forEach(([range, id]) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        const available = Boolean(availableRanges[range]);
+        btn.disabled = !available;
+        btn.title = available
+          ? `Show ${RANGE_LABELS[range]} history`
+          : `${RANGE_LABELS[range]} data not available (${coverageDescription()})`;
+      });
+
       if (!availableRanges[currentRange]) {
-        if (availableRanges['3m']) {
-          currentRange = '3m';
-        } else if (availableRanges['6m']) {
-          currentRange = '6m';
-        } else if (availableRanges['1y']) {
-          currentRange = '1y';
-        } else if (availableRanges['2y']) {
-          currentRange = '2y';
-        } else if (availableRanges['5y']) {
-          currentRange = '5y';
-        } else if (availableRanges['all']) {
-          currentRange = 'all';
+        const fallback = ['3m', '6m', '1y', '2y', '5y', 'all'].find(r => availableRanges[r]);
+        if (fallback) {
+          currentRange = fallback;
+          setActiveButton(RANGE_BUTTONS[currentRange]);
         }
-        setActiveButton('btn' + currentRange, true);
       }
     }
 
@@ -96,6 +109,8 @@
         if (data.success && data.data) {
           displayLatestRates(data.data);
           latestDataDate = new Date(data.data.date + 'T00:00:00Z');
+          const earliest = data.meta && data.meta.earliest;
+          earliestDataDate = earliest ? new Date(earliest + 'T00:00:00Z') : null;
           updateAvailableRanges();
           fetchHistoricalData();
           fetchDailySummary();
@@ -242,16 +257,21 @@
     }
 
     async function fetchHistoricalData() {
+      const requestId = ++historyRequestId;
+      const requestedRange = currentRange;
       setLoading(true);
-      
+
       try {
         const RANGE_FILES = { '3m': '/api/rates/3m.json', '6m': '/api/rates/6m.json', '1y': '/api/rates/1y.json', '2y': '/api/rates/2y.json', '5y': '/api/rates/5y.json', 'all': '/api/rates/all.json' };
-        const response = await fetch(RANGE_FILES[currentRange] || '/api/rates/all.json');
+        const response = await fetch(RANGE_FILES[requestedRange] || '/api/rates/all.json');
         const data = await response.json();
-        
+
+        // A newer range request superseded this one while it was in flight.
+        if (requestId !== historyRequestId) return;
+
         if (data.success && data.data) {
           // Feed 3-month sparklines under each rate card (independent of chart range)
-          if (currentRange === '3m') {
+          if (requestedRange === '3m') {
             buildSparklines(data.data);
           }
           // Use Web Worker for heavy processing, with a main-thread fallback
@@ -268,8 +288,15 @@
             processChartData(data.data);
             result = { labels: chartData.labels, datasets: chartData.datasets };
           }
+          if (requestId !== historyRequestId) return;
+
           chartData.labels = result.labels;
-          chartData.datasets = result.datasets;
+          // The worker rebuilds datasets from scratch, so re-apply the user's
+          // maturity toggles instead of silently re-showing every series.
+          chartData.datasets = result.datasets.map(dataset => ({
+            ...dataset,
+            hidden: !activeMaturities.has(dataset.label),
+          }));
           renderChart();
           renderLegend();
         } else {
@@ -278,47 +305,66 @@
       } catch (error) {
         console.error('Failed to fetch historical data:', error);
       } finally {
-        setLoading(false);
+        if (requestId === historyRequestId) setLoading(false);
       }
     }
 
     // Web Worker for heavy data processing
     let chartWorker = null;
-    
+    let workerRequestId = 0;
+    const workerPending = new Map();
+
+    function getChartWorker() {
+      if (chartWorker) return chartWorker;
+      chartWorker = new Worker('/chartWorker.js');
+      chartWorker.onmessage = function(e) {
+        const pending = workerPending.get(e.data.id);
+        if (!pending) return; // stale response from a superseded request
+        workerPending.delete(e.data.id);
+        clearTimeout(pending.timeoutId);
+        if (e.data.success) {
+          pending.resolve(e.data.data);
+        } else {
+          pending.reject(new Error(e.data.error));
+        }
+      };
+      chartWorker.onerror = function(e) {
+        workerPending.forEach(p => {
+          clearTimeout(p.timeoutId);
+          p.reject(e);
+        });
+        workerPending.clear();
+        chartWorker.terminate();
+        chartWorker = null;
+      };
+      return chartWorker;
+    }
+
     function processInWorker(rawData) {
       return new Promise((resolve, reject) => {
-        if (!chartWorker) {
-          chartWorker = new Worker('/chartWorker.js');
-        }
-        
+        const worker = getChartWorker();
+        const id = ++workerRequestId;
         const timeoutId = setTimeout(() => {
+          workerPending.delete(id);
           reject(new Error('Worker timeout - falling back to main thread'));
         }, 30000);
-        
-        chartWorker.onmessage = function(e) {
-          clearTimeout(timeoutId);
-          if (e.data.success) {
-            resolve(e.data.data);
-          } else {
-            reject(new Error(e.data.error));
-          }
-        };
-        
-        chartWorker.onerror = function(e) {
-          clearTimeout(timeoutId);
-          reject(e);
-        };
-        
-        chartWorker.postMessage(rawData);
+        workerPending.set(id, { resolve, reject, timeoutId });
+        worker.postMessage({ id, data: rawData });
       });
     }
 
     function processChartData(rawData) {
       const sortedDates = [...new Set(rawData.map(d => d.date))].sort();
-      
+      // Build one index instead of scanning rawData for every date/maturity.
+      const byDate = new Map();
+      rawData.forEach(day => {
+        const rates = new Map((day.rates || []).map(r => [r.maturity, r.rate]));
+        byDate.set(day.date, rates);
+      });
+
       chartData.labels = sortedDates.map(date => {
         const [year, month, day] = date.split('-');
-        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        return new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
       });
 
       chartData.datasets = MATURITY_ORDER.map((maturity, index) => {
@@ -326,9 +372,8 @@
         return {
           label: maturity,
           data: sortedDates.map(date => {
-            const dayData = rawData.find(d => d.date === date);
-            const rateData = dayData?.rates.find(r => r.maturity === maturity);
-            return rateData ? rateData.rate : null;
+            const rate = byDate.get(date)?.get(maturity);
+            return rate === undefined ? null : rate;
           }),
           borderColor: CHART_COLORS[colorIndex],
           backgroundColor: CHART_COLORS[colorIndex] + '20',
@@ -381,7 +426,7 @@
                 size: 11
               },
               filter: function(tooltipItem) {
-                return tooltipItem.raw !== null;
+                return Number.isFinite(tooltipItem.raw);
               },
               callbacks: {
                 label: function(context) {
@@ -512,20 +557,25 @@
       `;
     }
 
-    function setActiveButton(btnId, isActive) {
+    function setActiveButton(btnId) {
       document.querySelectorAll('.chart-controls button').forEach(b => {
         b.classList.remove('active');
         b.setAttribute('aria-pressed', 'false');
       });
       const btn = document.getElementById(btnId);
+      if (!btn) return;
       btn.classList.add('active');
       btn.setAttribute('aria-pressed', 'true');
+    }
+
+    function unavailableMessage(range) {
+      return `${RANGE_LABELS[range]} data not available. ${coverageDescription()}.`;
     }
 
     document.getElementById('btn3m').onclick = () => {
       if (currentRange !== '3m') {
         if (!availableRanges['3m']) {
-          announceToScreenReader('3 month data not available');
+          announceToScreenReader(unavailableMessage('3m'));
           return;
         }
         currentRange = '3m';
@@ -538,7 +588,7 @@
     document.getElementById('btn6m').onclick = () => {
       if (currentRange !== '6m') {
         if (!availableRanges['6m']) {
-          announceToScreenReader('6 month data not available. Approximately 2 weeks of data available.');
+          announceToScreenReader(unavailableMessage('6m'));
           return;
         }
         currentRange = '6m';
@@ -551,7 +601,7 @@
     document.getElementById('btn1y').onclick = () => {
       if (currentRange !== '1y') {
         if (!availableRanges['1y']) {
-          announceToScreenReader('1 year data not available. Approximately 2 weeks of data available.');
+          announceToScreenReader(unavailableMessage('1y'));
           return;
         }
         currentRange = '1y';
@@ -564,7 +614,7 @@
     document.getElementById('btn2y').onclick = () => {
       if (currentRange !== '2y') {
         if (!availableRanges['2y']) {
-          announceToScreenReader('2 year data not available.');
+          announceToScreenReader(unavailableMessage('2y'));
           return;
         }
         currentRange = '2y';
@@ -577,7 +627,7 @@
     document.getElementById('btn5y').onclick = () => {
       if (currentRange !== '5y') {
         if (!availableRanges['5y']) {
-          announceToScreenReader('5 year data not available.');
+          announceToScreenReader(unavailableMessage('5y'));
           return;
         }
         currentRange = '5y';
