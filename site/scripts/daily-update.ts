@@ -59,7 +59,9 @@ for (const row of rows) {
   const missing = required.filter(t => !tenors.has(t));
   if (missing.length) throw new Error(`Treasury row ${row.date} missing ${missing.join(', ')}`);
   for (const r of row.rates) {
-    if (!Number.isFinite(r.rate) || r.rate < 0) throw new Error(`Invalid rate ${r.rate} (${r.maturity}) on ${row.date}`);
+    if (!Number.isFinite(r.rate) || r.rate < 0 || r.rate > 25) {
+      throw new Error(`Invalid rate ${r.rate} (${r.maturity}) on ${row.date}`);
+    }
   }
 }
 
@@ -71,24 +73,41 @@ const newRows = rows.filter(r => !known.has(r.date)).sort((a, b) => a.date.local
 // rates.json reaches back to 1990, but the site's published era begins in 2026.
 // Without a floor, an empty summaries.json would trigger ~9,000 generations.
 const SUMMARY_ERA_START = '2026-01-01';
-const summaryDates = new Set(summaries.map(s => s.date));
+const summaryByDate = new Map(summaries.map(s => [s.date, s]));
 const earliestSummaryDate = summaries.length
-  ? summaries[summaries.length - 1].date
+  ? summaries.reduce((min, s) => (s.date < min ? s.date : min), summaries[0].date)
   : SUMMARY_ERA_START;
 const missingSummaryDates = rates
-  .filter(r => r.date >= earliestSummaryDate && !summaryDates.has(r.date))
-  .map(r => r.date);
-const targetDates = new Set<string>([
-  ...newRows.map(r => r.date),
-  ...missingSummaryDates,
-]);
+  .filter(r => r.date >= earliestSummaryDate && !summaryByDate.has(r.date))
+  .map(r => r.date)
+  .sort()
+  .reverse();
 
-if (targetDates.size === 0 && !force) {
+// Bound the work per run so a large historical gap cannot blow through the
+// workflow's timeout. New rows always come first; remaining slots fill the
+// most recent gaps, which are the ones readers actually see.
+const MAX_SUMMARIES_PER_RUN = 12;
+const targetDates = new Set<string>(newRows.map(r => r.date));
+for (const date of missingSummaryDates) {
+  if (targetDates.size >= MAX_SUMMARIES_PER_RUN) break;
+  targetDates.add(date);
+}
+if (force && rates.length) {
+  // --force previously had no effect when there was nothing new or missing.
+  // Regenerate the latest published day so a prompt/model change can be tested.
+  targetDates.add(rates[rates.length - 1].date);
+}
+const deferredCount = missingSummaryDates.filter(d => !targetDates.has(d)).length;
+
+if (targetDates.size === 0) {
   console.log('No new rate rows or missing summaries found. Nothing to do.');
   process.exit(0);
 }
 console.log(`New rate rows: ${newRows.map(r => r.date).join(', ') || '(none)'}`);
 console.log(`Summaries to generate: ${[...targetDates].sort().join(', ') || '(none)'}`);
+if (deferredCount > 0) {
+  console.log(`${deferredCount} older missing summaries deferred to the next run.`);
+}
 
 // 2. Persist new rate rows before touching the LLM. If the gateway is down,
 // the day's official rates are still committed and the next run backfills the
@@ -128,14 +147,14 @@ const dateFormatted = (d: string) =>
 
 let generated = 0;
 const failures: string[] = [];
+const summaryIndex = new Map<string, number>(summaries.map((s, i) => [s.date, i]));
 for (const today of [...targetDates].sort()) {
   const row = byDate.has(today) ? { date: today, rates: byDate.get(today)! } : null;
   if (!row) {
     failures.push(`${today} (no rate data)`);
     continue;
   }
-  const existing = summaries.find(s => s.date === today);
-  if (existing && !force) continue;
+  if (summaryByDate.has(today) && !force) continue;
 
   const yesterday = getPreviousBusinessDay(today);
   const lastWeek = getPreviousBusinessDayFromDate(today, 5);
@@ -184,8 +203,14 @@ for (const today of [...targetDates].sort()) {
       if (!isValidSummary(long)) throw new Error('invalid long summary');
 
       const entry = { date: today, dateFormatted: dateFormatted(today), summary: short, blogSummary: long, rates: row.rates };
-      const idx = summaries.findIndex(s => s.date === today);
-      if (idx >= 0) summaries[idx] = entry; else summaries.push(entry);
+      const idx = summaryIndex.get(today);
+      if (idx !== undefined) {
+        summaries[idx] = entry;
+      } else {
+        summaries.push(entry);
+        summaryIndex.set(today, summaries.length - 1);
+      }
+      summaryByDate.set(today, entry);
       generated++;
       break;
     } catch (err) {

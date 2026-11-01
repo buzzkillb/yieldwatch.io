@@ -4,7 +4,7 @@
 // so there is no raw HTML template or string-anchor replacement left to drift.
 import BaseLayout from '../layouts/BaseLayout.astro';
 import {
-  escapeHtml, truncateWords, inlineJson, SUMMARIES, POSTS_PER_PAGE,
+  truncateWords, inlineJson, SUMMARIES, POSTS_PER_PAGE,
   postHeadline, blogTotalPages, SITE_URL,
 } from '../lib/site';
 
@@ -19,8 +19,9 @@ const items = sorted.slice((current - 1) * POSTS_PER_PAGE, current * POSTS_PER_P
 const blogIndex = sorted.map(s => ({
   date: s.date,
   hasFullPost: Boolean(s.blogSummary && s.blogSummary.length > 0),
-  title: escapeHtml(postHeadline(s.date)),
-  excerpt: escapeHtml(truncateWords(s.summary || s.blogSummary || '', 200)),
+  // Raw text here; the client renderer escapes before building innerHTML.
+  title: postHeadline(s.date),
+  excerpt: truncateWords(s.summary || s.blogSummary || '', 200),
 }));
 
 const hrefFor = (p: number) => (p <= 1 ? '/blog/' : `/blog/${p}/`);
@@ -66,14 +67,17 @@ const cardDate = (date: string) => new Date(date + 'T00:00:00Z').toLocaleDateStr
 // fully static page without shipping a framework bundle.
 const filterScript = `const BLOG_INDEX = ${inlineJson(blogIndex)};
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
 function renderSummaries(summaries) {
   const html = summaries.map((item) => {
     const date = new Date(item.date + 'T00:00:00Z');
     const dateStr = date.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
     return '<a href="/blog/' + item.date + '/" class="summary-card-link"><article class="summary-card"><div class="summary-date">' + dateStr + '</div>' +
-      (item.title ? '<h2 class="summary-card-title">' + item.title + '</h2>' : '') +
+      (item.title ? '<h2 class="summary-card-title">' + esc(item.title) + '</h2>' : '') +
       '<div class="analysis-tag">' + (item.hasFullPost ? 'Full analysis available' : 'Quick summary') + '</div>' +
-      '<p class="summary-excerpt">' + item.excerpt + '</p></article></a>';
+      '<p class="summary-excerpt">' + esc(item.excerpt) + '</p></article></a>';
   }).join('');
   document.getElementById('content').innerHTML = '<div class="summaries-list">' + html + '</div>';
   window.scrollTo({ top: 0, behavior: 'smooth' });

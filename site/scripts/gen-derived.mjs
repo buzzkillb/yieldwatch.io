@@ -62,7 +62,7 @@ function assertRatesIntegrity(rows) {
     }
     for (const r of row.rates) {
       if (!(r.maturity in MATURITY_YEARS)) throw new Error(`Unknown maturity ${r.maturity} on ${row.date}`);
-      if (!Number.isFinite(r.rate) || r.rate < 0) throw new Error(`Invalid rate ${r.rate} (${r.maturity}) on ${row.date}`);
+      if (!Number.isFinite(r.rate) || r.rate < 0 || r.rate > 25) throw new Error(`Invalid rate ${r.rate} (${r.maturity}) on ${row.date}`);
     }
   }
 }
@@ -167,7 +167,7 @@ const escapeXmlText = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt
 
 function generateOgSvg(data, dateLabel = '') {
   const ratesMap = new Map(data.map(d => [d.maturity, d.rate]));
-  const pts = MATURITY_ORDER.map(m => ({ maturity: m, rate: ratesMap.get(m) || 0 })).filter(r => r.rate > 0);
+  const pts = MATURITY_ORDER.map(m => ({ maturity: m, rate: ratesMap.get(m) })).filter(r => Number.isFinite(r.rate));
   const brand = `
     <defs>
       <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#08080d"/><stop offset="100%" style="stop-color:#151524"/></linearGradient>

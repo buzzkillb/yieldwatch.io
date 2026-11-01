@@ -34,6 +34,20 @@
       }
     }
 
+    // Chart failures must not wipe the rate cards above. Surface the problem
+    // next to the chart and keep whatever series was last rendered.
+    function setChartError(message) {
+      const el = document.getElementById('chartError');
+      if (!el) return;
+      if (message) {
+        el.textContent = message;
+        el.classList.remove('hidden');
+      } else {
+        el.textContent = '';
+        el.classList.add('hidden');
+      }
+    }
+
     const RANGE_BUTTONS = {
       '3m': 'btn3m', '6m': 'btn6m', '1y': 'btn1y',
       '2y': 'btn2y', '5y': 'btn5y', 'all': 'btnAll',
@@ -104,6 +118,7 @@
     async function fetchLatestRates() {
       try {
         const response = await fetch('/api/rates/latest.json');
+        if (!response.ok) throw new Error(`Latest rates request failed: ${response.status}`);
         const data = await response.json();
         
         if (data.success && data.data) {
@@ -259,11 +274,13 @@
     async function fetchHistoricalData() {
       const requestId = ++historyRequestId;
       const requestedRange = currentRange;
+      setChartError('');
       setLoading(true);
 
       try {
         const RANGE_FILES = { '3m': '/api/rates/3m.json', '6m': '/api/rates/6m.json', '1y': '/api/rates/1y.json', '2y': '/api/rates/2y.json', '5y': '/api/rates/5y.json', 'all': '/api/rates/all.json' };
         const response = await fetch(RANGE_FILES[requestedRange] || '/api/rates/all.json');
+        if (!response.ok) throw new Error(`History request failed: ${response.status}`);
         const data = await response.json();
 
         // A newer range request superseded this one while it was in flight.
@@ -300,10 +317,16 @@
           renderChart();
           renderLegend();
         } else {
-          console.error('Failed to fetch historical data');
+          if (requestId === historyRequestId) {
+            setChartError(`Could not load ${RANGE_LABELS[requestedRange]} history. The previous chart is still shown.`);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch historical data:', error);
+        if (requestId === historyRequestId) {
+          setChartError(`Could not load ${RANGE_LABELS[requestedRange]} history. Check your connection and try again.`);
+          announceToScreenReader(`${RANGE_LABELS[requestedRange]} history failed to load`);
+        }
       } finally {
         if (requestId === historyRequestId) setLoading(false);
       }
@@ -572,79 +595,23 @@
       return `${RANGE_LABELS[range]} data not available. ${coverageDescription()}.`;
     }
 
-    document.getElementById('btn3m').onclick = () => {
-      if (currentRange !== '3m') {
-        if (!availableRanges['3m']) {
-          announceToScreenReader(unavailableMessage('3m'));
+    Object.entries(RANGE_BUTTONS).forEach(([range, id]) => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      btn.onclick = () => {
+        if (currentRange === range) return;
+        if (!availableRanges[range]) {
+          announceToScreenReader(unavailableMessage(range));
           return;
         }
-        currentRange = '3m';
-        setActiveButton('btn3m', true);
+        currentRange = range;
+        setActiveButton(id);
         fetchHistoricalData();
-        announceToScreenReader('Showing 3 month history');
-      }
-    };
-
-    document.getElementById('btn6m').onclick = () => {
-      if (currentRange !== '6m') {
-        if (!availableRanges['6m']) {
-          announceToScreenReader(unavailableMessage('6m'));
-          return;
-        }
-        currentRange = '6m';
-        setActiveButton('btn6m', true);
-        fetchHistoricalData();
-        announceToScreenReader('Showing 6 month history');
-      }
-    };
-
-    document.getElementById('btn1y').onclick = () => {
-      if (currentRange !== '1y') {
-        if (!availableRanges['1y']) {
-          announceToScreenReader(unavailableMessage('1y'));
-          return;
-        }
-        currentRange = '1y';
-        setActiveButton('btn1y', true);
-        fetchHistoricalData();
-        announceToScreenReader('Showing 1 year history');
-      }
-    };
-
-    document.getElementById('btn2y').onclick = () => {
-      if (currentRange !== '2y') {
-        if (!availableRanges['2y']) {
-          announceToScreenReader(unavailableMessage('2y'));
-          return;
-        }
-        currentRange = '2y';
-        setActiveButton('btn2y', true);
-        fetchHistoricalData();
-        announceToScreenReader('Showing 2 year history');
-      }
-    };
-
-    document.getElementById('btn5y').onclick = () => {
-      if (currentRange !== '5y') {
-        if (!availableRanges['5y']) {
-          announceToScreenReader(unavailableMessage('5y'));
-          return;
-        }
-        currentRange = '5y';
-        setActiveButton('btn5y', true);
-        fetchHistoricalData();
-        announceToScreenReader('Showing 5 year history');
-      }
-    };
-
-    document.getElementById('btnAll').onclick = () => {
-      if (currentRange !== 'all') {
-        currentRange = 'all';
-        setActiveButton('btnAll', true);
-        fetchHistoricalData();
-        announceToScreenReader('Showing all available history');
-      }
-    };
+        announceToScreenReader(
+          range === 'all' ? 'Showing all available history' : `Showing ${RANGE_LABELS[range]} history`,
+        );
+      };
+    });
 
     fetchLatestRates();
 

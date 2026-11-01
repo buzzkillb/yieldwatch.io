@@ -286,6 +286,20 @@
       display: none;
     }
 
+    .chart-error {
+      margin: 0 0 0.5rem;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--danger, #f43f5e);
+      border-radius: 6px;
+      color: var(--danger, #f43f5e);
+      background: rgba(244, 63, 94, 0.08);
+      font-size: 0.8rem;
+    }
+
+    .chart-error.hidden {
+      display: none;
+    }
+
     .spinner {
       width: 40px;
       height: 40px;

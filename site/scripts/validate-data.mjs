@@ -17,8 +17,11 @@ const summaries = await readJson('summaries.json');
 if (!Array.isArray(rates) || rates.length === 0) errors.push('rates.json is empty');
 if (!Array.isArray(summaries)) errors.push('summaries.json is not an array');
 
+const rateList = Array.isArray(rates) ? rates : [];
+const summaryList = Array.isArray(summaries) ? summaries : [];
+
 let previous = '';
-for (const row of rates) {
+for (const row of rateList) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(row?.date ?? '')) { errors.push(`Bad rate date: ${row?.date}`); continue; }
   if (row.date <= previous) errors.push(`rates.json not strictly ascending at ${row.date}`);
   previous = row.date;
@@ -38,8 +41,8 @@ for (const row of rates) {
   }
 }
 
-const rateDates = new Set(rates.map(r => r.date));
-const rateRows = new Map(rates.map(r => [r.date, r.rates]));
+const rateDates = new Set(rateList.map(r => r.date));
+const rateRows = new Map(rateList.map(r => [r.date, r.rates]));
 const formatDate = (date) =>
   new Date(`${date}T00:00:00Z`).toLocaleDateString('en-US', {
     timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric',
@@ -47,7 +50,7 @@ const formatDate = (date) =>
 const rateFingerprint = (points) =>
   points.map(p => `${p.maturity}:${p.rate}`).sort().join('|');
 const summaryDates = new Set();
-for (const s of summaries) {
+for (const s of summaryList) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s?.date ?? '')) { errors.push(`Bad summary date: ${s?.date}`); continue; }
   if (summaryDates.has(s.date)) errors.push(`Duplicate summary for ${s.date}`);
   summaryDates.add(s.date);
@@ -64,10 +67,10 @@ for (const s of summaries) {
   }
 }
 
-if (summaries.length > 1) {
-  for (let i = 1; i < summaries.length; i++) {
-    if (summaries[i - 1].date <= summaries[i].date) {
-      errors.push(`summaries.json not newest-first at ${summaries[i].date}`);
+if (summaryList.length > 1) {
+  for (let i = 1; i < summaryList.length; i++) {
+    if (summaryList[i - 1].date <= summaryList[i].date) {
+      errors.push(`summaries.json not newest-first at ${summaryList[i].date}`);
       break;
     }
   }
@@ -78,4 +81,4 @@ if (errors.length) {
   for (const e of errors) console.error(` - ${e}`);
   process.exit(1);
 }
-console.log(`Data OK: ${rates.length} rate days, ${summaries.length} summaries, latest ${rates[rates.length - 1].date}.`);
+console.log(`Data OK: ${rateList.length} rate days, ${summaryList.length} summaries, latest ${rateList[rateList.length - 1].date}.`);
