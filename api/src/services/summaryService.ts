@@ -6,6 +6,16 @@ import { eq } from 'drizzle-orm';
 const LLM_BASE_URL = (process.env.LLM_BASE_URL || 'https://api.bwengr.com').replace(/\/+$/, '');
 const LLM_API_KEY = process.env.LLM_API_KEY || '';
 
+// A stalled gateway must not consume the whole scheduled job. Both values are
+// overridable so a slower deployment can raise them without a code change.
+function timeoutFromEnv(raw: string | undefined, fallbackMs: number): number {
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallbackMs;
+}
+
+const LLM_REQUEST_TIMEOUT_MS = timeoutFromEnv(process.env.LLM_REQUEST_TIMEOUT_MS, 120_000);
+const LLM_DISCOVERY_TIMEOUT_MS = timeoutFromEnv(process.env.LLM_DISCOVERY_TIMEOUT_MS, 20_000);
+
 export async function getRatesForDate(date: string): Promise<{ maturity: string; rate: number }[]> {
   const results = await db
     .select()
@@ -275,7 +285,8 @@ let cachedModelId: string | null = null;
 export async function discoverModelId(): Promise<string> {
   if (cachedModelId) return cachedModelId;
   const response = await fetch(`${LLM_BASE_URL}/v1/models`, {
-    headers: { 'Authorization': `Bearer ${LLM_API_KEY}` }
+    headers: { 'Authorization': `Bearer ${LLM_API_KEY}` },
+    signal: AbortSignal.timeout(LLM_DISCOVERY_TIMEOUT_MS)
   });
   if (!response.ok) {
     throw new Error(`/v1/models failed: ${response.status}`);
@@ -306,7 +317,8 @@ export async function fetchLLMWithRetry(body: Record<string, unknown>, label: st
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${LLM_API_KEY}`
       },
-      body: JSON.stringify({ ...body, model: modelId })
+      body: JSON.stringify({ ...body, model: modelId }),
+      signal: AbortSignal.timeout(LLM_REQUEST_TIMEOUT_MS)
     });
 
     // Model was swapped mid-flight: forget the cached name, refetch, retry once

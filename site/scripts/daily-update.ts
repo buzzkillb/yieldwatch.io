@@ -87,7 +87,13 @@ const missingSummaryDates = rates
 // workflow's timeout. New rows always come first; remaining slots fill the
 // most recent gaps, which are the ones readers actually see.
 const MAX_SUMMARIES_PER_RUN = 12;
-const targetDates = new Set<string>(newRows.map(r => r.date));
+// A long outage can produce more new rows than one run can summarize. Take the
+// most recent so today's post always lands; older ones stay in rates.json and
+// are picked up by the missing-date backfill on following runs.
+const newRowDates = newRows.map(r => r.date);
+const selectedNewRowDates = newRowDates.slice(-MAX_SUMMARIES_PER_RUN);
+const deferredNewRowCount = newRowDates.length - selectedNewRowDates.length;
+const targetDates = new Set<string>(selectedNewRowDates);
 for (const date of missingSummaryDates) {
   if (targetDates.size >= MAX_SUMMARIES_PER_RUN) break;
   targetDates.add(date);
@@ -97,7 +103,7 @@ if (force && rates.length) {
   // Regenerate the latest published day so a prompt/model change can be tested.
   targetDates.add(rates[rates.length - 1].date);
 }
-const deferredCount = missingSummaryDates.filter(d => !targetDates.has(d)).length;
+const deferredCount = missingSummaryDates.filter(d => !targetDates.has(d)).length + deferredNewRowCount;
 
 if (targetDates.size === 0) {
   console.log('No new rate rows or missing summaries found. Nothing to do.');
@@ -148,7 +154,18 @@ const dateFormatted = (d: string) =>
 let generated = 0;
 const failures: string[] = [];
 const summaryIndex = new Map<string, number>(summaries.map((s, i) => [s.date, i]));
-for (const today of [...targetDates].sort()) {
+// Leave headroom under the workflow's 30-minute timeout so any summaries
+// generated so far are still persisted and committed instead of being killed
+// mid-run.
+const pendingDates = [...targetDates].sort();
+const startedAt = Date.now();
+const RUN_BUDGET_MS = 22 * 60_000;
+for (let i = 0; i < pendingDates.length; i++) {
+  if (Date.now() - startedAt > RUN_BUDGET_MS) {
+    console.log(`Run budget reached; deferring ${pendingDates.length - i} remaining summaries to the next run.`);
+    break;
+  }
+  const today = pendingDates[i];
   const row = byDate.has(today) ? { date: today, rates: byDate.get(today)! } : null;
   if (!row) {
     failures.push(`${today} (no rate data)`);
