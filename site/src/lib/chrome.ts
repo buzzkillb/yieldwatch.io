@@ -144,18 +144,3 @@ export const CHROME_STYLE = `<style id="yw-chrome">
     .yw-nav-link { font-size: 0.72rem; letter-spacing: 0; }
   }
 </style>`;
-
-// Replace the template's own header/footer with the canonical chrome and
-// append the shared styles last so they win over per-template rules.
-export function applyChrome(html: string, active: ChromeActive): string {
-  let out = html
-    .replace(/<header class="header">[\s\S]*?<\/header>/, buildHeader(active))
-    .replace(/<footer class="footer">[\s\S]*?<\/footer>/, buildFooter());
-
-  if (!out.includes('id="yw-chrome"')) {
-    // Tokens first, chrome rules second, both last in the head so no template
-    // style block can override the shared palette or body treatment.
-    out = out.replace('</head>', `  ${BASE_STYLE}\n  ${CHROME_STYLE}\n</head>`);
-  }
-  return out;
-}

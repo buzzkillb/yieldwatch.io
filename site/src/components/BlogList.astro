@@ -1,11 +1,11 @@
 ---
-// Server-rendered blog list — an upgrade over the old client-only rendering
-// (crawlers now see every card), using the verbatim blog.html template,
-// styles, and card markup. Year/month filters work client-side over an
-// embedded index; pagination is static.
+// Native Astro blog listing. The template markup, metadata, schema, cards,
+// pagination, and client-side year/month filters are rendered directly here,
+// so there is no raw HTML template or string-anchor replacement left to drift.
+import BaseLayout from '../layouts/BaseLayout.astro';
 import {
-  readTemplate, escapeHtml, truncateWords, inlineJson, SUMMARIES, POSTS_PER_PAGE, postHeadline, blogTotalPages, SITE_URL,
-  replaceOnce, replaceRegexOnce,
+  escapeHtml, truncateWords, inlineJson, SUMMARIES, POSTS_PER_PAGE,
+  postHeadline, blogTotalPages, SITE_URL,
 } from '../lib/site';
 
 interface Props { page: number }
@@ -25,191 +25,209 @@ const blogIndex = sorted.map(s => ({
 
 const hrefFor = (p: number) => (p <= 1 ? '/blog/' : `/blog/${p}/`);
 
-let html = readTemplate('blog.html', 'blog');
+const canonical = current === 1 ? `${SITE_URL}/blog/` : `${SITE_URL}/blog/${current}/`;
+const pageTitle = current === 1
+  ? 'Daily Treasury Yield Summaries | AI-Powered Analysis'
+  : `Daily Treasury Summaries, Page ${current} | YieldWatch`;
+const description = current === 1
+  ? 'Daily Treasury yield curve summaries with AI-powered analysis. Track interest rates, yield curve shifts, and market trends from 4-week bills to 30-year bonds.'
+  : `Page ${current} of the YieldWatch archive of daily U.S. Treasury yield curve summaries, with headline moves and verified rates for each business day.`;
+const robots = current === 1
+  ? 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
+  : 'noindex, follow';
 
-// rel prev/next for crawlers.
-const seoMetaTags: string[] = [];
-if (current > 1) seoMetaTags.push(`<link rel="prev" href="${hrefFor(current - 1)}">`);
-if (current < totalPages) seoMetaTags.push(`<link rel="next" href="${hrefFor(current + 1)}">`);
+const breadcrumb = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://yieldwatch.io' },
+    { '@type': 'ListItem', position: 2, name: 'Daily Summaries', item: `${SITE_URL}/blog/` },
+    ...(current > 1
+      ? [{ '@type': 'ListItem', position: 3, name: `Page ${current}`, item: canonical }]
+      : []),
+  ],
+};
+if (current === 1) breadcrumb.itemListElement[1].item = canonical;
 
-// Paginated listing pages were canonicalizing to /blog/, which Search Console
-// reports as "Alternate page with proper canonical tag" for every page. Give
-// each page its own self-canonical URL, and keep pages 2+ out of the index
-// (noindex, follow) so they stay useful crawl paths without diluting the
-// index with near-duplicate card lists. Page 1 keeps /blog/ as canonical.
-if (current > 1) {
-  html = replaceRegexOnce(html,
-    /<link rel="canonical" href="[^"]*">/,
-    `<link rel="canonical" href="${SITE_URL}/blog/${current}/">`,
-    'blog canonical'
-  );
-  html = replaceRegexOnce(html,
-    /<meta name="robots" content="[^"]*">/,
-    '<meta name="robots" content="noindex, follow">',
-    'blog robots'
-  );
-  html = replaceRegexOnce(html,
-    /<title>[^<]*<\/title>/,
-    `<title>Daily Treasury Summaries, Page ${current} | YieldWatch</title>`,
-    'blog title'
-  );
-  html = replaceRegexOnce(html,
-    /<meta name="description" content="[^"]*">/,
-    `<meta name="description" content="Page ${current} of the YieldWatch archive of daily U.S. Treasury yield curve summaries, with headline moves and verified rates for each business day.">`,
-    'blog description'
-  );
+const blogSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Blog',
+  name: 'Daily Treasury Yield Summaries',
+  description,
+  url: canonical,
+  publisher: { '@type': 'Organization', name: 'YieldWatch', url: SITE_URL },
+};
+
+const cardDate = (date: string) => new Date(date + 'T00:00:00Z').toLocaleDateString('en-US', {
+  timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric',
+});
+
+// Embedded index + client filter logic. Kept inline so filters work on the
+// fully static page without shipping a framework bundle.
+const filterScript = `const BLOG_INDEX = ${inlineJson(blogIndex)};
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function renderSummaries(summaries) {
+  const html = summaries.map((item) => {
+    const date = new Date(item.date + 'T00:00:00Z');
+    const dateStr = date.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
+    return '<a href="/blog/' + item.date + '/" class="summary-card-link"><article class="summary-card"><div class="summary-date">' + dateStr + '</div>' +
+      (item.title ? '<h2 class="summary-card-title">' + item.title + '</h2>' : '') +
+      '<div class="analysis-tag">' + (item.hasFullPost ? 'Full analysis available' : 'Quick summary') + '</div>' +
+      '<p class="summary-excerpt">' + item.excerpt + '</p></article></a>';
+  }).join('');
+  document.getElementById('content').innerHTML = '<div class="summaries-list">' + html + '</div>';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-
-if (seoMetaTags.length > 0) {
-  html = replaceOnce(html, '</head>', `\n    ${seoMetaTags.join('\n    ')}\n  </head>`, 'blog prev/next');
-}
-
-// Breadcrumb schema must end at the canonical URL for this page. Add a
-// "Page N" crumb for paginated listings instead of leaving the leaf at /blog/.
-for (const scriptMatch of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
-  let breadcrumb;
-  try { breadcrumb = JSON.parse(scriptMatch[1].trim()); } catch { continue; }
-  if (breadcrumb['@type'] !== 'BreadcrumbList') continue;
-  const pageUrl = `${SITE_URL}/blog/${current === 1 ? '' : `${current}/`}`;
-  const crumbs = breadcrumb.itemListElement;
-  if (current === 1) {
-    crumbs[crumbs.length - 1].item = pageUrl;
-  } else {
-    crumbs.push({ '@type': 'ListItem', position: crumbs.length + 1, name: `Page ${current}`, item: pageUrl });
-  }
-  html = html.replace(
-    scriptMatch[0],
-    `<script type="application/ld+json">\n${inlineJson(breadcrumb)}\n</script>`
-  );
-  break;
-}
-
-// Server-render the cards.
-const cardsHtml = items.map(item => {
-  const dateStr = new Date(item.date + 'T00:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
-  return `
-          <a href="/blog/${item.date}/" class="summary-card-link">
-            <article class="summary-card">
-              <div class="summary-date">${dateStr}</div>
-              <h2 class="summary-card-title">${escapeHtml(postHeadline(item.date))}</h2>
-              <div class="analysis-tag">${item.blogSummary && item.blogSummary.length > 0 ? 'Full analysis available' : 'Quick summary'}</div>
-              <p class="summary-excerpt">${escapeHtml(item.summary)}</p>
-            </article>
-          </a>`;
-}).join('');
-
-html = replaceOnce(html,
-  `<div id="content">
-        <div class="loading">Loading summaries...</div>
-      </div>`,
-  `<div id="content"><div class="summaries-list">${cardsHtml}
-          </div></div>`,
-  'blog cards'
-);
-
-// Static pagination + archive hub CTA (crawlable path to every post).
-const paginationHtml = totalPages <= 1 ? '' : `<div class="pagination-controls">
-        ${current > 1 ? `<a class="page-link" href="${hrefFor(current - 1)}">&larr; Previous</a>` : ''}
-        <span class="page-info">Page ${current} of ${totalPages}</span>
-        ${current < totalPages ? `<a class="page-link" href="${hrefFor(current + 1)}">Next &rarr;</a>` : ''}
-      </div>`;
-html = replaceOnce(html,
-  '<div id="pagination" class="pagination"></div>',
-  `<div class="archive-cta"><a href="/blog/archive/">Browse the complete archive &mdash; every daily summary on one page</a> <span class="archive-count">(${blogTotalPages()} pages of summaries, ${SUMMARIES.length} posts)</span></div>
-        <div id="pagination" class="pagination">${paginationHtml}</div>`,
-  'blog pagination'
-);
-
-// Card/archive styling.
-html = replaceOnce(html,
-  '  </style>',
-  `  .summary-card-title { font-size: 1.02rem; font-weight: 600; color: var(--text-primary); margin: 0.2rem 0 0; }
-  .archive-cta { margin: 1.5rem auto 0.5rem; text-align: center; }
-  .archive-cta a { color: var(--accent); font-weight: 600; }
-  .archive-count { color: var(--text-muted); font-size: 0.85rem; }
-  </style>`,
-  'blog card styles'
-);
-
-// Embed the index for client-side year/month filtering. Blog listing pages do
-// not render a chart, so no Chart.js bundle is injected here.
-html = replaceOnce(html,
-  '<body>',
-  `<body>\n<script>const BLOG_INDEX = ${inlineJson(blogIndex)};</script>`,
-  'blog index embed'
-);
-
-// Replace the fetch-based init with embedded-index filtering.
-html = replaceOnce(html,
-  '    // Static index: filters are wired in BlogList.astro.',
-  `    (function initStaticFilters() {
-      const yearSelect = document.getElementById('yearFilter');
-      const monthSelect = document.getElementById('monthFilter');
-
-      function populateMonths(year) {
-        monthSelect.innerHTML = '<option value="">All Months</option>';
-        monthSelect.disabled = !year;
-        if (year) {
-          const available = new Set(
-            BLOG_INDEX.filter(i => i.date.startsWith(year)).map(i => i.date.slice(5, 7))
-          );
-          MONTHS.forEach((name, idx) => {
-            const value = String(idx + 1).padStart(2, '0');
-            if (!available.has(value)) return;
-            const opt = document.createElement('option');
-            opt.value = value;
-            opt.textContent = name;
-            monthSelect.appendChild(opt);
-          });
-        }
-      }
-
-      function applyFilter(push) {
-        const y = yearSelect.value;
-        const m = monthSelect.value;
-        if (!y && !m) { window.location.href = '/blog/'; return; }
-        const filtered = BLOG_INDEX.filter(i =>
-          (!y || i.date.startsWith(y)) && (!m || i.date.slice(5, 7) === m)
-        );
-        if (!filtered.length) {
-          document.getElementById('content').innerHTML = '<div class="error">No summaries found.</div>';
-          document.getElementById('pagination').innerHTML = '';
-          return;
-        }
-        renderSummaries(filtered);
-        document.getElementById('pagination').innerHTML = '';
-        if (push) {
-          const url = new URL(window.location);
-          url.searchParams.set('page', '1');
-          if (y) url.searchParams.set('year', y); else url.searchParams.delete('year');
-          if (m) url.searchParams.set('month', m); else url.searchParams.delete('month');
-          window.history.pushState({}, '', url);
-        }
-      }
-
-      const years = [...new Set(BLOG_INDEX.map(i => i.date.slice(0, 4)))].sort().reverse();
-      years.forEach(y => {
+(function initStaticFilters() {
+  const yearSelect = document.getElementById('yearFilter');
+  const monthSelect = document.getElementById('monthFilter');
+  function populateMonths(year) {
+    monthSelect.innerHTML = '<option value="">All Months</option>';
+    monthSelect.disabled = !year;
+    if (year) {
+      const available = new Set(BLOG_INDEX.filter(i => i.date.startsWith(year)).map(i => i.date.slice(5, 7)));
+      MONTHS.forEach((name, idx) => {
+        const value = String(idx + 1).padStart(2, '0');
+        if (!available.has(value)) return;
         const opt = document.createElement('option');
-        opt.value = y;
-        opt.textContent = y;
-        yearSelect.appendChild(opt);
+        opt.value = value;
+        opt.textContent = name;
+        monthSelect.appendChild(opt);
       });
-
-      yearSelect.addEventListener('change', () => { populateMonths(yearSelect.value); applyFilter(true); });
-      monthSelect.addEventListener('change', () => applyFilter(true));
-
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('year')) {
-        yearSelect.value = params.get('year');
-        populateMonths(yearSelect.value);
-        if (params.get('month')) monthSelect.value = params.get('month');
-        applyFilter(false);
-      } else if (params.get('month')) {
-        monthSelect.value = params.get('month');
-        applyFilter(false);
-      }
-    })();`,
-  'blog filter init'
-);
+    }
+  }
+  function applyFilter(push) {
+    const y = yearSelect.value;
+    const m = monthSelect.value;
+    if (!y && !m) { window.location.href = '/blog/'; return; }
+    const filtered = BLOG_INDEX.filter(i => (!y || i.date.startsWith(y)) && (!m || i.date.slice(5, 7) === m));
+    if (!filtered.length) {
+      document.getElementById('content').innerHTML = '<div class="error">No summaries found.</div>';
+      document.getElementById('pagination').innerHTML = '';
+      return;
+    }
+    renderSummaries(filtered);
+    document.getElementById('pagination').innerHTML = '';
+    if (push) {
+      const url = new URL(window.location);
+      url.searchParams.set('page', '1');
+      if (y) url.searchParams.set('year', y); else url.searchParams.delete('year');
+      if (m) url.searchParams.set('month', m); else url.searchParams.delete('month');
+      window.history.pushState({}, '', url);
+    }
+  }
+  const years = [...new Set(BLOG_INDEX.map(i => i.date.slice(0, 4)))].sort().reverse();
+  years.forEach(y => {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    yearSelect.appendChild(opt);
+  });
+  yearSelect.addEventListener('change', () => { populateMonths(yearSelect.value); applyFilter(true); });
+  monthSelect.addEventListener('change', () => applyFilter(true));
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('year')) {
+    yearSelect.value = params.get('year');
+    populateMonths(yearSelect.value);
+    if (params.get('month')) monthSelect.value = params.get('month');
+    applyFilter(false);
+  } else if (params.get('month')) {
+    monthSelect.value = params.get('month');
+    applyFilter(false);
+  }
+})();`;
 ---
-<Fragment set:html={html} />
+
+<BaseLayout
+  title={pageTitle}
+  description={description}
+  canonical={canonical}
+  robots={robots}
+  active="blog"
+  mainClass="container"
+>
+  <Fragment slot="head">
+    {current > 1 && <link rel="prev" href={hrefFor(current - 1)} />}
+    {current < totalPages && <link rel="next" href={hrefFor(current + 1)} />}
+    <script is:inline type="application/ld+json" set:html={inlineJson(blogSchema)}></script>
+    <script is:inline type="application/ld+json" set:html={inlineJson(breadcrumb)}></script>
+  </Fragment>
+
+  <style is:global>
+    .page-header { margin-bottom: 2rem; text-align: center; }
+    .filter-bar { display: flex; justify-content: center; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .filter-bar select { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer; min-width: 120px; }
+    .filter-bar select:focus { outline: none; border-color: var(--accent); }
+    .content-wrap { max-width: 1100px; margin: 0 auto; }
+    .page-title { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-primary); }
+    .page-subtitle { color: var(--text-secondary); font-size: 1rem; }
+    .summaries-list { display: flex; flex-direction: column; gap: 1.5rem; }
+    .summary-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; transition: all 0.2s ease; cursor: pointer; }
+    .summary-card-link { text-decoration: none; display: block; }
+    .summary-card-link:hover .summary-card { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15); }
+    .summary-card-title { font-size: 1.02rem; font-weight: 600; color: var(--text-primary); margin: 0.2rem 0 0; }
+    .summary-date { font-size: 1.1rem; color: var(--text-primary); margin-bottom: 0.75rem; }
+    .summary-excerpt { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; word-wrap: break-word; }
+    .analysis-tag { color: var(--accent); font-size: 0.8rem; white-space: nowrap; }
+    .archive-cta { margin: 1.5rem auto 0.5rem; text-align: center; }
+    .archive-cta a { color: var(--accent); font-weight: 600; }
+    .archive-count { color: var(--text-muted); font-size: 0.85rem; }
+    .pagination { display: flex; justify-content: center; margin-top: 2rem; }
+    .pagination-controls { display: flex; align-items: center; gap: 1.5rem; }
+    .page-link { color: var(--accent); text-decoration: none; font-weight: 500; padding: 0.5rem 1rem; border: 1px solid var(--accent); border-radius: 6px; transition: all 0.2s; }
+    .page-link:hover { background: var(--accent); color: var(--bg-primary); }
+    .page-info { color: var(--text-secondary); font-size: 0.9rem; }
+    @media (max-width: 768px) {
+      .container { padding: 1rem; }
+      .page-title { font-size: 1.5rem; }
+      .filter-bar { gap: 0.5rem; }
+      .filter-bar select { min-width: 100px; padding: 0.4rem 0.75rem; font-size: 0.85rem; }
+      .summary-card { padding: 1rem; }
+    }
+  </style>
+
+  <div class="page-header">
+    <h1 class="page-title">Daily Summaries</h1>
+    <p class="page-subtitle">AI-powered Treasury yield curve analysis</p>
+  </div>
+
+  <div class="content-wrap">
+    <div class="filter-bar">
+      <select id="yearFilter" aria-label="Filter summaries by year">
+        <option value="">All Years</option>
+      </select>
+      <select id="monthFilter" aria-label="Filter summaries by month" disabled>
+        <option value="">All Months</option>
+      </select>
+    </div>
+    <div id="content">
+      <div class="summaries-list">
+        {items.map(item => (
+          <a href={`/blog/${item.date}/`} class="summary-card-link">
+            <article class="summary-card">
+              <div class="summary-date">{cardDate(item.date)}</div>
+              <h2 class="summary-card-title">{postHeadline(item.date)}</h2>
+              <div class="analysis-tag">{item.blogSummary && item.blogSummary.length > 0 ? 'Full analysis available' : 'Quick summary'}</div>
+              <p class="summary-excerpt">{item.summary}</p>
+            </article>
+          </a>
+        ))}
+      </div>
+    </div>
+    <div class="archive-cta">
+      <a href="/blog/archive/">Browse the complete archive &mdash; every daily summary on one page</a>
+      <span class="archive-count">({blogTotalPages()} pages of summaries, {SUMMARIES.length} posts)</span>
+    </div>
+    <div id="pagination" class="pagination">
+      {totalPages > 1 && (
+        <div class="pagination-controls">
+          {current > 1 && <a class="page-link" href={hrefFor(current - 1)}>&larr; Previous</a>}
+          <span class="page-info">Page {current} of {totalPages}</span>
+          {current < totalPages && <a class="page-link" href={hrefFor(current + 1)}>Next &rarr;</a>}
+        </div>
+      )}
+    </div>
+  </div>
+
+  <script is:inline set:html={filterScript} />
+</BaseLayout>

@@ -1,0 +1,515 @@
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    .nav-link.active {
+      color: var(--accent);
+    }
+
+
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.error {
+      background: var(--danger);
+      animation: none;
+    }
+
+    .status-dot.loading {
+      background: var(--warning);
+      animation: blink 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .rates-section {
+      position: relative;
+      margin-bottom: 2rem;
+    }
+
+    .rates-scroll-hint {
+      display: none;
+    }
+
+    .rates-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.5rem;
+    }
+
+    .rate-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 0.6rem 0.4rem;
+      text-align: center;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .rate-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .rate-sparkline {
+      width: 100%;
+      height: 22px;
+      margin-top: 0.3rem;
+      display: block;
+      opacity: 0.9;
+    }
+
+    .rate-card:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .rate-card.inactive {
+      opacity: 0.4;
+    }
+
+    .rate-card.inactive::after {
+      content: '';
+      display: block;
+      width: 60%;
+      height: 1px;
+      background: var(--text-muted);
+      margin: 0.25rem auto 0;
+    }
+
+    .rate-card .maturity {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.15rem;
+    }
+
+    .rate-card .rate {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .daily-summary-container {
+      margin-bottom: 1.5rem;
+      background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-tertiary) 100%);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .daily-summary-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), #a855f7, var(--accent));
+      background-size: 200% 100%;
+      animation: shimmer 3s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .daily-summary-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+
+    .daily-summary-icon {
+      display: flex;
+      align-items: center;
+      opacity: 0.8;
+    }
+
+    .daily-summary {
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      line-height: 1.7;
+      padding: 0;
+      margin: 0;
+    }
+
+    @media (max-width: 768px) {
+      .daily-summary-container {
+        margin-bottom: 1rem;
+        padding: 0.875rem 1rem;
+        border-radius: 10px;
+      }
+
+
+      .daily-summary-container::before {
+        height: 2px;
+      }
+
+
+      .daily-summary {
+        font-size: 0.85rem;
+        line-height: 1.6;
+      }
+
+
+      .daily-summary-header {
+        font-size: 0.7rem;
+        margin-bottom: 0.5rem;
+      }
+}
+
+    .chart-container {
+      background: linear-gradient(145deg, #141420 0%, #181828 100%);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+      box-shadow: 0 2px 12px rgba(99, 102, 241, 0.05);
+    }
+
+    .chart-container::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      height: 2px;
+      background: transparent;
+      border-radius: 1px;
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .chart-title {
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+
+    .chart-controls {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .chart-controls button {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .chart-controls button:hover {
+      border-color: var(--accent);
+      color: var(--text-primary);
+    }
+
+    .chart-controls button:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .chart-controls button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .chart-controls button:disabled:hover {
+      border-color: var(--border-color);
+      color: var(--text-secondary);
+    }
+    
+    .chart-controls button.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 400px;
+    }
+
+    .chart-loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-card);
+      border-radius: 8px;
+      z-index: 10;
+    }
+
+    .chart-loading.hidden {
+      display: none;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .legend-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      justify-content: center;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 0.4rem 0.6rem;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      user-select: none;
+      border: 1px solid transparent;
+    }
+
+    .legend-item:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .legend-item:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .legend-item.active {
+      color: var(--text-primary);
+      background: var(--bg-tertiary);
+      border-color: var(--border-color);
+    }
+
+    .legend-item.inactive {
+      opacity: 0.4;
+    }
+
+    .legend-item.inactive .legend-color {
+      background: var(--text-muted) !important;
+    }
+
+    .legend-color {
+      width: 16px;
+      height: 4px;
+      border-radius: 2px;
+    }
+
+    footer {
+      padding: 0;
+      margin: 0;
+      text-align: left;
+    }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      color: var(--text-secondary);
+    }
+
+    .loading[role="status"] {
+      gap: 0.75rem;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--danger);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      color: var(--danger);
+    }
+
+    .error-message button {
+      margin-top: 1rem;
+      background: var(--danger);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .error-message button:hover {
+      opacity: 0.9;
+    }
+
+    .api-info {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .api-info span {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+
+      
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+
+      
+      .rates-section {
+        position: relative;
+      }
+
+      
+      #dataSubtitle {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        font-weight: 400;
+      }
+
+      
+      .mobile-break {
+        display: none;
+      }
+
+      
+      .rates-scroll-hint {
+        display: block;
+      }
+
+      
+      .rates-grid {
+        grid-template-columns: repeat(3, 1fr);
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      
+      .rate-card {
+        scroll-snap-align: start;
+        min-width: 70px;
+      }
+
+      
+      .chart-wrapper {
+        height: 350px;
+      }
+
+      
+      .api-info {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      
+      .chart-title {
+        font-size: 0.95rem;
+      }
+}
+    
+    @media (max-width: 480px) {
+      
+      .mobile-break {
+        display: block;
+      }
+
+      
+      .rates-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      
+      .rate-card .maturity {
+        font-size: 0.75rem;
+      }
+
+      
+      .rate-card .rate {
+        font-size: 0.9rem;
+      }
+}

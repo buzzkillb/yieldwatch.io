@@ -11,9 +11,14 @@ static files.
   `summaries.json` (all daily summaries + rates). `stats.json` and
   `maturities.json` are no longer stored; they are derived from `rates.json`
   on every build so the public API snapshots cannot go stale.
-- `src/templates/` — remaining original page shells (index, blog, blog-post)
-  that are still processed at build time. FAQ and API docs have been migrated
-  to native `.astro` pages; the dashboard and blog routes are next.
+- `src/components/BlogList.astro` — native Astro archive listing: metadata,
+  schema, cards, pagination, and the year/month filter client script.
+- `src/pages/blog/[date].astro` — native Astro post page: article metadata,
+  breadcrumb + Article JSON-LD, chart, rates grid, and related links.
+- `src/pages/index.astro` — native Astro dashboard shell; dashboard styles live
+  in `src/styles/dashboard.css` and the client logic in `src/client/dashboard.js`.
+  All three former raw HTML templates (`index`, `blog`, `blog-post`) and the
+  `src/templates/` loader have been removed.
 - `src/pages/faq.astro` and `src/pages/api-docs.astro` — native Astro pages.
   The FAQ derives its `FAQPage` JSON-LD from the same question array it renders,
   and the API examples are built from the shipped JSON so docs cannot drift.

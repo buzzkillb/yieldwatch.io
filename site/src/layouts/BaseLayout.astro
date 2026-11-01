@@ -13,6 +13,11 @@ interface Props {
   canonical: string;
   robots?: string;
   imageAlt?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  ogImageAlt?: string;
+  ogType?: 'website' | 'article';
   schema?: Record<string, unknown> | null;
   active?: ChromeActive;
   bodyClass?: string;
@@ -25,6 +30,11 @@ const {
   canonical,
   robots = 'index, follow',
   imageAlt = BRAND_OG_ALT,
+  ogTitle,
+  ogDescription,
+  ogImage,
+  ogImageAlt,
+  ogType = 'website',
   schema = null,
   active = null,
   bodyClass = '',
@@ -42,7 +52,14 @@ const FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' vi
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <meta name="robots" content={robots} />
-    <Fragment set:html={socialMetaTags({ url: canonical, title, description, imageAlt })} />
+    <Fragment set:html={socialMetaTags({
+      url: canonical,
+      title: ogTitle ?? title,
+      description: ogDescription ?? description,
+      image: ogImage,
+      imageAlt: ogImageAlt ?? imageAlt,
+      type: ogType,
+    })} />
     <link rel="icon" type="image/svg+xml" href={FAVICON} />
     <link rel="alternate" type="application/rss+xml" title="Daily Treasury Yield Summaries RSS" href="/feed.xml" />
     {schema && <script is:inline type="application/ld+json" set:html={inlineJson(schema)}></script>}

@@ -1,7 +1,5 @@
 // Shared site data + helpers for the static build.
 // Single source of truth: src/data/*.json (updated daily by scripts/daily-update.mjs).
-import { applyChrome, type ChromeActive } from './chrome';
-import { TEMPLATES } from './templates';
 import ratesJson from '../data/rates.json';
 import summariesJson from '../data/summaries.json';
 
@@ -195,40 +193,6 @@ export function buildSitemap(): string {
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${entries}
 </urlset>`;
-}
-
-// Read a verbatim template imported as a raw asset by Vite. This keeps the
-// build independent of process.cwd() and fails loudly if a template is renamed.
-export function readTemplate(name: string, active: ChromeActive = null): string {
-  const raw = TEMPLATES[name];
-  if (typeof raw !== 'string') {
-    throw new Error(`Unknown template: ${name}`);
-  }
-  return applyChrome(raw, active);
-}
-
-// String-based templates rely on exact anchors. A silent .replace() no-op used
-// to ship pages missing their SEO block or chart data, so replacements that
-// matter go through this guard instead.
-export function replaceOnce(html: string, needle: string, replacement: string, label: string): string {
-  if (!html.includes(needle)) {
-    throw new Error(`Template anchor missing (${label}): ${needle.slice(0, 80)}`);
-  }
-  return html.replace(needle, replacement);
-}
-
-export function replaceAllOnce(html: string, needle: string, replacement: string, label: string): string {
-  if (!html.includes(needle)) {
-    throw new Error(`Template anchor missing (${label}): ${needle.slice(0, 80)}`);
-  }
-  return html.replaceAll(needle, replacement);
-}
-
-export function replaceRegexOnce(html: string, pattern: RegExp, replacement: string, label: string): string {
-  if (!pattern.test(html)) {
-    throw new Error(`Template pattern missing (${label}): ${pattern}`);
-  }
-  return html.replace(pattern, replacement);
 }
 
 // ---------------------------------------------------------------------------

@@ -1,34 +1,125 @@
 ---
-// Homepage: verbatim port of api/public/index.html with the same server-side
-// SEO block the old Bun server injected, plus a patched chart loader that
-// reads pre-generated static range files instead of queryable API endpoints.
-import { readTemplate, buildSeoBlock, latestDay, replaceOnce, replaceAllOnce } from '../lib/site';
+// Native Astro homepage. The dashboard markup, the crawlable SEO block, the
+// stylesheet, and the client script are all first-class build inputs instead of
+// a raw HTML template patched with string anchors. Chart history reads the
+// pre-generated static range snapshots.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { buildSeoBlock, latestDay, SITE_URL } from '../lib/site';
+import dashboardJs from '../client/dashboard.js?raw';
+import '../styles/dashboard.css';
 
-let html = readTemplate('index.html', 'dashboard');
-
-// 1. Server-side SEO block (crawlable plain-text rates for non-JS crawlers).
 const latest = latestDay();
-if (latest) {
-  html = replaceOnce(
-    html,
-    '<div class="container">',
-    `<div class="container">\n    ${buildSeoBlock(latest)}`,
-    'homepage SEO block'
-  );
-}
+const seoBlock = latest ? buildSeoBlock(latest) : '';
 
-// 2. Chart data now comes from static range snapshots (regenerated daily).
-html = replaceOnce(
-  html,
-  "const response = await fetch(`/api/rates?from=${from}&to=${to}&limit=${reqLimit}`);",
-  `const RANGE_FILES = { '3m': '/api/rates/3m.json', '6m': '/api/rates/6m.json', '1y': '/api/rates/1y.json', '2y': '/api/rates/2y.json', '5y': '/api/rates/5y.json', 'all': '/api/rates/all.json' };
-        const response = await fetch(RANGE_FILES[currentRange] || '/api/rates/all.json');`,
-  'homepage chart loader'
-);
+const description = 'Track U.S. Treasury yield curve with 35+ years of historical data. Monitor interest rates from 4-week bills to 30-year bonds updated daily.';
 
-// 3. The dashboard's initial fetch still uses the extensionless documented
-// path; point it at the static snapshot so no server-side rewrite is needed
-// for the page itself (the _redirects rule remains for external consumers).
-html = replaceAllOnce(html, "fetch('/api/rates/latest')", "fetch('/api/rates/latest.json')", 'homepage latest fetch');
+const schema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'FinancialProduct',
+      name: 'U.S. Treasury Yield Curve Data',
+      description: 'Daily U.S. Treasury par yield curve rates across 14 maturities, from 4-week bills to 30-year bonds, sourced from the U.S. Department of the Treasury.',
+      url: 'https://yieldwatch.io',
+      provider: { '@type': 'Organization', name: 'YieldWatch', url: 'https://yieldwatch.io' },
+      category: 'Financial Data',
+    },
+    {
+      '@type': 'Dataset',
+      name: 'U.S. Treasury Daily Yield Curve Rates',
+      description: 'Historical U.S. Treasury par yield curve rates with daily updates, spanning 1990 to present across 14 maturities.',
+      url: 'https://yieldwatch.io',
+      creator: { '@type': 'Organization', name: 'YieldWatch' },
+      license: 'https://home.treasury.gov',
+      temporalCoverage: '1990/..',
+      isAccessibleForFree: true,
+      distribution: [
+        {
+          '@type': 'DataDownload',
+          contentUrl: 'https://yieldwatch.io/api/rates/latest.json',
+          encodingFormat: 'application/json',
+        },
+        {
+          '@type': 'DataDownload',
+          contentUrl: 'https://yieldwatch.io/api/rates/all.json',
+          encodingFormat: 'application/json',
+        },
+      ],
+    },
+  ],
+};
 ---
-<Fragment set:html={html} />
+
+<BaseLayout
+  title="U.S. Treasury Yield Curve Rates | YieldWatch"
+  description={description}
+  canonical={`${SITE_URL}/`}
+  robots="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+  ogTitle="U.S. Treasury Yield Curve | Free Daily Yield Curve Data"
+  ogDescription={description}
+  ogImage={`${SITE_URL}/og/og.png`}
+  ogImageAlt="YieldWatch U.S. Treasury yield curve dashboard"
+  schema={schema}
+  active="dashboard"
+  mainClass="container"
+>
+  <Fragment slot="head">
+    <meta name="keywords" content="treasury yield curve, treasury rates, interest rates, yield curve chart, 10 year treasury, 2 year treasury, treasury bonds" />
+    <meta name="author" content="YieldWatch" />
+    <meta name="theme-color" content="#6366f1" />
+    <script is:inline src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>
+    <script is:inline src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js" integrity="sha384-cVMg8E3QFwTvGCDuK+ET4PD341jF3W8nO1auiXfuZNQkzbUUiBGLsIQUE+b1mxws" crossorigin="anonymous"></script>
+  </Fragment>
+
+  <Fragment set:html={seoBlock} />
+
+  <div id="ratesContainer" role="region" aria-label="Current yield rates">
+    <div class="loading" role="status" aria-label="Loading rates">
+      <div class="loading-spinner" aria-hidden="true"></div>
+      <span>Loading yield curve data...</span>
+    </div>
+  </div>
+
+  <div class="daily-summary-container">
+    <div class="daily-summary-header">
+      <svg class="daily-summary-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+      </svg>
+      <span>Daily Summary</span>
+    </div>
+    <div id="dailySummary" class="daily-summary"></div>
+  </div>
+
+  <div class="chart-container">
+    <div class="chart-header">
+      <h2 class="chart-title">Yield Curve Over Time</h2>
+      <div class="chart-controls" role="group" aria-label="Time range selector">
+        <button id="btn3m" class="active" aria-pressed="true" aria-label="Show 3 month history">3M</button>
+        <button id="btn6m" aria-pressed="false" aria-label="Show 6 month history">6M</button>
+        <button id="btn1y" aria-pressed="false" aria-label="Show 1 year history">1Y</button>
+        <button id="btn2y" aria-pressed="false" aria-label="Show 2 year history">2Y</button>
+        <button id="btn5y" aria-pressed="false" aria-label="Show 5 year history">5Y</button>
+        <button id="btnAll" aria-pressed="false" aria-label="Show all available history">ALL</button>
+      </div>
+    </div>
+    <div class="chart-wrapper">
+      <div id="chartLoading" class="chart-loading hidden" role="status" aria-label="Loading chart data">
+        <div class="spinner" aria-hidden="true"></div>
+      </div>
+      <canvas id="yieldChart" aria-label="Yield curve chart showing rates over time"></canvas>
+    </div>
+    <div class="legend-container" id="legendContainer" role="group" aria-label="Chart legend - click to toggle series"></div>
+  </div>
+
+  <section id="how-it-works" aria-labelledby="how-it-works-heading" style="margin:2.5rem 0 1rem;max-width:820px;">
+    <h2 id="how-it-works-heading" style="font-size:1.4rem;margin:0 0 0.6rem;color:var(--text-primary,#f0f0f5);">How YieldWatch works</h2>
+    <p style="color:var(--text-secondary,#a0a0b0);margin:0 0 0.75rem;">YieldWatch publishes the U.S. Treasury's official daily par yield curve and turns it into three things: a live dashboard, a plain-English summary for each business day, and a free JSON API. Rates are sourced from the U.S. Department of the Treasury and are updated after the official daily release, typically around 3:30 PM Eastern Time on business days. Weekends and federal holidays do not produce a new official rate.</p>
+    <p style="color:var(--text-secondary,#a0a0b0);margin:0 0 0.75rem;">The dashboard shows the current curve across 14 maturities, from 4-week bills to 30-year bonds, alongside historical charts going back to 1990. Each <a href="/blog/" style="color:var(--accent,#6366f1);">daily summary</a> describes what moved and by how much, including spreads such as the 2-year to 10-year gap. Summaries are descriptive only: they report the published numbers and do not forecast future rates. Every post is also listed in the <a href="/blog/archive/" style="color:var(--accent,#6366f1);">complete archive</a>.</p>
+    <p style="color:var(--text-secondary,#a0a0b0);margin:0 0 0.75rem;">For definitions, see the <a href="/faq/" style="color:var(--accent,#6366f1);">FAQ</a>. For sourcing, validation, update timing, and known limitations, read the <a href="/methodology/" style="color:var(--accent,#6366f1);">data methodology</a>. Developers can pull the same numbers from the <a href="/api-docs/" style="color:var(--accent,#6366f1);">public API</a>, and <a href="/about/" style="color:var(--accent,#6366f1);">About YieldWatch</a> explains who runs the site and why it is free.</p>
+  </section>
+
+  <script is:inline set:html={dashboardJs} />
+</BaseLayout>

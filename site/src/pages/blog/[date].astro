@@ -1,12 +1,11 @@
 ---
-// Blog post pages: full static replica of the old SSR path in api/src/index.ts
-// (head meta, JSON-LD, article, prev/next, recent-5 hub, chart) generated per
-// date from src/data/summaries.json. The template's client loader has been
-// removed; its own renderChart is reused with embedded data.
+// Native Astro blog post page. Head metadata, article schema, breadcrumb,
+// body markup, the yield-curve chart, and related links are rendered directly
+// here instead of being assembled from a raw template with string anchors.
+import BaseLayout from '../../layouts/BaseLayout.astro';
 import {
-  readTemplate, escapeHtml, dateFormatted, linkLabel, formatBlogSummary, truncateWords,
+  dateFormatted, linkLabel, formatBlogSummary, truncateWords,
   SUMMARIES, CHART_COLORS, SITE_URL, postHeadline, relatedPosts, inlineJson,
-  replaceOnce, replaceAllOnce, replaceRegexOnce,
 } from '../../lib/site';
 
 export function getStaticPaths() {
@@ -19,10 +18,10 @@ const blogSummary = entry.blogSummary || entry.summary;
 const dateStr = dateFormatted(date);
 const blogUrl = `${SITE_URL}/blog/${date}/`;
 const ogImageUrl = `${SITE_URL}/og-image/${date}.png`;
-// Unique, data-driven headline (largest day-over-day move) — replaces the
-// templated "{date} | Treasury Yield Daily" title shared by every post.
+const ogImageAlt = `U.S. Treasury yield curve chart for ${dateStr}`;
+
+// Unique, data-driven headline (largest day-over-day move).
 const headline = postHeadline(date);
-const ogTitle = headline; // headline already includes the date label
 const articleH1 = headline;
 
 // Keep <title> near the ~60-character SERP limit. The date is already in the
@@ -30,9 +29,8 @@ const articleH1 = headline;
 const stripDateLabel = (h: string) => h.replace(/\s*\([A-Z][a-z]{2} \d{1,2}, \d{4}\)$/, '').trim();
 const titleHeadlineRaw = stripDateLabel(headline);
 
-// A handful of days share an identical largest-move headline (for example two
-// different years with the same 2-month bill rate). Search engines treat those
-// as duplicate titles, so prefix the date on any headline used more than once.
+// A handful of days share an identical largest-move headline, so prefix the
+// date on any headline used more than once to avoid duplicate titles.
 const allBaseTitles = SUMMARIES.map(s => stripDateLabel(postHeadline(s.date)));
 const duplicateTitles = new Set(allBaseTitles.filter((t, i) => allBaseTitles.indexOf(t) !== i));
 const shortDate = new Date(`${date}T00:00:00Z`).toLocaleDateString('en-US', {
@@ -48,77 +46,33 @@ const pageTitle = titleHeadline.length + brandSuffix.length <= 60
     ? titleHeadline
     : truncateWords(titleHeadline, 59);
 
-// Meta descriptions: trim at a word boundary BEFORE HTML-escaping so entities
-// cannot push the rendered description past 160 characters.
+// Trim at a word boundary before escaping so entities cannot push the rendered
+// description past 160 characters.
 const cleanSummary = blogSummary.replace(/\s+/g, ' ').trim();
-const metaDescription = escapeHtml(truncateWords(cleanSummary, 150));
+const metaDescription = truncateWords(cleanSummary, 150);
 
-// Adjacent posts + recent-5 hub (same semantics as the SSR version).
 const desc = [...SUMMARIES].map(s => s.date).sort((a, b) => b.localeCompare(a));
 const earlierPosts = desc.filter(d => d < date).slice(0, 5);
 const laterPosts = desc.filter(d => d > date).sort((a, b) => a.localeCompare(b)).slice(0, 5);
-
 const prevDate = laterPosts[0];   // newer post
 const nextDate = earlierPosts[0]; // older post
-
 const related = relatedPosts(date, 8);
-
-const prevNextHtml = (prevDate || nextDate)
-  ? `<nav class="post-nav" aria-label="Adjacent daily summaries">
-            ${prevDate ? `<a class="post-nav-link" rel="prev" href="/blog/${prevDate}/">&larr; ${escapeHtml(linkLabel(prevDate))}</a>` : '<span class="post-nav-spacer"></span>'}
-            ${nextDate ? `<a class="post-nav-link" rel="next" href="/blog/${nextDate}/">${escapeHtml(linkLabel(nextDate))} &rarr;</a>` : '<span class="post-nav-spacer"></span>'}
-          </nav>`
-  : '';
-
-const recentHtml = related.length > 0
-  ? `<section class="related-summaries" aria-label="Related daily summaries">
-            <h2 class="related-title">More Treasury yield daily summaries</h2>
-            <ul class="related-list">
-              ${related.map(p => `<li><a href="/blog/${p.date}/">${escapeHtml(p.headline)}</a></li>`).join('')}
-            </ul>
-            <p class="related-archive"><a href="/blog/archive/">Browse the complete archive of every daily summary</a></p>
-          </section>`
-  : '';
-
 const rates = entry.rates;
-const ratesHtml = rates.map((r, i) => `
-                  <div class="rate-item" style="border-top: 3px solid ${CHART_COLORS[i % CHART_COLORS.length]}">
-                    <div class="rate-maturity">${r.maturity}</div>
-                    <div class="rate-value">${r.rate.toFixed(2)}%</div>
-                  </div>
-                `).join('');
 
-const articleContent = `
-          <article>
-            <header class="post-header">
-              <p class="post-date">${dateStr}</p>
-              <h1 class="post-title">${escapeHtml(articleH1)}</h1>
-            </header>
-
-            <div class="blog-content blog-summary">
-              ${formatBlogSummary(blogSummary)}
-            </div>
-
-            ${prevNextHtml}
-
-            <section class="chart-section">
-              <h2 class="chart-title">Yield Curve</h2>
-              <div class="chart-wrapper">
-                <canvas id="yieldChart"></canvas>
-              </div>
-              <div class="rates-grid">
-                ${ratesHtml}
-              </div>
-            </section>
-
-            ${recentHtml}
-          </article>
-        `;
+const breadcrumb = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://yieldwatch.io' },
+    { '@type': 'ListItem', position: 2, name: 'Daily Summaries', item: `${SITE_URL}/blog/` },
+    { '@type': 'ListItem', position: 3, name: `${dateStr} Summary`, item: blogUrl },
+  ],
+};
 
 const articleSchema = {
   '@context': 'https://schema.org',
   '@type': 'Article',
-  headline: headline,
+  headline,
   description: truncateWords(cleanSummary, 300),
   datePublished: `${date}T20:00:00Z`,
   dateModified: `${date}T20:00:00Z`,
@@ -129,72 +83,188 @@ const articleSchema = {
     '@type': 'Organization',
     name: 'YieldWatch',
     url: SITE_URL,
-    logo: { '@type': 'ImageObject', url: `${SITE_URL}/og/og.png` }
-  }
+    logo: { '@type': 'ImageObject', url: `${SITE_URL}/og/og.png` },
+  },
 };
 
-let html = readTemplate('blog-post.html', 'blog');
-
-// Nav: expose the archive hub from every post page + style for its CTA.
-html = replaceOnce(html, '  </style>', '  .related-archive { margin-top: 1rem; }\n  .related-archive a { color: var(--accent); }\n  </style>', 'post styles');
-
-// Head meta (same replacements as the SSR version).
-html = replaceRegexOnce(html, /<title[^>]*>.*<\/title>/, `<title id="page-title">${escapeHtml(pageTitle)}</title>`, 'post title');
-html = replaceOnce(html, `content="Treasury yield curve daily analysis" id="meta-desc"`, `content="${metaDescription}" id="meta-desc"`, 'post description');
-html = replaceOnce(html, `id="og-url" content="https://yieldwatch.io/blog"`, `id="og-url" content="${blogUrl}"`, 'post og url');
-html = replaceOnce(html, `id="og-title" content="Treasury Yield Daily Summary"`, `id="og-title" content="${escapeHtml(ogTitle)}"`, 'post og title');
-html = replaceOnce(html, `id="og-description" content="Treasury yield curve daily analysis"`, `id="og-description" content="${metaDescription}"`, 'post og description');
-html = replaceOnce(html, `id="og-image" content="https://yieldwatch.io/og/og.png"`, `id="og-image" content="${ogImageUrl}"`, 'post og image');
-html = replaceAllOnce(html, 'content="U.S. Treasury Yield Curve Dashboard"', `content="${escapeHtml(`U.S. Treasury yield curve chart for ${dateStr}`)}"`, 'post image alt');
-html = replaceOnce(html, `id="article-date" content=""`, `id="article-date" content="${date}T20:00:00Z"`, 'post article date');
-html = replaceOnce(html, `id="article-modified" content=""`, `id="article-modified" content="${date}T20:00:00Z"`, 'post article modified');
-html = replaceOnce(html, `id="twitter-url" content="https://yieldwatch.io/blog"`, `id="twitter-url" content="${blogUrl}"`, 'post twitter url');
-html = replaceOnce(html, `id="twitter-title" content="Treasury Yield Daily Summary"`, `id="twitter-title" content="${escapeHtml(ogTitle)}"`, 'post twitter title');
-html = replaceOnce(html, `id="twitter-description" content="Treasury yield curve daily analysis"`, `id="twitter-description" content="${metaDescription}"`, 'post twitter description');
-html = replaceOnce(html, `id="twitter-image" content="https://yieldwatch.io/og/og.png"`, `id="twitter-image" content="${ogImageUrl}"`, 'post twitter image');
-html = replaceOnce(html, `id="canonical-url" href="https://yieldwatch.io/blog/"`, `id="canonical-url" href="${blogUrl}"`, 'post canonical');
-
-// Breadcrumb schema: parse, update the leaf, then re-serialize so the final
-// ListItem points at the post itself instead of the blog index.
-const breadcrumbSchemaMatch = html.match(/id="breadcrumb-schema">([\s\S]*?)<\/script>/);
-if (breadcrumbSchemaMatch) {
-  try {
-    const breadcrumb = JSON.parse(breadcrumbSchemaMatch[1]);
-    const items = breadcrumb.itemListElement;
-    if (Array.isArray(items) && items.length > 0) {
-      const leaf = items[items.length - 1];
-      leaf.name = `${dateStr} Summary`;
-      leaf.item = blogUrl;
+// Chart data + renderer, inline so the static page needs no framework bundle.
+const chartScript = `const POST_RATES = ${inlineJson(rates)};
+const CHART_COLORS = ${inlineJson(CHART_COLORS)};
+function renderChart(rates, colors) {
+  const ctx = document.getElementById('yieldChart').getContext('2d');
+  const chartCanvas = document.getElementById('yieldChart');
+  const lineGradient = ctx.createLinearGradient(0, 0, chartCanvas.width, 0);
+  lineGradient.addColorStop(0, '#2a2a3a');
+  lineGradient.addColorStop(1, '#f0f0f5');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: rates.map(r => r.maturity),
+      datasets: [{
+        label: 'Yield',
+        data: rates.map(r => r.rate),
+        borderColor: lineGradient,
+        backgroundColor: 'transparent',
+        borderWidth: 3,
+        fill: false,
+        tension: 0.4,
+        pointRadius: 6,
+        pointBackgroundColor: colors,
+        pointBorderColor: '#fff',
+        pointBorderWidth: 1,
+        pointHoverRadius: 7,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(22, 22, 31, 0.95)',
+          titleColor: '#f0f0f5',
+          bodyColor: '#a0a0b0',
+          borderColor: '#2a2a3a',
+          borderWidth: 1,
+          padding: 12,
+          displayColors: false,
+          callbacks: { label: (ctx) => ctx.parsed.y.toFixed(2) + '%' }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(42, 42, 58, 0.5)' },
+          ticks: { color: '#606070', font: { size: 11 } }
+        },
+        y: {
+          grid: { color: 'rgba(42, 42, 58, 0.5)' },
+          ticks: {
+            color: '#606070',
+            font: { size: 11 },
+            callback: (v) => v.toFixed(2) + '%'
+          }
+        }
+      }
     }
-    html = html.replace(
-      breadcrumbSchemaMatch[0],
-      `id="breadcrumb-schema">\n  ${inlineJson(breadcrumb)}\n  </script>`
-    );
-  } catch (err) {
-    console.warn(`Invalid breadcrumb JSON-LD for ${date}:`, err);
-  }
+  });
 }
-
-// Article JSON-LD.
-html = replaceOnce(html,
-  '</head>',
-  `<script type="application/ld+json">\n  ${inlineJson(articleSchema)}\n  </script>\n</head>`,
-  'post article schema'
-);
-
-// Swap the loading placeholder for the pre-rendered article.
-html = replaceOnce(html,
-  '<div id="content">\n      <div class="loading">Loading summary...</div>\n    </div>',
-  `<div id="content">${articleContent}</div>`,
-  'post content'
-);
-
-// Inject this post's rates for the template's chart renderer.
-html = replaceOnce(html,
-  '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>',
-  `<script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>
-  <script>const POST_RATES = ${inlineJson(rates)};</script>`,
-  'post chart data'
-);
+renderChart(POST_RATES, POST_RATES.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]));`;
 ---
-<Fragment set:html={html} />
+
+<BaseLayout
+  title={pageTitle}
+  description={metaDescription}
+  canonical={blogUrl}
+  robots="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+  ogTitle={headline}
+  ogDescription={metaDescription}
+  ogImage={ogImageUrl}
+  ogImageAlt={ogImageAlt}
+  ogType="article"
+  schema={articleSchema}
+  active="blog"
+  mainClass="container"
+>
+  <Fragment slot="head">
+    <meta name="theme-color" content="#6366f1" />
+    <meta property="article:published_time" content={`${date}T20:00:00Z`} />
+    <meta property="article:modified_time" content={`${date}T20:00:00Z`} />
+    <meta property="article:author" content="YieldWatch" />
+    <meta property="article:section" content="Market Analysis" />
+    <meta property="article:tag" content="Treasury" />
+    <meta property="article:tag" content="Yield Curve" />
+    <script is:inline type="application/ld+json" set:html={inlineJson(breadcrumb)}></script>
+  </Fragment>
+
+  <style is:global>
+    .back-link { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; margin-bottom: 2rem; transition: color 0.2s; }
+    .back-link:hover { color: var(--accent); }
+    .post-header { text-align: center; margin-bottom: 2.5rem; }
+    .post-date { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+    .post-title { font-size: 1.5rem; font-weight: 600; color: var(--text-primary); }
+    .blog-content { margin-bottom: 2.5rem; }
+    .blog-summary { font-size: 1.1rem; line-height: 1.8; color: var(--text-primary); }
+    .blog-summary p { margin-bottom: 1.25rem; }
+    .blog-summary p:last-child { margin-bottom: 0; }
+    .post-nav { display: flex; justify-content: space-between; gap: 1rem; margin: 2rem 0; padding-top: 1.5rem; border-top: 1px solid var(--border-color); }
+    .post-nav-link { color: var(--accent); text-decoration: none; font-size: 0.95rem; padding: 0.5rem 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); }
+    .post-nav-link:hover { border-color: var(--accent); }
+    .post-nav-spacer { flex: 0 0 auto; }
+    .related-summaries { margin: 2rem 0; padding: 1.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; }
+    .related-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; }
+    .related-list { list-style: none; padding: 0; margin: 0; }
+    .related-list li { margin-bottom: 0.5rem; }
+    .related-list a { color: var(--accent); text-decoration: none; font-size: 0.95rem; }
+    .related-list a:hover { text-decoration: underline; }
+    .related-archive { margin-top: 1rem; }
+    .related-archive a { color: var(--accent); }
+    .chart-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem; }
+    .chart-title { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+    .chart-wrapper { position: relative; height: 300px; }
+    .rates-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; margin-top: 1.5rem; }
+    .rate-item { background: var(--bg-tertiary); border-radius: 8px; padding: 0.75rem; text-align: center; }
+    .rate-maturity { font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.25rem; }
+    .rate-value { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+    @media (max-width: 768px) {
+      .chart-wrapper { height: 250px; }
+      .rates-grid { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
+    }
+  </style>
+
+  <a href="/blog/" class="back-link">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <path d="M19 12H5M12 19l-7-7 7-7" />
+    </svg>
+    Back to summaries
+  </a>
+
+  <article>
+    <header class="post-header">
+      <p class="post-date">{dateStr}</p>
+      <h1 class="post-title">{articleH1}</h1>
+    </header>
+
+    <div class="blog-content blog-summary" set:html={formatBlogSummary(blogSummary)} />
+
+    {(prevDate || nextDate) && (
+      <nav class="post-nav" aria-label="Adjacent daily summaries">
+        {prevDate
+          ? <a class="post-nav-link" rel="prev" href={`/blog/${prevDate}/`}>&larr; {linkLabel(prevDate)}</a>
+          : <span class="post-nav-spacer" />}
+        {nextDate
+          ? <a class="post-nav-link" rel="next" href={`/blog/${nextDate}/`}>{linkLabel(nextDate)} &rarr;</a>
+          : <span class="post-nav-spacer" />}
+      </nav>
+    )}
+
+    <section class="chart-section">
+      <h2 class="chart-title">Yield Curve</h2>
+      <div class="chart-wrapper">
+        <canvas id="yieldChart"></canvas>
+      </div>
+      <div class="rates-grid">
+        {rates.map((r, i) => (
+          <div class="rate-item" style={`border-top: 3px solid ${CHART_COLORS[i % CHART_COLORS.length]}`}>
+            <div class="rate-maturity">{r.maturity}</div>
+            <div class="rate-value">{r.rate.toFixed(2)}%</div>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    {related.length > 0 && (
+      <section class="related-summaries" aria-label="Related daily summaries">
+        <h2 class="related-title">More Treasury yield daily summaries</h2>
+        <ul class="related-list">
+          {related.map(p => (
+            <li><a href={`/blog/${p.date}/`}>{p.headline}</a></li>
+          ))}
+        </ul>
+        <p class="related-archive"><a href="/blog/archive/">Browse the complete archive of every daily summary</a></p>
+      </section>
+    )}
+  </article>
+
+  <script is:inline src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>
+  <script is:inline set:html={chartScript} />
+</BaseLayout>
