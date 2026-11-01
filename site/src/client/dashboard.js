@@ -273,8 +273,8 @@ import { CHART_COLORS, MATURITY_ORDER } from '../lib/maturities';
       setLoading(true);
 
       try {
-        const RANGE_FILES = { '3m': '/api/rates/3m.json', '6m': '/api/rates/6m.json', '1y': '/api/rates/1y.json', '2y': '/api/rates/2y.json', '5y': '/api/rates/5y.json', 'all': '/api/rates/all.json' };
-        const response = await fetch(RANGE_FILES[requestedRange] || '/api/rates/all.json');
+        const RANGE_FILES = { '3m': '/api/rates/3m.json', '6m': '/api/rates/6m.json', '1y': '/api/rates/1y.json', '2y': '/api/rates/2y.json', '5y': '/api/rates/5y.json', 'all': '/api/rates.json' };
+        const response = await fetch(RANGE_FILES[requestedRange] || '/api/rates.json');
         if (!response.ok) throw new Error(`History request failed: ${response.status}`);
         const data = await response.json();
 
@@ -639,7 +639,7 @@ import { CHART_COLORS, MATURITY_ORDER } from '../lib/maturities';
           },
           execute: async ({ from, to, maturity, limit = 500 }) => {
             // Static snapshots cannot honor query strings, so filter locally.
-            const response = await fetch('/api/rates/all.json');
+            const response = await fetch('/api/rates.json');
             if (!response.ok) throw new Error(`Rates request failed: ${response.status}`);
             const payload = await response.json();
             const max = Math.min(Math.max(Number(limit) || 500, 1), 2000);

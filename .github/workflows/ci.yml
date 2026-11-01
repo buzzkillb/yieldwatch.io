@@ -22,6 +22,10 @@ jobs:
         working-directory: api
         run: bun install --frozen-lockfile
 
+      - name: Verify tenor config matches the site
+        working-directory: api
+        run: npm run check:maturities
+
       - name: Typecheck
         working-directory: api
         run: bunx tsc --noEmit

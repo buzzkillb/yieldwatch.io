@@ -231,7 +231,7 @@ const app = new Elysia()
           const keyRates = ratesData
             .filter(r => ['4WK', '2YR', '10YR', '30YR'].includes(r.maturity))
             .map(r => `${r.maturity === '4WK' ? '4-week' : r.maturity.replace('YR', '-year')} Treasury ${(r.maturity === '4WK' ? 'bill rate' : 'yield')} at ${Number(r.rate).toFixed(2)} percent`);
-          const dateFormatted = new Date(latestDate + 'T00:00:00').toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' });
+          const dateFormatted = new Date(latestDate + 'T00:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' });
           const seoBlock = `<section id="seo-static-rates" aria-label="Current Treasury rates summary">
   <h1 style="position:absolute;left:-9999px;">Current U.S. Treasury Yield Curve Rates</h1>
   <p style="position:absolute;left:-9999px;">U.S. Treasury yield curve rates for ${dateFormatted}: ${keyRates.join(', ')}. The full Treasury yield curve with 35+ years of historical data is available on this dashboard and in our daily summaries.</p>
@@ -341,7 +341,7 @@ const app = new Elysia()
       }
 
       const blogSummary = blogData[0].blogSummary || blogData[0].summary;
-      const dateFormatted = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
+      const dateFormatted = new Date(date + 'T00:00:00Z').toLocaleDateString('en-US', {
         timeZone: 'UTC',
         year: 'numeric',
         month: 'long',
@@ -440,7 +440,7 @@ const app = new Elysia()
         .orderBy(asc(schema.dailySummaries.date))
         .limit(5);
 
-      const linkLabel = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('en-US', {
+      const linkLabel = (d: string) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-US', {
         timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric',
       });
 

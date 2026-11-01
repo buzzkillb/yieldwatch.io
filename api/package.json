@@ -10,7 +10,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "scheduler": "bun run src/services/scheduler.ts",
-    "seed": "bun run src/services/seed.ts"
+    "seed": "bun run src/services/seed.ts",
+    "sync:maturities": "node scripts/sync-maturities.mjs",
+    "check:maturities": "node scripts/sync-maturities.mjs --check"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.0.0",

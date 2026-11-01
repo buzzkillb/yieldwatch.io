@@ -421,9 +421,9 @@ async function warmQueryCache(): Promise<void> {
   const periods = [
     { from: getDateMonthsAgo(3), to: today, name: '3M' },
     { from: getDateMonthsAgo(6), to: today, name: '6M' },
-    { from: getDateMonthsAgo(1), to: today, name: '1Y' },
-    { from: getDateMonthsAgo(2), to: today, name: '2Y' },
-    { from: getDateMonthsAgo(5), to: today, name: '5Y' },
+    { from: getDateMonthsAgo(12), to: today, name: '1Y' },
+    { from: getDateMonthsAgo(24), to: today, name: '2Y' },
+    { from: getDateMonthsAgo(60), to: today, name: '5Y' },
     { from: '1990-01-01', to: today, name: 'ALL' },
   ];
 
@@ -446,9 +446,13 @@ async function warmQueryCache(): Promise<void> {
 }
 
 function getDateMonthsAgo(months: number): string {
-  const date = new Date();
-  date.setMonth(date.getMonth() - months);
-  return date.toISOString().split('T')[0];
+  const now = new Date();
+  // Clamp the day to the last valid day of the target month so subtracting a
+  // month from the 31st does not roll forward into the following month.
+  const target = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - months, 1));
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(now.getUTCDate(), lastDay));
+  return target.toISOString().split('T')[0];
 }
 
 async function checkAndUpdate(): Promise<void> {
