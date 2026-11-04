@@ -39,75 +39,206 @@
       50% { opacity: 0.3; }
     }
 
-    .rates-section {
-      position: relative;
-      margin-bottom: 2rem;
+    .hero {
+      margin: 0 0 1.75rem;
     }
 
-    .rates-scroll-hint {
-      display: none;
-    }
-
-    .rates-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
+    .hero-eyebrow {
+      display: flex;
+      align-items: center;
       gap: 0.5rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.8rem;
     }
 
-    .rate-card {
-      background: var(--bg-card);
+    .hero-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.14);
+    }
+
+    .hero-sep {
+      opacity: 0.5;
+    }
+
+    .hero-title {
+      font-size: clamp(2rem, 4.2vw, 2.75rem);
+      line-height: 1.15;
+      font-weight: 650;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.85rem;
+      background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero-lede {
+      max-width: 760px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 1.35rem;
+      font-size: 1rem;
+    }
+
+    .hero-lede a {
+      color: var(--accent);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.65rem;
+    }
+
+    .metric {
+      position: relative;
+      background: linear-gradient(160deg, var(--bg-card), var(--bg-tertiary));
       border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 0.6rem 0.4rem;
-      text-align: center;
-      transition: all 0.2s ease;
-      cursor: pointer;
-      user-select: none;
+      border-radius: 12px;
+      padding: 0.85rem 0.95rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      overflow: hidden;
     }
 
-    .rate-card:hover {
-      border-color: var(--accent);
-      transform: translateY(-2px);
-    }
-
-    .rate-sparkline {
+    .metric::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
-      height: 22px;
-      margin-top: 0.3rem;
-      display: block;
+      height: 2px;
+      background: var(--metric-accent, var(--accent));
+      opacity: 0.75;
+    }
+
+    .metric-label {
+      font-size: 0.68rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .metric-value {
+      font-size: 1.4rem;
+      font-weight: 650;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
+    }
+
+    .metric-delta {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-delta.up {
+      color: #f87171;
+    }
+
+    .metric-delta.down {
+      color: #4ade80;
+    }
+
+    .curve-section {
+      margin: 2rem 0 1rem;
+      background: linear-gradient(145deg, var(--bg-card), var(--bg-tertiary));
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.4rem 1.5rem;
+    }
+
+    .curve-head h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+
+    .curve-head p {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      line-height: 1.55;
+      margin-bottom: 1rem;
+      max-width: 760px;
+    }
+
+    .curve-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .curve-table thead th {
+      text-align: left;
+      padding: 0.45rem 0.6rem;
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .curve-table thead th:nth-child(2),
+    .curve-table thead th:nth-child(3) {
+      text-align: right;
+    }
+
+    .curve-table tbody th {
+      text-align: left;
+      font-weight: 500;
+      color: var(--text-secondary);
+      padding: 0.42rem 0.6rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+    }
+
+    .curve-table tbody td {
+      padding: 0.42rem 0.6rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+    }
+
+    .curve-table tbody tr:last-child th,
+    .curve-table tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .curve-table .curve-yield {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-primary);
+      font-weight: 550;
+    }
+
+    .curve-table .curve-trend {
+      text-align: right;
+      width: 130px;
+    }
+
+    .curve-table .curve-trend svg {
+      width: 110px;
+      height: 20px;
+      display: inline-block;
+      vertical-align: middle;
       opacity: 0.9;
     }
 
-    .rate-card:focus {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
+    .curve-note {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      margin-top: 1rem;
+      max-width: 760px;
     }
 
-    .rate-card.inactive {
-      opacity: 0.4;
-    }
-
-    .rate-card.inactive::after {
-      content: '';
-      display: block;
-      width: 60%;
-      height: 1px;
-      background: var(--text-muted);
-      margin: 0.25rem auto 0;
-    }
-
-    .rate-card .maturity {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.15rem;
-    }
-
-    .rate-card .rate {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text-primary);
+    .curve-note a {
+      color: var(--accent);
     }
 
     .daily-summary-container {
@@ -452,12 +583,6 @@
         gap: 1rem;
       }
 
-      
-      .rates-section {
-        position: relative;
-      }
-
-      
       #dataSubtitle {
         font-size: 0.8rem;
         color: var(--text-secondary);
@@ -475,21 +600,24 @@
       }
 
       
-      .rates-grid {
-        grid-template-columns: repeat(3, 1fr);
-        overflow-x: auto;
-        padding-bottom: 0.5rem;
-        scroll-snap-type: x mandatory;
-        -webkit-overflow-scrolling: touch;
+      .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
-      
-      .rate-card {
-        scroll-snap-align: start;
-        min-width: 70px;
+      .curve-section {
+        padding: 1.1rem 1rem;
+        border-radius: 12px;
       }
 
-      
+      .curve-table .curve-trend {
+        width: 84px;
+      }
+
+      .curve-table .curve-trend svg {
+        width: 72px;
+        height: 18px;
+      }
+
       .chart-wrapper {
         height: 350px;
       }
@@ -512,18 +640,40 @@
         display: block;
       }
 
-      
-      .rates-grid {
-        grid-template-columns: repeat(2, 1fr);
+      .hero-source,
+      .hero-sep {
+        display: none;
       }
 
-      
-      .rate-card .maturity {
-        font-size: 0.75rem;
+      .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
       }
 
-      
-      .rate-card .rate {
-        font-size: 0.9rem;
+      .metric {
+        padding: 0.7rem 0.8rem;
+      }
+
+      .metric-value {
+        font-size: 1.2rem;
+      }
+
+      .curve-table {
+        font-size: 0.82rem;
+      }
+
+      .curve-table thead th,
+      .curve-table tbody th,
+      .curve-table tbody td {
+        padding-left: 0.35rem;
+        padding-right: 0.35rem;
+      }
+
+      .curve-table .curve-trend {
+        width: 64px;
+      }
+
+      .curve-table .curve-trend svg {
+        width: 54px;
       }
 }

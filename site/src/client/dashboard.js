@@ -160,38 +160,8 @@ import { CHART_COLORS, MATURITY_ORDER } from '../lib/maturities';
       }
 
       const ratesContainer = document.getElementById('ratesContainer');
-      ratesContainer.innerHTML = `
-        <div class="rates-section">
-          <div class="rates-grid" id="ratesGrid" role="group" aria-label="Treasury yield rates by maturity"></div>
-        </div>
-      `;
-      const grid = document.getElementById('ratesGrid');
+      if (ratesContainer) ratesContainer.innerHTML = '';
 
-      MATURITY_ORDER.forEach((maturity) => {
-        const rate = latestRates[maturity];
-        if (rate !== undefined) {
-          const card = document.createElement('div');
-          card.className = 'rate-card';
-          card.dataset.maturity = maturity;
-          card.tabIndex = 0;
-          card.setAttribute('role', 'button');
-          card.setAttribute('aria-pressed', activeMaturities.has(maturity) ? 'true' : 'false');
-          card.setAttribute('aria-label', `Toggle ${maturity} rate ${rate.toFixed(2)}%`);
-          card.innerHTML = `
-            <div class="maturity" aria-hidden="true">${maturity}</div>
-            <div class="rate">${rate.toFixed(2)}%</div>
-          `;
-          card.onclick = () => toggleMaturity(maturity);
-          card.onkeydown = (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              toggleMaturity(maturity);
-            }
-          };
-          grid.appendChild(card);
-        }
-      });
-      
       announceToScreenReader('Yield rates loaded successfully');
     }
 
@@ -229,15 +199,16 @@ import { CHART_COLORS, MATURITY_ORDER } from '../lib/maturities';
 
     function renderSparklines() {
       for (const maturity of Object.keys(latestRates)) {
-        const card = document.querySelector('.rate-card[data-maturity="' + maturity + '"]');
-        if (!card) continue;
-        const old = card.querySelector('.rate-sparkline');
-        if (old) old.remove();
+        const row = document.querySelector(`#full-curve tr[data-maturity="${maturity}"]`);
+        const cell = row ? row.querySelector('.curve-trend') : null;
+        if (!cell) continue;
+        cell.innerHTML = '';
         const pts = sparklineData[maturity];
         if (!pts || pts.length < 2) continue;
-        // end dot color: green if rate fell over the window, red if it rose
+        // series line matches the chart; the end dot flags direction
         const first = pts[0][1], last = pts[pts.length - 1][1];
-        const color = last < first ? '#22c55e' : '#ef4444';
+        const color = CHART_COLORS[MATURITY_ORDER.indexOf(maturity)] ?? '#ef4444';
+        const dirColor = last < first ? '#22c55e' : '#ef4444';
         const w = 120, h = 22;
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         svg.setAttribute('class', 'rate-sparkline');
@@ -255,14 +226,14 @@ import { CHART_COLORS, MATURITY_ORDER } from '../lib/maturities';
         dot.setAttribute('cx', String(w - 1));
         dot.setAttribute('cy', endY.toFixed(1));
         dot.setAttribute('r', '2');
-        dot.setAttribute('fill', color);
+        dot.setAttribute('fill', dirColor);
         svg.appendChild(dot);
         // title tooltip: change over window
         const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
         const diff = last - first;
         title.textContent = '3-month change: ' + (diff >= 0 ? '+' : '') + diff.toFixed(2) + '%';
         svg.appendChild(title);
-        card.appendChild(svg);
+        cell.appendChild(svg);
       }
     }
 
@@ -548,11 +519,6 @@ import { CHART_COLORS, MATURITY_ORDER } from '../lib/maturities';
       if (dataset) {
         dataset.hidden = wasActive;
       }
-
-      document.querySelectorAll(`.rate-card[data-maturity="${maturity}"]`).forEach(card => {
-        card.classList.toggle('inactive', wasActive);
-        card.setAttribute('aria-pressed', wasActive ? 'false' : 'true');
-      });
 
       document.querySelectorAll(`.legend-item[data-maturity="${maturity}"]`).forEach(item => {
         item.classList.toggle('inactive', wasActive);

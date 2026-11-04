@@ -4,11 +4,12 @@
 // a raw HTML template patched with string anchors. Chart history reads the
 // pre-generated static range snapshots.
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { buildSeoBlock, latestDay, SITE_URL } from '../lib/site';
+import { buildCurveTable, buildSeoBlock, latestDay, SITE_URL } from '../lib/site';
 import '../styles/dashboard.css';
 
 const latest = latestDay();
 const seoBlock = latest ? buildSeoBlock(latest) : '';
+const curveTable = latest ? buildCurveTable(latest) : '';
 
 const description = 'Track U.S. Treasury yield curve with 35+ years of historical data. Monitor interest rates from 4-week bills to 30-year bonds updated daily.';
 
@@ -72,12 +73,7 @@ const schema = {
 
   <Fragment set:html={seoBlock} />
 
-  <div id="ratesContainer" role="region" aria-label="Current yield rates">
-    <div class="loading" role="status" aria-label="Loading rates">
-      <div class="loading-spinner" aria-hidden="true"></div>
-      <span>Loading yield curve data...</span>
-    </div>
-  </div>
+  <div id="ratesContainer" role="region" aria-label="Current yield rates"></div>
 
   <div class="daily-summary-container">
     <div class="daily-summary-header">
@@ -113,6 +109,8 @@ const schema = {
     </div>
     <div class="legend-container" id="legendContainer" role="group" aria-label="Chart legend - click to toggle series"></div>
   </div>
+
+  <Fragment set:html={curveTable} />
 
   <section id="how-it-works" aria-labelledby="how-it-works-heading" style="margin:2.5rem 0 1rem;max-width:820px;">
     <h2 id="how-it-works-heading" style="font-size:1.4rem;margin:0 0 0.6rem;color:var(--text-primary,#f0f0f5);">How YieldWatch works</h2>

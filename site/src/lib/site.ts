@@ -2,7 +2,7 @@
 // Single source of truth: src/data/*.json (updated daily by scripts/daily-update.mjs).
 import ratesJson from '../data/rates.json';
 import summariesJson from '../data/summaries.json';
-import { maturityLabel, maturityRank } from './maturities';
+import { CHART_COLORS, MATURITY_ORDER, maturityLabel, maturityRank } from './maturities';
 
 // Chart palette lives in ./maturities so the dashboard client and the build
 // scripts read the same values.
@@ -93,23 +93,95 @@ export function buildSeoBlock(day: RateDay): string {
   const sorted = [...day.rates].sort(
     (a, b) => maturityRank(a.maturity) - maturityRank(b.maturity)
   );
-  const keyRates = ['4WK', '2YR', '10YR', '30YR']
-    .map(m => sorted.find(r => r.maturity === m))
-    .filter((r): r is { maturity: string; rate: number } => Boolean(r))
-    .map(r => `${label(r.maturity)} at ${r.rate.toFixed(2)} percent`);
+  const byMaturity = new Map(sorted.map(r => [r.maturity, r.rate]));
   const formatted = dateFormatted(day.date);
-  const rows = sorted.map(r => `      <tr><td style="padding:0.4rem 0.75rem;border-bottom:1px solid var(--border-color,#2a2a3a);">${label(r.maturity)}</td><td style="padding:0.4rem 0.75rem;border-bottom:1px solid var(--border-color,#2a2a3a);text-align:right;font-variant-numeric:tabular-nums;">${r.rate.toFixed(2)}%</td></tr>`).join('\n');
-  return `<section id="seo-static-rates" aria-label="Current Treasury rates summary" style="margin-bottom:1.75rem;">
-  <h1 style="font-size:2rem;line-height:1.25;font-weight:600;margin-bottom:0.75rem;background:linear-gradient(135deg,var(--text-primary,#f0f0f5),var(--accent,#6366f1));-webkit-background-clip:text;background-clip:text;color:transparent;">U.S. Treasury Yield Curve Rates</h1>
-  <p style="color:var(--text-secondary,#a0a0b0);margin-bottom:0.9rem;max-width:760px;">Latest published U.S. Treasury par yield curve rates for ${formatted}: ${keyRates.join(', ')}. The table below lists the full curve published by the U.S. Department of the Treasury.</p>
-  <table style="border-collapse:collapse;width:100%;max-width:640px;margin:0 0 1rem;font-size:0.95rem;">
-    <caption style="text-align:left;color:var(--text-muted,#606070);font-size:0.85rem;padding-bottom:0.35rem;">Treasury par yield curve rates, ${formatted}</caption>
-    <thead><tr><th scope="col" style="text-align:left;padding:0.4rem 0.75rem;border-bottom:1px solid var(--border-color,#2a2a3a);">Maturity</th><th scope="col" style="text-align:right;padding:0.4rem 0.75rem;border-bottom:1px solid var(--border-color,#2a2a3a);">Yield</th></tr></thead>
+
+  // Previous published day, used only for a neutral day-over-day delta.
+  const idx = RATES.findIndex(d => d.date === day.date);
+  const prev = idx > 0 ? RATES[idx - 1] : null;
+  const prevByMaturity = new Map(
+    (prev?.rates ?? []).map(r => [r.maturity, r.rate])
+  );
+
+  const delta = (maturity: string): string => {
+    const current = byMaturity.get(maturity);
+    const previous = prevByMaturity.get(maturity);
+    if (current === undefined || previous === undefined) return '';
+    const bp = Math.round((current - previous) * 100);
+    if (bp === 0) return '<span class="metric-delta">unchanged</span>';
+    const dir = bp > 0 ? 'up' : 'down';
+    return `<span class="metric-delta ${dir}">${bp > 0 ? '+' : ''}${bp} bp</span>`;
+  };
+
+  const two = byMaturity.get('2YR');
+  const ten = byMaturity.get('10YR');
+  const thirty = byMaturity.get('30YR');
+  const spread = two !== undefined && ten !== undefined ? ten - two : null;
+  const prevTwo = prevByMaturity.get('2YR');
+  const prevTen = prevByMaturity.get('10YR');
+  const prevSpread = prevTwo !== undefined && prevTen !== undefined ? prevTen - prevTwo : null;
+
+  const tiles: { maturity: string; label: string; value: string; accent: string; delta: string }[] = [];
+  const accentFor = (m: string) => CHART_COLORS[MATURITY_ORDER.indexOf(m)] ?? '#6366f1';
+  if (ten !== undefined) tiles.push({ maturity: '10YR', label: '10-year', value: `${ten.toFixed(2)}%`, accent: accentFor('10YR'), delta: delta('10YR') });
+  if (two !== undefined) tiles.push({ maturity: '2YR', label: '2-year', value: `${two.toFixed(2)}%`, accent: accentFor('2YR'), delta: delta('2YR') });
+  if (thirty !== undefined) tiles.push({ maturity: '30YR', label: '30-year', value: `${thirty.toFixed(2)}%`, accent: accentFor('30YR'), delta: delta('30YR') });
+  if (spread !== null) {
+    const spreadBp = prevSpread !== null ? Math.round((spread - prevSpread) * 100) : null;
+    const spreadDelta = spreadBp === null
+      ? ''
+      : spreadBp === 0
+        ? '<span class="metric-delta">unchanged</span>'
+        : `<span class="metric-delta ${spreadBp > 0 ? 'up' : 'down'}">${spreadBp > 0 ? '+' : ''}${spreadBp} bp</span>`;
+    tiles.push({ maturity: '2YR-10YR', label: '2Y-10Y spread', value: `${spread >= 0 ? '+' : ''}${spread.toFixed(2)} pts`, accent: '#6366f1', delta: spreadDelta });
+  }
+
+  const tileMarkup = tiles.map(t => `    <div class="metric" role="listitem" style="--metric-accent:${t.accent}">
+      <span class="metric-label">${t.label}</span>
+      <span class="metric-value">${t.value}</span>
+      ${t.delta}
+    </div>`).join('\n');
+
+  const keyRates = ['2YR', '10YR', '30YR']
+    .filter(m => byMaturity.has(m))
+    .map(m => `${label(m)} at ${byMaturity.get(m)!.toFixed(2)} percent`);
+
+  return `<section id="seo-static-rates" class="hero" aria-label="Current Treasury rates summary">
+  <p class="hero-eyebrow"><span class="hero-dot" aria-hidden="true"></span><span class="hero-source">Official U.S. Treasury data</span><span class="hero-sep" aria-hidden="true">·</span><span>${formatted}</span></p>
+  <h1 class="hero-title">U.S. Treasury Yield Curve Rates</h1>
+  <p class="hero-lede">Latest published par yield curve rates: ${keyRates.join(', ')}${spread !== null ? `, and a 2Y-10Y spread of ${spread >= 0 ? '+' : ''}${spread.toFixed(2)} points` : ''}. The full curve and 35+ years of history are below.</p>
+  <div class="metric-grid" role="list" aria-label="Key Treasury yields">
+${tileMarkup}
+  </div>
+</section>`;
+}
+
+// Full curve table, rendered below the chart so the homepage opens with the
+// key yields and the visual curve instead of a wall of 14 rows.
+export function buildCurveTable(day: RateDay): string {
+  const label = maturityLabel;
+  const sorted = [...day.rates].sort(
+    (a, b) => maturityRank(a.maturity) - maturityRank(b.maturity)
+  );
+  const formatted = dateFormatted(day.date);
+  const rows = sorted.map(r => `      <tr data-maturity="${r.maturity}">
+        <th scope="row">${label(r.maturity)}</th>
+        <td class="curve-yield">${r.rate.toFixed(2)}%</td>
+        <td class="curve-trend" aria-hidden="true"></td>
+      </tr>`).join('\n');
+  return `<section id="full-curve" class="curve-section" aria-labelledby="full-curve-heading">
+  <div class="curve-head">
+    <h2 id="full-curve-heading">Full yield curve</h2>
+    <p>All 14 maturities published by the U.S. Department of the Treasury for ${formatted}. The trend column shows the 3-month direction for each tenor.</p>
+  </div>
+  <table class="curve-table">
+    <caption class="sr-only">Treasury par yield curve rates, ${formatted}</caption>
+    <thead><tr><th scope="col">Maturity</th><th scope="col">Yield</th><th scope="col">3M trend</th></tr></thead>
     <tbody>
 ${rows}
     </tbody>
   </table>
-  <p style="color:var(--text-secondary,#a0a0b0);max-width:760px;">The yield curve shows the yield on Treasury securities across maturities. An inverted curve, where short-term yields exceed long-term yields, has historically preceded economic recessions. YieldWatch tracks 35+ years of historical data and publishes a <a href="/blog/" style="color:var(--accent,#6366f1);">plain-English daily summary</a>; see the <a href="/faq/" style="color:var(--accent,#6366f1);">FAQ</a> for definitions and context.</p>
+  <p class="curve-note">An inverted curve, where short-term yields exceed long-term yields, has historically preceded economic recessions. YieldWatch publishes a <a href="/blog/">plain-English daily summary</a>; see the <a href="/faq/">FAQ</a> for definitions and context.</p>
 </section>`;
 }
 
