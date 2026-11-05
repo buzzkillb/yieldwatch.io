@@ -32,6 +32,8 @@ const schema = {
       creator: { '@type': 'Organization', name: 'YieldWatch' },
       license: 'https://home.treasury.gov',
       temporalCoverage: '1990/..',
+      dateModified: latest ? `${latest.date}T20:00:00Z` : undefined,
+      keywords: ['U.S. Treasury', 'yield curve', 'interest rates', 'par yield', '10-year Treasury', '2-year Treasury'],
       isAccessibleForFree: true,
       distribution: [
         {
@@ -67,8 +69,8 @@ const schema = {
     <meta name="keywords" content="treasury yield curve, treasury rates, interest rates, yield curve chart, 10 year treasury, 2 year treasury, treasury bonds" />
     <meta name="author" content="YieldWatch" />
     <meta name="theme-color" content="#6366f1" />
-    <script is:inline src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>
-    <script is:inline src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js" integrity="sha384-cVMg8E3QFwTvGCDuK+ET4PD341jF3W8nO1auiXfuZNQkzbUUiBGLsIQUE+b1mxws" crossorigin="anonymous"></script>
+    <script is:inline defer src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>
+    <script is:inline defer src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js" integrity="sha384-cVMg8E3QFwTvGCDuK+ET4PD341jF3W8nO1auiXfuZNQkzbUUiBGLsIQUE+b1mxws" crossorigin="anonymous"></script>
   </Fragment>
 
   <Fragment set:html={seoBlock} />
@@ -92,12 +94,12 @@ const schema = {
     <div class="chart-header">
       <h2 class="chart-title">Yield Curve Over Time</h2>
       <div class="chart-controls" role="group" aria-label="Time range selector">
-        <button id="btn3m" class="active" aria-pressed="true" aria-label="Show 3 month history">3M</button>
-        <button id="btn6m" aria-pressed="false" aria-label="Show 6 month history">6M</button>
-        <button id="btn1y" aria-pressed="false" aria-label="Show 1 year history">1Y</button>
-        <button id="btn2y" aria-pressed="false" aria-label="Show 2 year history">2Y</button>
-        <button id="btn5y" aria-pressed="false" aria-label="Show 5 year history">5Y</button>
-        <button id="btnAll" aria-pressed="false" aria-label="Show all available history">ALL</button>
+        <button id="btn3m" class="active" aria-pressed="true" aria-label="3M — show 3 month history">3M</button>
+        <button id="btn6m" aria-pressed="false" aria-label="6M — show 6 month history">6M</button>
+        <button id="btn1y" aria-pressed="false" aria-label="1Y — show 1 year history">1Y</button>
+        <button id="btn2y" aria-pressed="false" aria-label="2Y — show 2 year history">2Y</button>
+        <button id="btn5y" aria-pressed="false" aria-label="5Y — show 5 year history">5Y</button>
+        <button id="btnAll" aria-pressed="false" aria-label="ALL — show all available history">ALL</button>
       </div>
     </div>
     <div class="chart-wrapper">

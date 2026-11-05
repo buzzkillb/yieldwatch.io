@@ -43,7 +43,7 @@ export function buildHeader(active: ChromeActive = null): string {
   return `<header class="yw-header">
     <a class="yw-skip-link" href="#main-content">Skip to content</a>
     <div class="yw-header-content">
-      <a href="/" class="yw-logo" aria-label="YieldWatch home">
+      <a href="/" class="yw-logo" aria-label="Treasury Yield home">
         ${LOGO_SVG}
         <span class="yw-logo-text">Treasury Yield</span>
       </a>
