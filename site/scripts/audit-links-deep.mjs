@@ -4,7 +4,7 @@ const htmls=[]; (function w(d){for(const e of fs.readdirSync(d,{withFileTypes:tr
 const urlOf=f=>'/'+path.relative(root,f).replace(/index\.html$/,'').replace(/\.html$/,'');
 const titles=new Map(), descs=new Map(), links=new Map(), canonicals=new Map();
 for(const f of htmls){
-  const h=fs.readFileSync(f,'utf8'), u=urlOf(f);
+  const h=fs.readFileSync(f,'utf8').replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' '), u=urlOf(f);
   const t=(h.match(/<title[^>]*>([\s\S]*?)<\/title>/i)||[,''])[1].trim();
   const d=(h.match(/<meta\s+name="description"\s+content="([^"]*)"/i)||[,''])[1];
   const c=(h.match(/<link\s+rel="canonical"\s+href="([^"]*)"/i)||[,''])[1];
