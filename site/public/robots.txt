@@ -4,6 +4,13 @@ Allow: /blog/
 Allow: /og-image/
 Allow: /og.png
 Disallow: /api/
+# Longest-match Allow rules expose the small, agent-useful API documents while
+# keeping the 3.4 MB full history file out of crawler budgets.
+Allow: /api/rates/latest.json
+Allow: /api/rates/stats.json
+Allow: /api/rates/maturities.json
+Allow: /api/blog/index.json
+Allow: /api/daily-summary
 Disallow: /health
 Content-Signal: ai-train=no, search=yes, ai-input=yes
 
