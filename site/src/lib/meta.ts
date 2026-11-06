@@ -4,6 +4,7 @@
 import { SITE_URL, escapeHtml, inlineJson } from './site';
 
 export const BRAND_OG_IMAGE = `${SITE_URL}/og/og.png`;
+export const BRAND_LOGO_IMAGE = `${SITE_URL}/icon-512.png`;
 export const BRAND_OG_ALT = 'YieldWatch U.S. Treasury yield curve dashboard';
 export const OG_WIDTH = '1200';
 export const OG_HEIGHT = '630';
@@ -56,7 +57,7 @@ export function siteSchemaGraph(): string {
         '@id': `${SITE_URL}/#org`,
         name: 'YieldWatch',
         url: SITE_URL,
-        logo: { '@type': 'ImageObject', url: BRAND_OG_IMAGE },
+        logo: { '@type': 'ImageObject', url: BRAND_LOGO_IMAGE },
         description: 'Daily U.S. Treasury par yield curve rates and plain-English summaries.',
       },
       {
