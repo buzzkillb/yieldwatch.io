@@ -235,7 +235,7 @@ export function buildSitemap(): string {
     { loc: `${SITE_URL}/blog/`, lastmod: latestSummaryDate, changefreq: 'daily', priority: '0.9' },
     { loc: `${SITE_URL}/blog/archive/`, lastmod: latestSummaryDate, changefreq: 'daily', priority: '0.8' },
     { loc: `${SITE_URL}/methodology/`, lastmod: STATIC_CONTENT_UPDATED, changefreq: 'monthly', priority: '0.7' },
-    { loc: `${SITE_URL}/about/`, lastmod: STATIC_CONTENT_UPDATED, changefreq: 'monthly', priority: '0.6' },
+    { loc: `${SITE_URL}/about/`, lastmod: API_DOCS_UPDATED, changefreq: 'monthly', priority: '0.6' },
     { loc: `${SITE_URL}/api-docs/`, lastmod: API_DOCS_UPDATED, changefreq: 'weekly', priority: '0.7' },
     { loc: `${SITE_URL}/faq/`, lastmod: STATIC_CONTENT_UPDATED, changefreq: 'weekly', priority: '0.7' },
   ];

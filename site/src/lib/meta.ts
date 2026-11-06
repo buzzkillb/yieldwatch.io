@@ -59,6 +59,13 @@ export function siteSchemaGraph(): string {
         url: SITE_URL,
         logo: { '@type': 'ImageObject', url: BRAND_LOGO_IMAGE },
         description: 'Daily U.S. Treasury par yield curve rates and plain-English summaries.',
+        email: 'hello@yieldwatch.io',
+        contactPoint: {
+          '@type': 'ContactPoint',
+          contactType: 'customer support',
+          email: 'hello@yieldwatch.io',
+          url: `${SITE_URL}/about/`,
+        },
       },
       {
         '@type': 'WebSite',

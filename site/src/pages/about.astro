@@ -3,7 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { SITE_URL, latestDay, dateFormatted } from '../lib/site';
 
 const pageTitle = 'About YieldWatch | Free U.S. Treasury Yield Data';
-const pageDescription = 'YieldWatch publishes free U.S. Treasury yield curve data and plain-English daily summaries. Learn who runs the site, why it is free, and what it covers.';
+const pageDescription = 'YieldWatch publishes free U.S. Treasury yield curve data and plain-English daily summaries. Learn how it is built, why it is free, and what it covers.';
 const pageUrl = `${SITE_URL}/about/`;
 const latest = latestDay();
 const dataDate = latest ? dateFormatted(latest.date) : null;
@@ -75,6 +75,9 @@ const schema = {
     <li><strong>Visible methodology.</strong> The <a href="/methodology/">methodology page</a> explains sourcing, timing, validation, and limitations.</li>
     <li><strong>Corrections welcome.</strong> If a number or description looks wrong, tell us and we will fix it and note the change.</li>
   </ul>
+
+  <h2>Who runs it</h2>
+  <p>YieldWatch is independently built and maintained by a small engineering team. It is not affiliated with, endorsed by, or operated by the U.S. Department of the Treasury. The site is funded by its publisher and carries no advertising.</p>
 
   <h2>Who it is for</h2>
   <p>Homebuyers watching mortgage benchmarks, students learning how the yield curve works, journalists checking a rate before publication, and developers who need a free Treasury data feed. The <a href="/faq/">FAQ</a> covers definitions and common questions such as inversions and the difference between bills, notes, and bonds.</p>
