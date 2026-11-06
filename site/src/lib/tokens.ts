@@ -11,9 +11,10 @@ export const DESIGN_TOKENS = `:root {
   --border-color: #2a2a3a;
   --text-primary: #f0f0f5;
   --text-secondary: #a0a0b0;
-  --text-muted: #606070;
+  --text-muted: #8a8a9e;
   --accent: #6366f1;
-  --accent-hover: #818cf8;
+  --accent-text: #818cf8;
+  --accent-hover: #a5b4fc;
   --success: #22c55e;
   --warning: #f59e0b;
   --danger: #ef4444;

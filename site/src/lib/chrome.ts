@@ -119,7 +119,7 @@ export const CHROME_STYLE = `<style id="yw-chrome">
     transition: color 0.2s;
   }
   .yw-nav-link:hover,
-  .yw-nav-link[aria-current="page"] { color: var(--accent, #818cf8); }
+  .yw-nav-link[aria-current="page"] { color: var(--accent-text, #818cf8); }
   footer.yw-footer {
     background: linear-gradient(145deg, var(--bg-secondary, #0f0f18) 0%, var(--bg-primary, #0a0a0f) 100%);
     border-top: 1px solid var(--border-color, #2a2a3a);
@@ -129,9 +129,9 @@ export const CHROME_STYLE = `<style id="yw-chrome">
   .yw-footer-content { max-width: 1100px; margin: 0 auto; text-align: center; }
   .yw-footer-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem; }
   .yw-footer-links a { color: var(--text-secondary, #a0a0b0); text-decoration: none; font-size: 0.85rem; }
-  .yw-footer-links a:hover { color: var(--accent, #818cf8); }
-  .yw-divider { color: var(--text-muted, #606070); }
-  .yw-footer-meta { color: var(--text-muted, #606070); font-size: 0.8rem; line-height: 1.6; }
+  .yw-footer-links a:hover { color: var(--accent-text, #818cf8); }
+  .yw-divider { color: var(--text-muted, #8a8a9e); }
+  .yw-footer-meta { color: var(--text-muted, #8a8a9e); font-size: 0.8rem; line-height: 1.6; }
   @media (max-width: 720px) {
     header.yw-header { padding: 1rem; }
     .yw-header-content { flex-direction: column; align-items: flex-start; gap: 0.75rem; }

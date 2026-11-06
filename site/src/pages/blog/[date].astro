@@ -134,12 +134,12 @@ function renderChart(rates, colors) {
       scales: {
         x: {
           grid: { color: 'rgba(42, 42, 58, 0.5)' },
-          ticks: { color: '#606070', font: { size: 11 } }
+          ticks: { color: '#8a8a9e', font: { size: 11 } }
         },
         y: {
           grid: { color: 'rgba(42, 42, 58, 0.5)' },
           ticks: {
-            color: '#606070',
+            color: '#8a8a9e',
             font: { size: 11 },
             callback: (v) => v.toFixed(2) + '%'
           }
@@ -178,7 +178,7 @@ renderChart(POST_RATES, POST_RATES.map((_, i) => CHART_COLORS[i % CHART_COLORS.l
 
   <style is:global>
     .back-link { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; margin-bottom: 2rem; transition: color 0.2s; }
-    .back-link:hover { color: var(--accent); }
+    .back-link:hover { color: var(--accent-text); }
     .post-header { text-align: center; margin-bottom: 2.5rem; }
     .post-date { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; }
     .post-title { font-size: 1.5rem; font-weight: 600; color: var(--text-primary); }
@@ -187,17 +187,17 @@ renderChart(POST_RATES, POST_RATES.map((_, i) => CHART_COLORS[i % CHART_COLORS.l
     .blog-summary p { margin-bottom: 1.25rem; }
     .blog-summary p:last-child { margin-bottom: 0; }
     .post-nav { display: flex; justify-content: space-between; gap: 1rem; margin: 2rem 0; padding-top: 1.5rem; border-top: 1px solid var(--border-color); }
-    .post-nav-link { color: var(--accent); text-decoration: none; font-size: 0.95rem; padding: 0.5rem 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); }
-    .post-nav-link:hover { border-color: var(--accent); }
+    .post-nav-link { color: var(--accent-text); text-decoration: none; font-size: 0.95rem; padding: 0.5rem 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); }
+    .post-nav-link:hover { border-color: var(--accent-text); }
     .post-nav-spacer { flex: 0 0 auto; }
     .related-summaries { margin: 2rem 0; padding: 1.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; }
     .related-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; }
     .related-list { list-style: none; padding: 0; margin: 0; }
     .related-list li { margin-bottom: 0.5rem; }
-    .related-list a { color: var(--accent); text-decoration: none; font-size: 0.95rem; }
+    .related-list a { color: var(--accent-text); text-decoration: none; font-size: 0.95rem; }
     .related-list a:hover { text-decoration: underline; }
     .related-archive { margin-top: 1rem; }
-    .related-archive a { color: var(--accent); }
+    .related-archive a { color: var(--accent-text); }
     .chart-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem; }
     .chart-title { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
     .chart-wrapper { position: relative; height: 300px; }

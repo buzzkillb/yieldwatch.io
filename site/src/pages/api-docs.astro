@@ -101,6 +101,11 @@ const schema = {
       headline: pageTitle,
       description: pageDescription,
       url: pageUrl,
+      mainEntityOfPage: pageUrl,
+      datePublished: '2026-10-11',
+      dateModified: '2026-11-06',
+      author: { '@id': `${SITE_URL}/#org` },
+      publisher: { '@id': `${SITE_URL}/#org` },
       isPartOf: { '@id': `${SITE_URL}/#site` },
       about: { '@id': `${SITE_URL}/#org` },
     },
@@ -167,7 +172,7 @@ const schema = {
       font-size: 0.7rem;
       padding: 0.25rem 0.5rem;
       border-radius: 4px;
-      background: var(--accent);
+      background: #4f46e5;
       color: white;
       font-weight: 600;
     }

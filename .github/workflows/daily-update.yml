@@ -24,7 +24,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      # Pushes made with the default GITHUB_TOKEN do not trigger downstream
+      # workflows or Cloudflare's git integration. Use a PAT when available so
+      # the data commit produces a real push event and a production build.
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 
       - uses: oven-sh/setup-bun@v2
 
